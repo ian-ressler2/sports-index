@@ -24,15 +24,17 @@ const FIELD_B = [['Own 1-20', 80, 99], ['Own 21-40', 60, 79], ['Midfield', 40, 5
 const sumY = a => a.reduce((s, e) => s + e.y, 0);
 
 async function playExplorer(D, scope, host) {
+  const multi = scope.kind === 'teams';
   let n = scope.n ?? 10, kind = 'all', side = scope.side || 'for';
   const box = h('div', { class: 'stack' }); mount(host, box);
   const status = h('div', { class: 'cap' }, 'Loading games'); mount(box, h('div', { class: 'panel pad' }, h('div', { class: 'skel', style: { height: '240px' } }), status));
-  let ids; try { ids = await gameIdsFor(scope.kind, scope.id, D.season); } catch (e) { mount(host, errorEl(e, () => render(true))); return; }
+  let ids, idsBy; try { if (multi) { idsBy = await gameIdsByTeam(scope.tids, D.season); ids = [...new Set([...idsBy.values()].flat())]; } else ids = await gameIdsFor(scope.kind, scope.id, D.season); } catch (e) { mount(host, errorEl(e, () => render(true))); return; }
   if (!ids.length) { mount(host, h('div', { class: 'panel empty' }, 'No finished games yet this season.')); return; }
   const cache = new Map();
   async function ensure(list) { const need = list.filter(i => !cache.has(i)); if (need.length) { const got = await loadEvents(need, (a, b) => status.textContent = `Loading games ${a}/${b}`); for (const g of got) cache.set(g.id, g); } return list.map(i => cache.get(i)).filter(Boolean); }
   const P = scope.kind === 'player' ? D.players.get(scope.id) : null, ab = P ? (P.ab || nflAbbr(P.name)).replace(/\s/g, '') : '';
-  const mine = e => {
+  const mine = (e, tid) => {
+    if (multi) return side === 'for' ? e.o === tid : e.o !== tid;
     if (scope.kind === 'team') return side === 'for' ? e.o === scope.id : e.o !== scope.id;
     const a = (e.a || '').replace(/\s/g, '');
     if (scope.role === 'rec') return e.k === 'p' && e.tg === ab;
@@ -40,14 +42,14 @@ async function playExplorer(D, scope, host) {
     return e.k === 'r' && a.startsWith(ab);
   };
   async function draw() {
-    const list = n ? ids.slice(-n) : ids; let games;
-    try { games = await ensure(list); } catch (e) { mount(box, errorEl(e, () => render(true))); return; }
-    const all = games.flatMap(g => g.ev.filter(mine)); const A = kind === 'all' ? all : all.filter(e => kind === 'pass' ? e.k !== 'r' : e.k === 'r');
+    const lists = multi ? scope.tids.map(t => [t, n ? idsBy.get(t).slice(-n) : idsBy.get(t)]) : [[scope.id, n ? ids.slice(-n) : ids]]; let games;
+    try { games = await ensure([...new Set(lists.flatMap(l => l[1]))]); } catch (e) { mount(box, errorEl(e, () => render(true))); return; }
+    const all = lists.flatMap(([tid, l]) => l.flatMap(gid => cache.get(gid)?.ev.filter(e => mine(e, tid)) || [])); const A = kind === 'all' ? all : all.filter(e => kind === 'pass' ? e.k !== 'r' : e.k === 'r');
     const N = A.length, ypp = N ? sumY(A) / N : NaN, sr = N ? A.filter(nflSuccess).length / N * 100 : NaN, fdp = N ? A.filter(nflFirst).length / N * 100 : NaN, pr = N ? A.filter(e => e.k !== 'r').length / N * 100 : NaN;
     const tiles = [['Plays', N], ['Yds/play', fmt(ypp, 'f2')], ['Success %', fmt(sr, 'f1')], ['1st-down %', fmt(fdp, 'f1')], ['Pass %', fmt(pr, 'f1')], ['TD', A.filter(e => e.td).length], ['Turnovers', A.filter(e => e.to).length]];
     const sel = (opts, val, fn) => h('select', { class: 'sel sm', onchange: e => fn(e.target.value) }, opts.map(([v, l]) => h('option', { value: v, selected: String(v) === String(val) }, l)));
-    const ctl = h('div', { class: 'row', style: { gap: '8px', flexWrap: 'wrap' } }, sel(GAMES_OPTS, n, v => { n = +v; draw(); }), scope.kind === 'team' || scope.role === 'qb' ? segControl([['all', 'All plays'], ['pass', 'Passes'], ['run', 'Runs']], kind, v => { kind = v; draw(); }, 'sm') : null,
-      scope.kind === 'team' ? segControl([['for', 'Offense'], ['against', 'Defense']], side, v => { side = v; draw(); }, 'sm') : null);
+    const ctl = h('div', { class: 'row', style: { gap: '8px', flexWrap: 'wrap' } }, sel(GAMES_OPTS, n, v => { n = +v; draw(); }), scope.kind !== 'player' || scope.role === 'qb' ? segControl([['all', 'All plays'], ['pass', 'Passes'], ['run', 'Runs']], kind, v => { kind = v; draw(); }, 'sm') : null,
+      scope.kind !== 'player' ? segControl([['for', 'Offense'], ['against', 'Defense']], side, v => { side = v; draw(); }, 'sm') : null);
     /* down and distance grid */
     let grid = '<table class="dt"><thead><tr><th style="text-align:left">Down</th>' + DIST_B.map(b => `<th>${b[0]} yds</th>`).join('') + '<th>All</th></tr></thead><tbody>';
     for (const dn of [1, 2, 3, 4]) {
@@ -73,7 +75,7 @@ async function playExplorer(D, scope, host) {
     for (const [l, lo, hi] of FIELD_B) { const c = A.filter(e => e.yte >= lo && e.yte <= hi); ft += `<tr><td style="text-align:left">${l}</td><td>${c.length}</td><td>${c.length ? Math.round(c.filter(e => e.k !== 'r').length / c.length * 100) + '%' : '–'}</td><td>${c.length ? fmt(sumY(c) / c.length, 'f2') : '–'}</td><td>${c.length ? Math.round(c.filter(nflSuccess).length / c.length * 100) + '%' : '–'}</td><td>${c.filter(e => e.td).length}</td></tr>`; }
     ft += '</tbody></table>';
     const panel = (title, sub, body) => h('div', { class: 'panel' }, h('div', { class: 'hd' }, h('h2', {}, title), sub ? h('small', {}, sub) : null), h('div', { class: 'sc', style: { padding: '10px 12px 12px' }, html: body }));
-    mount(box, h('div', { class: 'panel pad' }, h('div', { class: 'row sb', style: { marginBottom: '8px', flexWrap: 'wrap', gap: '8px' } }, h('h2', {}, scope.kind === 'team' ? (side === 'for' ? 'Offensive tendencies' : 'What opponents do against them') : 'Play log'), h('span', { class: 'cap' }, `${games.length} games · scrimmage plays from play-by-play · success = 40/60/100% of yards to go`)), ctl),
+    mount(box, h('div', { class: 'panel pad' }, h('div', { class: 'row sb', style: { marginBottom: '8px', flexWrap: 'wrap', gap: '8px' } }, h('h2', {}, scope.kind !== 'player' ? (side === 'for' ? 'Offensive tendencies' : 'What opponents do against them') : 'Play log'), h('span', { class: 'cap' }, `${games.length} games${multi && scope.tids.length > 1 ? ' · ' + scope.tids.length + ' teams' : ''} · scrimmage plays from play-by-play · success = 40/60/100% of yards to go`)), ctl),
       h('div', { class: 'tiles', style: { gridTemplateColumns: 'repeat(auto-fit,minmax(100px,1fr))' }, html: tiles.map(([k, v]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="p">&nbsp;</div></div>`).join('') }),
       h('div', { class: 'grid2', style: { alignItems: 'start' } }, panel('Down and distance', 'pass rate shaded · plays · yards per play', grid), panel('Field position', '', ft)),
       h('div', { class: 'grid2', style: { alignItems: 'start' } }, panel('Run direction', 'carries by gap · yards per carry', gapSvg), panel('Pass map', 'attempts · completion % · yards per attempt', pmap)));
@@ -81,16 +83,14 @@ async function playExplorer(D, scope, host) {
   draw();
 }
 App.pages.charts = async function ({ q, D, el }) {
-  const tid = +q.t || 0, pid = +q.p || 0;
-  const teams = [...D.teams.values()].sort((a, b) => a.name.localeCompare(b.name));
-  const roster = tid ? [...D.players.values()].filter(p => p.tid === tid && (D.qb.has(p.id) || D.rb.has(p.id) || D.rec.has(p.id))).sort((a, b) => b.w - a.w) : [];
-  const sel = (id, opts, val, fn, ph) => h('select', { class: 'sel', id, onchange: e => fn(e.target.value) }, h('option', { value: '' }, ph), opts.map(([v, l]) => h('option', { value: v, selected: String(v) === String(val) }, l)));
-  const bar = h('div', { class: 'row', style: { gap: '10px', flexWrap: 'wrap', margin: '14px 0' } },
-    sel('ct', teams.map(t => [t.id, t.name]), tid, v => navTo('/charts', { t: v || undefined }), 'Choose a team'),
-    tid ? sel('cp', roster.map(p => [p.id, `${p.name} (${p.pos})`]), pid, v => navTo('/charts', { t: tid, p: v || undefined }), 'Whole team') : null);
+  const tids = teamsFromQ(q, D), pid = +q.p || 0, all = tids.length ? tids : [...D.teams.keys()];
+  const one = tids.length === 1 ? tids[0] : 0;
+  const roster = one ? [...D.players.values()].filter(p => p.tid === one && (D.qb.has(p.id) || D.rb.has(p.id) || D.rec.has(p.id))).sort((a, b) => b.w - a.w) : [];
+  const go = ids => navTo('/charts', { t: ids.length ? ids.join(',') : undefined });
+  const bar = h('div', { class: 'row', style: { gap: '10px', flexWrap: 'wrap', margin: '14px 0 6px' } }, teamMultiPicker(D, tids, go),
+    one ? h('select', { class: 'sel', id: 'cp', onchange: e => navTo('/charts', { t: one, p: e.target.value || undefined }) }, h('option', { value: '' }, 'Whole team'), roster.map(p => h('option', { value: p.id, selected: p.id === pid }, `${p.name} (${p.pos})`))) : null);
   const out = h('div', {});
-  mount(el, pageHead('PLAY EXPLORER', 'Play tendencies', 'Run and pass tendencies by down, distance, field position and direction, built from every scrimmage play of a team or a player.'), bar, out);
-  if (!tid) { mount(out, h('div', { class: 'panel pad' }, h('p', { class: 'muted', style: { margin: 0 } }, 'Choose a team to see how it plays on offense and what opponents do against it.'))); return; }
-  const pl = pid && D.players.get(pid); const role = pl ? (D.qb.has(pid) ? 'qb' : D.rb.has(pid) && !D.rec.has(pid) ? 'rb' : D.rec.has(pid) && !D.rb.has(pid) ? 'rec' : (D.rec.get(pid)?.tgt || 0) > (D.rb.get(pid)?.att || 0) ? 'rec' : 'rb') : '';
-  playExplorer(D, pl ? { kind: 'player', id: pid, role } : { kind: 'team', id: tid }, out);
+  mount(el, pageHead('PLAY EXPLORER', 'Play tendencies', 'Run and pass tendencies by down, distance, field position and direction, built from every scrimmage play. Starts with the whole league; pick one team, several, or a single player on one team.'), bar, tids.length ? h('div', { style: { marginBottom: '10px' } }, teamChips(D, tids, go)) : null, out);
+  const pl = one && pid && D.players.get(pid); const role = pl ? (D.qb.has(pid) ? 'qb' : D.rb.has(pid) && !D.rec.has(pid) ? 'rb' : D.rec.has(pid) && !D.rb.has(pid) ? 'rec' : (D.rec.get(pid)?.tgt || 0) > (D.rb.get(pid)?.att || 0) ? 'rec' : 'rb') : '';
+  playExplorer(D, pl ? { kind: 'player', id: pid, role } : { kind: 'teams', tids: all, n: tids.length === 0 || tids.length > 6 ? 5 : 10 }, out);
 };
