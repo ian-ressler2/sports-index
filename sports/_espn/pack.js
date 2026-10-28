@@ -154,10 +154,10 @@ function teamMultiPicker(D, selected, apply) {
   const order = SPORT.standings?.divOrder || [];
   const groups = [...new Set(teams.map(t => t.div || t.lg || 'Teams'))].sort((a, b) => (order.indexOf(a) < 0 ? 99 : order.indexOf(a)) - (order.indexOf(b) < 0 ? 99 : order.indexOf(b)) || a.localeCompare(b));
   const label = () => cur.size ? `${cur.size} team${cur.size > 1 ? 's' : ''} selected` : `All ${teams.length} teams`;
-  const btn = h('button', { class: 'btn', type: 'button', 'aria-haspopup': 'true' }, label() + ' ▾');
+  const btn = h('button', { class: 'sel', type: 'button', 'aria-haspopup': 'true', style: { minWidth: '150px', textAlign: 'left' } }, label());
   const menu = h('div', { class: 'menu', style: { display: 'none', minWidth: '320px', maxHeight: '420px' } });
   const boxes = new Map();
-  const sync = () => { btn.textContent = label() + ' ▾'; boxes.forEach((b, id) => b.checked = cur.has(id)); };
+  const sync = () => { btn.textContent = label(); boxes.forEach((b, id) => b.checked = cur.has(id)); };
   const head = h('div', { class: 'row', style: { gap: '8px', padding: '4px 6px 8px' } },
     h('button', { class: 'btn sm', type: 'button', onclick: () => { cur.clear(); sync(); } }, 'All teams'),
     h('button', { class: 'btn sm', type: 'button', onclick: () => { teams.forEach(t => cur.add(t.id)); sync(); } }, 'Select every box'),
@@ -167,7 +167,7 @@ function teamMultiPicker(D, selected, apply) {
     menu.append(h('div', { class: 'mh' }, g.toUpperCase()));
     for (const t of teams.filter(t => (t.div || t.lg || 'Teams') === g).sort((a, b) => a.name.localeCompare(b.name))) {
       const cb = h('input', { type: 'checkbox' }); cb.checked = cur.has(t.id); boxes.set(t.id, cb);
-      cb.onchange = () => { cb.checked ? cur.add(t.id) : cur.delete(t.id); btn.textContent = label() + ' ▾'; };
+      cb.onchange = () => { cb.checked ? cur.add(t.id) : cur.delete(t.id); btn.textContent = label(); };
       menu.append(h('label', { class: 'row', style: { gap: '10px', padding: '6px 10px', cursor: 'pointer', flexWrap: 'nowrap' } }, cb, h('span', { html: tbadge(D, t.id, 22) }), h('span', {}, t.name)));
     }
   }
