@@ -334,6 +334,8 @@ footer{border-top:1px solid var(--line);padding-block:22px calc(30px + env(safe-
   .ing{grid-template-columns:1fr 40px 26px}.ing .sl{grid-column:1/-1;order:3}
   .phead{flex-direction:column;align-items:flex-start}
   .tile .v{font-size:20px}
+  .lb td.rk,.lb th.rk{width:32px;min-width:32px;padding:0 3px}
+  .lb td.pl,.lb th.pl{left:32px;min-width:148px}
 }
 .navm{display:none;gap:2px;overflow-x:auto;scrollbar-width:none;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);padding:0 max(16px,env(safe-area-inset-left,0px)) 8px}
 .navm a{padding:6px 12px;border-radius:7px;color:var(--fg2);font-weight:500;white-space:nowrap}
