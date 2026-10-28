@@ -54,7 +54,6 @@ Object.assign(SPORT, {
   playerTag: p => p.pos === 'G' ? 'Goalie' : (NHL_POS[p.pos] || 'Skater'),
   teamFilters: [['East', 'Eastern Conference'], ['West', 'Western Conference']],
   loadSeason,
-  pickDefault: () => defaultSeasonFor(),
   heroCanvas: nhlHero,
   home: {
     tag: 'SHOTS · GOALS · ICE // PLAY-BY-PLAY COORDINATES',
@@ -73,12 +72,6 @@ Object.assign(SPORT, {
 });
 /* Which season is “current”: the new season starts counting in October */
 function nhlCurrentSeason() { const d = new Date(); return d.getFullYear() + (d.getMonth() >= 9 ? 1 : 0); }
-/* If the new season has barely started, open on the last full one */
-async function defaultSeasonFor() {
-  const cur = SPORT.seasons.current;
-  try { const st = await cached(`${cur}:stand`, 1800e3, () => espnStandings(cur)); const gp = Math.max(...st.map(r => r.s.gamesPlayed || 0)); if (gp >= 6) return cur; } catch (e) { return cur; }
-  return cur - 1;
-}
 
 SPORT.standings = {
   divOrder: ['Atlantic', 'Metropolitan', 'Central', 'Pacific'],

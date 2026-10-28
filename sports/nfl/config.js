@@ -78,7 +78,6 @@ Object.assign(SPORT, {
   playerTag: p => NFL_POS[p.pos] || 'Player',
   teamFilters: [['AFC', 'American Football Conference'], ['NFC', 'National Football Conference']],
   loadSeason,
-  pickDefault: () => defaultSeasonFor(),
   heroCanvas: nflHero,
   home: {
     tag: 'DOWNS · DRIVES · YARDS // PLAY-BY-PLAY TENDENCIES',
@@ -97,12 +96,6 @@ Object.assign(SPORT, {
 });
 /* The NFL season is named for the year it starts, from September */
 function nflCurrentSeason() { const d = new Date(); return d.getFullYear() - (d.getMonth() >= 8 ? 0 : 1); }
-/* If the new season has barely started, open on the last full one */
-async function defaultSeasonFor() {
-  const cur = SPORT.seasons.current;
-  try { const st = await cached(`${cur}:stand`, 1800e3, () => espnStandings(cur)); const gp = Math.max(...st.map(r => (r.s.wins || 0) + (r.s.losses || 0) + (r.s.ties || 0))); if (gp >= 2) return cur; } catch (e) { return cur; }
-  return cur - 1;
-}
 
 SPORT.standings = {
   divOrder: ['AFC East', 'AFC North', 'AFC South', 'AFC West', 'NFC East', 'NFC North', 'NFC South', 'NFC West'],

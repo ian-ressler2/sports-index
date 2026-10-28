@@ -48,7 +48,6 @@ Object.assign(SPORT, {
   playerTag: p => NBA_POS[p.pos] || 'Player',
   teamFilters: [['East', 'Eastern Conference'], ['West', 'Western Conference']],
   loadSeason,
-  pickDefault: () => defaultSeasonFor(),
   heroCanvas: nbaHero,
   home: {
     tag: 'SHOTS · RATES · COURT // PLAY-BY-PLAY COORDINATES',
@@ -67,12 +66,6 @@ Object.assign(SPORT, {
 });
 /* The new season starts counting in October */
 function nbaCurrentSeason() { const d = new Date(); return d.getFullYear() + (d.getMonth() >= 9 ? 1 : 0); }
-/* If the new season has barely started, open on the last full one */
-async function defaultSeasonFor() {
-  const cur = SPORT.seasons.current;
-  try { const st = await cached(`${cur}:stand`, 1800e3, () => espnStandings(cur)); const gp = Math.max(...st.map(r => (r.s.wins || 0) + (r.s.losses || 0))); if (gp >= 6) return cur; } catch (e) { return cur; }
-  return cur - 1;
-}
 
 SPORT.standings = {
   divOrder: ['Atlantic', 'Central', 'Southeast', 'Northwest', 'Pacific', 'Southwest'],
