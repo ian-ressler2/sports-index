@@ -53,9 +53,9 @@ async function tabOverview({ D, id, role, r, name }) {
     qual ? null : h('p', { class: 'cap', style: { marginTop: '10px' } }, `Below the qualifying minimum (${gm.qualText(D)}). Percentiles compare against qualified players.`));
   const right = [];
   if (rad.length > 2) right.push(h('div', { class: 'panel pad' }, h('div', { class: 'row sb' }, h('h2', {}, 'Shape'), h('span', { class: 'cap' }, 'percentiles, farther out is better')), h('div', { style: { maxWidth: '400px', margin: '0 auto' }, html: radar({ labels: rad.map(x => x[0]), series: [{ name, color: 'var(--acc)', vals: rad.map(x => x[1]) }] }) })));
-  right.push(h('div', { class: 'panel pad' }, h('h2', {}, 'Strengths and weaknesses'), h('div', { style: { marginTop: '10px' } }, h('div', { class: 'cap', style: { marginBottom: '8px' } }, 'AT THEIR BEST'), h('div', { html: best.length ? best.map(chip).join('') : '<span class="dim">No standout percentiles.</span>' })), h('div', { style: { marginTop: '8px' } }, h('div', { class: 'cap', style: { marginBottom: '8px' } }, 'LEAST FAVORABLE'), h('div', { html: worst.length ? worst.map(chip).join('') : '<span class="dim">No notable weak spots.</span>' }))));
+  const strengths = (h('div', { class: 'panel pad' }, h('h2', {}, 'Strengths and weaknesses'), h('div', { style: { marginTop: '10px' } }, h('div', { class: 'cap', style: { marginBottom: '8px' } }, 'AT THEIR BEST'), h('div', { html: best.length ? best.map(chip).join('') : '<span class="dim">No standout percentiles.</span>' })), h('div', { style: { marginTop: '8px' } }, h('div', { class: 'cap', style: { marginBottom: '8px' } }, 'LEAST FAVORABLE'), h('div', { html: worst.length ? worst.map(chip).join('') : '<span class="dim">No notable weak spots.</span>' }))));
   if (P.arc) { const box = h('div', { id: 'arc' }, h('div', { class: 'skel', style: { height: '200px' } })); right.push(h('div', { class: 'panel pad' }, h('div', { class: 'row sb' }, h('h2', {}, P.arc.title(role)), h('span', { class: 'cap' }, P.arc.note(role))), box)); setTimeout(() => P.arc.draw(D, id, role, box), 0); }
-  return h('div', { class: 'grid2', style: { alignItems: 'start' } }, left, h('div', { class: 'stack' }, right));
+  return h('div', { class: 'grid2', style: { alignItems: 'start' } }, h('div', { class: 'stack' }, left, strengths), h('div', { class: 'stack' }, right));
 }
 
 /* ---- Stats ---- */
