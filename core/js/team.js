@@ -7,11 +7,11 @@ App.pages.teams = async function ({ D, el }) {
   const cell = (c, s, t, i) => { const v = c.get ? c.get(s, t, i, D) : s[c.k]; return c.f ? fmt(v, c.f) : esc(v ?? ''); };
   const tbl = div => {
     const rows = by.get(div).sort((a, b) => S.sort(D.stand.get(b.id), b) - S.sort(D.stand.get(a.id), a));
-    const body = rows.map((t, i) => { const s = D.stand.get(t.id); const mark = s.divChamp ? ' <span class="pill" style="font-size:10px">DIV</span>' : (s.clinched ? ' <span class="pill" style="font-size:10px">PO</span>' : '');
+    const body = rows.map((t, i) => { const s = D.stand.get(t.id); const mark = s.divChamp ? ' <span class="pill" style="font-size:10px" title="Division leader">DIV</span>' : (s.clinched ? ' <span class="pill" style="font-size:10px" title="In playoff position">PO</span>' : '');
       return `<tr class="clk" onclick="location.hash='${tLink(t.id)}'"><td style="text-align:left"><span class="row" style="gap:8px;flex-wrap:nowrap">${tbadge(D, t.id, 22)}<b>${esc(t.name)}</b>${mark}</span></td>${S.cols.map(c => `<td>${cell(c, s, t, i)}</td>`).join('')}</tr>`; }).join('');
     return h('div', { class: 'panel' }, h('div', { class: 'hd' }, h('h2', {}, div)), h('div', { class: 'sc', style: { padding: '4px 4px 6px' }, html: `<table class="dt"><thead><tr><th style="text-align:left">Team</th>${S.cols.map(c => `<th title="${esc(c.desc || '')}">${esc(c.l)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>` }));
   };
-  const out = [pageHead('LEAGUE', 'Standings & teams', `${seasonLabel(D)}. Click a team for its profile.`), h('div', { class: 'grid2', style: { alignItems: 'start' } }, ...divs.map(tbl))];
+  const out = [pageHead('LEAGUE', 'Standings & teams', `${seasonLabel(D)}. Click a team for its profile.`), h('div', { class: 'grid2 stgrid', style: { alignItems: 'start' } }, ...divs.map(tbl))];
   if (S.scatter) {
     const sc = S.scatter, pts = [...D.stand.values()].map(s => { const t = D.teams.get(s.id); return t ? { x: sc.x(s), y: sc.y(s), color: tcol(s.id), r: 8, label: t.abbr, id: s.id, s, t } : null; }).filter(Boolean);
     const plot = scatterSVG({ pts, xlab: sc.xlab, ylab: sc.ylab, xfmt: v => v.toFixed(sc.dec ?? 1), yfmt: v => v.toFixed(sc.dec ?? 1), trend: false, labelIdx: pts.map((_, i) => i) });

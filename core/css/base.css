@@ -371,3 +371,5 @@ footer{border-top:1px solid var(--line);padding-block:22px calc(30px + env(safe-
 .grid2>*,.grid3>*,.lab2>*,.cmpgrid>*,.fx>*,.cards4>*,.leaders>*{min-width:0}
 @media (max-width:980px){.lab2,.fx,.grid2,.grid3{grid-template-columns:minmax(0,1fr)}}
 .panel .sc,.sc{overflow-x:auto;max-width:100%}
+
+@media (max-width:1560px){.stgrid{grid-template-columns:minmax(0,1fr)}}
