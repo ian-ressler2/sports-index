@@ -1,0 +1,119 @@
+{
+ "mlb": {
+  "name": "Diamond Index",
+  "short": "MLB",
+  "accent": "#ff8a4c",
+  "tagline": "Statcast, spray charts, zone maps",
+  "desc": "Baseball leaderboards, percentiles, Statcast spray charts, zone maps, compare and a stat lab.",
+  "files": [
+   "cols",
+   "data",
+   "charts_mlb",
+   "field",
+   "hero",
+   "player_tabs",
+   "team_cfg",
+   "lab_cfg",
+   "compare_cfg",
+   "charts_page",
+   "config"
+  ],
+  "theme": null
+ },
+ "nhl": {
+  "name": "Ice Index",
+  "short": "NHL",
+  "accent": "#5cc8ff",
+  "tagline": "Shot maps, goalie GSAA, special teams",
+  "desc": "Hockey leaderboards, percentiles, play-by-play shot maps, goalie value, compare and a stat lab.",
+  "files": [
+   "../_espn/espn",
+   "../_espn/pack",
+   "cols",
+   "data",
+   "hero",
+   "shots",
+   "config"
+  ],
+  "theme": {
+   "light": {
+    "acc": "#0a7fc2",
+    "acc2": "#3aa6e8",
+    "a": "#d6455d",
+    "b": "#0a7fc2",
+    "accbg": "rgba(10,127,194,.10)"
+   },
+   "dark": {
+    "acc": "#5cc8ff",
+    "acc2": "#9adcff",
+    "a": "#ff7a8c",
+    "b": "#5cc8ff",
+    "accbg": "rgba(92,200,255,.10)"
+   }
+  }
+ },
+ "nba": {
+  "name": "Court Index",
+  "short": "NBA",
+  "accent": "#ff6b57",
+  "tagline": "Shot charts, TS%, usage and ratings",
+  "desc": "Basketball leaderboards, percentiles, play-by-play shot charts, team ratings, compare and a stat lab.",
+  "files": [
+   "../_espn/espn",
+   "../_espn/pack",
+   "cols",
+   "data",
+   "hero",
+   "shots",
+   "config"
+  ],
+  "theme": {
+   "light": {
+    "acc": "#d4382c",
+    "acc2": "#ef6a4f",
+    "a": "#d4382c",
+    "b": "#1f6fb5",
+    "accbg": "rgba(212,56,44,.10)"
+   },
+   "dark": {
+    "acc": "#ff6b57",
+    "acc2": "#ff9a88",
+    "a": "#ff6b57",
+    "b": "#5aaaf0",
+    "accbg": "rgba(255,107,87,.10)"
+   }
+  }
+ },
+ "nfl": {
+  "name": "Gridiron Index",
+  "short": "NFL",
+  "accent": "#3fbf6f",
+  "tagline": "Passing, rushing, defense and play tendencies",
+  "desc": "Football leaderboards, percentiles, down-and-distance tendencies, team offense and defense, compare and a stat lab.",
+  "files": [
+   "../_espn/espn",
+   "../_espn/pack",
+   "cols",
+   "data",
+   "hero",
+   "plays",
+   "config"
+  ],
+  "theme": {
+   "light": {
+    "acc": "#1a8f4b",
+    "acc2": "#3fbf6f",
+    "a": "#c2402f",
+    "b": "#1f6fb5",
+    "accbg": "rgba(26,143,75,.10)"
+   },
+   "dark": {
+    "acc": "#3fbf6f",
+    "acc2": "#7fdca1",
+    "a": "#ff7a68",
+    "b": "#5aaaf0",
+    "accbg": "rgba(63,191,111,.10)"
+   }
+  }
+ }
+}

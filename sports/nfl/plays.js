@@ -1,0 +1,96 @@
+/* plays.js: NFL play explorer built from drive-by-drive play text (ESPN has no tracking coordinates for football) */
+SPORT.playsOf = j => (j.drives?.previous || []).concat(j.drives?.current ? [j.drives.current] : []).flatMap(d => d.plays || []);
+const RUN_GAPS = [['left end', 'LE', 'Left end'], ['left tackle', 'LT', 'Left tackle'], ['left guard', 'LG', 'Left guard'], ['up the middle', 'M', 'Middle'], ['right guard', 'RG', 'Right guard'], ['right tackle', 'RT', 'Right tackle'], ['right end', 'RE', 'Right end']];
+SPORT.leanPlay = p => {
+  const ty = p.type?.text || '', tx = p.text || ''; if (p.isPenalty || /two-point|2-pt|kneel|spike|no play/i.test(tx)) return null;
+  const k = /^Rush|Rushing Touchdown/.test(ty) ? 'r' : /^Sack/.test(ty) ? 's' : /Pass (Reception|Incompletion)|Passing Touchdown|Pass Interception|Interception/.test(ty) ? 'p' : '';
+  if (!k) return null;
+  const o = (p.teamParticipants || []).find(t => t.type === 'offense')?.id || p.start?.team?.id; if (!o || !p.start?.down) return null;
+  const a = tx.replace(/^(\([^)]*\)\s*)+/, ''), y = k === 's' ? (p.statYardage ?? 0) : (p.statYardage || 0), st = p.start, td = !!p.scoringPlay && /Touchdown/.test(ty);
+  const e = { o: +o, k, y: /Incompletion/.test(ty) ? 0 : y, d: st.down, dist: st.distance || 0, yte: st.yardsToEndzone, td: td ? 1 : 0, to: p.isTurnover || /Interception/.test(ty) ? 1 : 0, inc: /Incompletion/.test(ty) ? 1 : 0, per: p.period?.number, clk: p.clock?.displayValue, a: a.slice(0, 34) };
+  if (k === 'r') { const g = RUN_GAPS.find(x => tx.includes(x[0])); if (g) e.gap = g[1]; }
+  if (k === 'p') {
+    const m = tx.match(/pass (?:incomplete )?(short|deep)?\s?(left|middle|right)?/i); if (m) { e.dep = (m[1] || '').toLowerCase()[0] || ''; e.dir = (m[2] || '').toLowerCase()[0] || ''; }
+    const r = tx.match(/ to ([A-Z]\.\s?[A-Z][A-Za-z'’-]+)/); if (r) e.tg = r[1].replace(/\s/g, '');
+    if (!e.dep && /Passing Touchdown|Reception/.test(ty)) e.dep = (p.statYardage || 0) >= 15 ? 'd' : 's';
+    if (e.dep === 's' || e.dep === 'd') { } else if (e.dep) e.dep = e.dep === 'd' ? 'd' : 's';
+  }
+  return e;
+};
+const nflSuccess = e => e.k === 's' || e.to ? false : e.td ? true : e.d === 1 ? e.y >= .4 * e.dist : e.d === 2 ? e.y >= .6 * e.dist : e.y >= e.dist;
+const nflFirst = e => !!e.td || (e.k !== 's' && !e.to && e.y >= e.dist);
+const DIST_B = [['1-3', 1, 3], ['4-6', 4, 6], ['7-10', 7, 10], ['11+', 11, 99]];
+const FIELD_B = [['Own 1-20', 80, 99], ['Own 21-40', 60, 79], ['Midfield', 40, 59], ['Opp 21-39', 20, 39], ['Red zone', 0, 19]];
+const sumY = a => a.reduce((s, e) => s + e.y, 0);
+
+async function playExplorer(D, scope, host) {
+  let n = scope.n ?? 10, kind = 'all', side = scope.side || 'for';
+  const box = h('div', { class: 'stack' }); mount(host, box);
+  const status = h('div', { class: 'cap' }, 'Loading games'); mount(box, h('div', { class: 'panel pad' }, h('div', { class: 'skel', style: { height: '240px' } }), status));
+  let ids; try { ids = await gameIdsFor(scope.kind, scope.id, D.season); } catch (e) { mount(host, errorEl(e, () => render(true))); return; }
+  if (!ids.length) { mount(host, h('div', { class: 'panel empty' }, 'No finished games yet this season.')); return; }
+  const cache = new Map();
+  async function ensure(list) { const need = list.filter(i => !cache.has(i)); if (need.length) { const got = await loadEvents(need, (a, b) => status.textContent = `Loading games ${a}/${b}`); for (const g of got) cache.set(g.id, g); } return list.map(i => cache.get(i)).filter(Boolean); }
+  const P = scope.kind === 'player' ? D.players.get(scope.id) : null, ab = P ? (P.ab || nflAbbr(P.name)).replace(/\s/g, '') : '';
+  const mine = e => {
+    if (scope.kind === 'team') return side === 'for' ? e.o === scope.id : e.o !== scope.id;
+    const a = (e.a || '').replace(/\s/g, '');
+    if (scope.role === 'rec') return e.k === 'p' && e.tg === ab;
+    if (scope.role === 'qb') return (e.k === 'p' || e.k === 's') && a.startsWith(ab);
+    return e.k === 'r' && a.startsWith(ab);
+  };
+  async function draw() {
+    const list = n ? ids.slice(-n) : ids; let games;
+    try { games = await ensure(list); } catch (e) { mount(box, errorEl(e, () => render(true))); return; }
+    const all = games.flatMap(g => g.ev.filter(mine)); const A = kind === 'all' ? all : all.filter(e => kind === 'pass' ? e.k !== 'r' : e.k === 'r');
+    const N = A.length, ypp = N ? sumY(A) / N : NaN, sr = N ? A.filter(nflSuccess).length / N * 100 : NaN, fdp = N ? A.filter(nflFirst).length / N * 100 : NaN, pr = N ? A.filter(e => e.k !== 'r').length / N * 100 : NaN;
+    const tiles = [['Plays', N], ['Yds/play', fmt(ypp, 'f2')], ['Success %', fmt(sr, 'f1')], ['1st-down %', fmt(fdp, 'f1')], ['Pass %', fmt(pr, 'f1')], ['TD', A.filter(e => e.td).length], ['Turnovers', A.filter(e => e.to).length]];
+    const sel = (opts, val, fn) => h('select', { class: 'sel sm', onchange: e => fn(e.target.value) }, opts.map(([v, l]) => h('option', { value: v, selected: String(v) === String(val) }, l)));
+    const ctl = h('div', { class: 'row', style: { gap: '8px', flexWrap: 'wrap' } }, sel(GAMES_OPTS, n, v => { n = +v; draw(); }), scope.kind === 'team' || scope.role === 'qb' ? segControl([['all', 'All plays'], ['pass', 'Passes'], ['run', 'Runs']], kind, v => { kind = v; draw(); }, 'sm') : null,
+      scope.kind === 'team' ? segControl([['for', 'Offense'], ['against', 'Defense']], side, v => { side = v; draw(); }, 'sm') : null);
+    /* down and distance grid */
+    let grid = '<table class="dt"><thead><tr><th style="text-align:left">Down</th>' + DIST_B.map(b => `<th>${b[0]} yds</th>`).join('') + '<th>All</th></tr></thead><tbody>';
+    for (const dn of [1, 2, 3, 4]) {
+      grid += `<tr><td style="text-align:left">${ord(dn)}</td>`;
+      for (const [, lo, hi] of [...DIST_B, ['', 0, 99]]) {
+        const c = A.filter(e => e.d === dn && e.dist >= lo && e.dist <= hi), pp = c.length ? c.filter(e => e.k !== 'r').length / c.length : NaN;
+        grid += c.length ? `<td style="background:color-mix(in srgb,var(--acc) ${Math.round(pp * 38)}%,transparent)" title="${c.length} plays · ${fmt(sumY(c) / c.length, 'f1')} yds/play">${Math.round(pp * 100)}%<div class="cap" style="font-size:10px">${c.length} · ${fmt(sumY(c) / c.length, 'f1')}</div></td>` : '<td>–</td>';
+      }
+      grid += '</tr>';
+    }
+    grid += '</tbody></table>';
+    /* run gaps */
+    const runs = A.filter(e => e.k === 'r' && e.gap), gmax = Math.max(1, ...RUN_GAPS.map(g => runs.filter(e => e.gap === g[1]).length));
+    const gapBars = RUN_GAPS.map(([, c, l], i) => { const r = runs.filter(e => e.gap === c), yc = r.length ? sumY(r) / r.length : NaN, hh = r.length / gmax * 80;
+      return `<g transform="translate(${i * 56 + 6},0)"><rect x="0" y="${96 - hh}" width="46" height="${hh}" rx="3" fill="var(--acc)" opacity=".8" data-i="${i}"/><text x="23" y="${90 - hh}" text-anchor="middle" font-size="10" fill="var(--fg)" font-family="var(--f-mono)">${r.length}</text><text x="23" y="110" text-anchor="middle" font-size="10" fill="var(--fg2)">${c}</text><text x="23" y="123" text-anchor="middle" font-size="10" fill="var(--fg3)" font-family="var(--f-mono)">${r.length ? yc.toFixed(1) : '–'}</text></g>`; }).join('');
+    const gapSvg = `<svg viewBox="0 0 400 130" style="width:100%;max-width:520px;display:block">${gapBars}</svg>`;
+    /* pass map */
+    const passes = A.filter(e => e.k === 'p' && e.dir && e.dep);
+    const pcell = (dp, dr) => { const c = passes.filter(e => e.dep === dp && e.dir === dr), cm = c.filter(e => !e.inc && !e.to).length; return c.length ? `<div class="v" style="font-size:20px">${c.length}</div><div class="cap">${Math.round(cm / c.length * 100)}% · ${fmt(sumY(c) / c.length, 'f1')} Y/A</div>` : '<div class="cap">–</div>'; };
+    const pmap = `<div style="display:grid;grid-template-columns:auto repeat(3,1fr);gap:6px;align-items:stretch"><div></div>${['Left', 'Middle', 'Right'].map(x => `<div class="cap" style="text-align:center">${x}</div>`).join('')}${[['d', 'Deep'], ['s', 'Short']].map(([dp, l]) => `<div class="cap" style="align-self:center">${l}</div>${['l', 'm', 'r'].map(dr => `<div style="background:var(--bg3);border-radius:8px;padding:12px 6px;text-align:center">${pcell(dp, dr)}</div>`).join('')}`).join('')}</div>`;
+    /* field position */
+    let ft = '<table class="dt"><thead><tr><th style="text-align:left">Field position</th><th>Plays</th><th>Pass %</th><th>Y/play</th><th>Success</th><th>TD</th></tr></thead><tbody>';
+    for (const [l, lo, hi] of FIELD_B) { const c = A.filter(e => e.yte >= lo && e.yte <= hi); ft += `<tr><td style="text-align:left">${l}</td><td>${c.length}</td><td>${c.length ? Math.round(c.filter(e => e.k !== 'r').length / c.length * 100) + '%' : '–'}</td><td>${c.length ? fmt(sumY(c) / c.length, 'f2') : '–'}</td><td>${c.length ? Math.round(c.filter(nflSuccess).length / c.length * 100) + '%' : '–'}</td><td>${c.filter(e => e.td).length}</td></tr>`; }
+    ft += '</tbody></table>';
+    const panel = (title, sub, body) => h('div', { class: 'panel' }, h('div', { class: 'hd' }, h('h2', {}, title), sub ? h('small', {}, sub) : null), h('div', { class: 'sc', style: { padding: '10px 12px 12px' }, html: body }));
+    mount(box, h('div', { class: 'panel pad' }, h('div', { class: 'row sb', style: { marginBottom: '8px', flexWrap: 'wrap', gap: '8px' } }, h('h2', {}, scope.kind === 'team' ? (side === 'for' ? 'Offensive tendencies' : 'What opponents do against them') : 'Play log'), h('span', { class: 'cap' }, `${games.length} games · scrimmage plays from play-by-play · success = 40/60/100% of yards to go`)), ctl),
+      h('div', { class: 'tiles', style: { gridTemplateColumns: 'repeat(auto-fit,minmax(100px,1fr))' }, html: tiles.map(([k, v]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="p">&nbsp;</div></div>`).join('') }),
+      h('div', { class: 'grid2', style: { alignItems: 'start' } }, panel('Down and distance', 'pass rate shaded · plays · yards per play', grid), panel('Field position', '', ft)),
+      h('div', { class: 'grid2', style: { alignItems: 'start' } }, panel('Run direction', 'carries by gap · yards per carry', gapSvg), panel('Pass map', 'attempts · completion % · yards per attempt', pmap)));
+  }
+  draw();
+}
+App.pages.charts = async function ({ q, D, el }) {
+  const tid = +q.t || 0, pid = +q.p || 0;
+  const teams = [...D.teams.values()].sort((a, b) => a.name.localeCompare(b.name));
+  const roster = tid ? [...D.players.values()].filter(p => p.tid === tid && (D.qb.has(p.id) || D.rb.has(p.id) || D.rec.has(p.id))).sort((a, b) => b.w - a.w) : [];
+  const sel = (id, opts, val, fn, ph) => h('select', { class: 'sel', id, onchange: e => fn(e.target.value) }, h('option', { value: '' }, ph), opts.map(([v, l]) => h('option', { value: v, selected: String(v) === String(val) }, l)));
+  const bar = h('div', { class: 'row', style: { gap: '10px', flexWrap: 'wrap', margin: '14px 0' } },
+    sel('ct', teams.map(t => [t.id, t.name]), tid, v => navTo('/charts', { t: v || undefined }), 'Choose a team'),
+    tid ? sel('cp', roster.map(p => [p.id, `${p.name} (${p.pos})`]), pid, v => navTo('/charts', { t: tid, p: v || undefined }), 'Whole team') : null);
+  const out = h('div', {});
+  mount(el, pageHead('PLAY EXPLORER', 'Play tendencies', 'Run and pass tendencies by down, distance, field position and direction, built from every scrimmage play of a team or a player.'), bar, out);
+  if (!tid) { mount(out, h('div', { class: 'panel pad' }, h('p', { class: 'muted', style: { margin: 0 } }, 'Choose a team to see how it plays on offense and what opponents do against it.'))); return; }
+  const pl = pid && D.players.get(pid); const role = pl ? (D.qb.has(pid) ? 'qb' : D.rb.has(pid) && !D.rec.has(pid) ? 'rb' : D.rec.has(pid) && !D.rb.has(pid) ? 'rec' : (D.rec.get(pid)?.tgt || 0) > (D.rb.get(pid)?.att || 0) ? 'rec' : 'rb') : '';
+  playExplorer(D, pl ? { kind: 'player', id: pid, role } : { kind: 'team', id: tid }, out);
+};

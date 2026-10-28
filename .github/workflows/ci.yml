@@ -1,0 +1,37 @@
+name: CI
+on:
+  push: { branches: [main] }
+  pull_request:
+permissions: { contents: read }
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: pip install playwright && playwright install --with-deps chromium
+      - name: Build
+        run: python3 tools/build.py
+      - name: Lint for undefined identifiers
+        run: |
+          for s in mlb nhl nba nfl; do node --expose-internals tools/lint_globals.js dist/assets/core.js dist/$s/sport.js; done
+      - name: Smoke tests (mocked feeds)
+        run: |
+          python3 tests/smoke_landing.py
+          python3 tests/smoke_mlb.py
+          for s in nhl nba nfl; do python3 tests/smoke_espn.py $s; done
+      - uses: actions/upload-pages-artifact@v3
+        if: github.ref == 'refs/heads/main'
+        with: { path: dist }
+  deploy:
+    needs: build-test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions: { pages: write, id-token: write }
+    environment: { name: github-pages, url: '${{ steps.d.outputs.page_url }}' }
+    steps:
+      - id: d
+        uses: actions/deploy-pages@v4
