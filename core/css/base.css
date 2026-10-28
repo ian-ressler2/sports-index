@@ -146,7 +146,7 @@ kbd{font:500 11px var(--f-mono);padding:1px 5px;border-radius:4px;background:var
 .av{position:relative;display:inline-grid;place-items:center;border-radius:50%;background:var(--bg4);overflow:hidden;flex:none;color:var(--fg2);font:600 11px var(--f-mono);border:1px solid var(--line2)}
 .av img{width:100%;height:100%;object-fit:cover;object-position:50% 12%;display:block}
 .av.sq{border-radius:12px}
-.tb{display:inline-grid;place-items:center;border-radius:50%;font:700 10px var(--f-mono);color:#fff;flex:none;letter-spacing:-.02em;text-shadow:0 1px 1px rgba(0,0,0,.35)}
+.tb{position:relative;overflow:hidden;display:inline-grid;place-items:center;border-radius:50%;font:700 10px var(--f-mono);color:#fff;flex:none;letter-spacing:-.02em;text-shadow:0 1px 1px rgba(0,0,0,.35)}
 
 /* tables */
 .tw{overflow:auto;max-height:calc(100vh - 150px);border-radius:0 0 var(--r) var(--r)}
