@@ -265,7 +265,7 @@ svg .gr{stroke:var(--line);stroke-width:1}
 .mode:hover{border-color:var(--fg3)}
 .mode.on{border-color:var(--acc);background:var(--accbg)}
 .mode b{font-size:15px} .mode span{color:var(--fg2);font-size:13px}
-.ing{display:grid;grid-template-columns:minmax(120px,190px) 1fr 44px 28px;gap:12px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:var(--bg3)}
+.ing{display:grid;grid-template-columns:minmax(70px,120px) minmax(110px,1fr) 44px 28px;gap:12px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:var(--bg3)}
 .ing .w{font:700 13px var(--f-mono);text-align:right;color:var(--acc)}
 .ing .w.neg{color:var(--b)}
 input[type=range]{-webkit-appearance:none;appearance:none;height:6px;border-radius:99px;background:var(--bg4);width:100%;margin:0}
