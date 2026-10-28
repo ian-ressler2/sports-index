@@ -170,5 +170,7 @@ async function render(force) {
   if (App.D.warn.length && !$('.warnb', v) && first !== 'home') v.prepend(h('div', { class: 'warnb', style: { marginBottom: '14px' } }, `Some Statcast sources did not load (${App.D.warn.join(', ')}). The related columns will be blank.`));
   if (!force && App.lastKey !== first + '/' + (loc.path[1] || '')) window.scrollTo(0, 0);
   App.lastKey = first + '/' + (loc.path[1] || '');
+  const base = `${SPORT.name} · ${SPORT.short} stats`, setTitle = () => { const t = $('h1', v)?.textContent.trim(); document.title = t && first !== 'home' ? `${t} · ${base}` : base; };
+  setTitle(); setTimeout(() => { if (rid === App.rid) setTitle(); }, 700);
 }
 function pageNotFound({ el }) { mount(el, h('div', { class: 'empty' }, h('h2', {}, 'Page not found'), h('p', {}, 'That page does not exist. '), h('a', { class: 'btn', href: '#/' }, 'Back home'))); }
