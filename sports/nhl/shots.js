@@ -27,27 +27,31 @@ function nhlRink(inner) {
 }
 const shotXY = e => [clamp(e.y + 42.5, 0, 85), clamp(100 - Math.abs(e.x), 0, 78)];
 
-/* the explorer. scope: { kind:'player'|'team', id, role, side:'for'|'against' } */
+/* the explorer. scope: { kind:'player', id, role } or { kind:'teams', tids:[...], n } (many teams at once) */
 async function shotExplorer(D, scope, host) {
-  let n = scope.n ?? 10, view = scope.view || 'dots', side = scope.side || 'for', kinds = new Set(['G', 'S', 'M', 'B']);
+  let n = scope.n ?? 10, view = scope.view || (scope.kind === 'teams' && scope.tids.length > 1 ? 'heat' : 'dots'), side = scope.side || 'for', kinds = new Set(['G', 'S', 'M', 'B']);
   const box = h('div', { class: 'stack' }); mount(host, box);
   const status = h('div', { class: 'cap' }, 'Loading games'); mount(box, h('div', { class: 'panel pad' }, h('div', { class: 'skel', style: { height: '320px' } }), status));
-  let ids; try { ids = await gameIdsFor(scope.kind, scope.id, D.season); } catch (e) { mount(host, errorEl(e, () => render(true))); return; }
+  const multi = scope.kind === 'teams'; let ids, idsBy;
+  try { if (multi) { idsBy = await gameIdsByTeam(scope.tids, D.season); ids = [...new Set([...idsBy.values()].flat())]; } else ids = await gameIdsFor(scope.kind, scope.id, D.season); } catch (e) { mount(host, errorEl(e, () => render(true))); return; }
   if (!ids.length) { mount(host, h('div', { class: 'panel empty' }, 'No finished games yet this season.')); return; }
   const cache = new Map();
   async function ensure(list) { const need = list.filter(i => !cache.has(i)); if (need.length) { const got = await loadEvents(need, (a, b) => status.textContent = `Loading games ${a}/${b}`); for (const g of got) cache.set(g.id, g); } return list.map(i => cache.get(i)).filter(Boolean); }
-  const pick = ev => {
+  const pick = (ev, tid) => {
     if (scope.kind === 'player') {
       if (scope.role === 'gk') return ev.filter(e => e.gk === scope.id && e.k !== 'M' && e.k !== 'B');
       return ev.filter(e => e.sh === scope.id);
     }
-    return ev.filter(e => side === 'for' ? e.t === scope.id : e.t !== scope.id);
+    return ev.filter(e => side === 'for' ? e.t === tid : e.t !== tid);
   };
   async function draw() {
-    const list = n ? ids.slice(-n) : ids; let games;
-    try { games = await ensure(list); } catch (e) { mount(box, errorEl(e, () => render(true))); return; }
-    const all = games.flatMap(g => pick(g.ev).map(e => ({ ...e, date: g.date, opp: g.teams.find(t => t.id !== (scope.kind === 'team' ? scope.id : e.t))?.abbr })));
+    const lists = multi ? scope.tids.map(t => [t, n ? idsBy.get(t).slice(-n) : idsBy.get(t)]) : [[scope.id, n ? ids.slice(-n) : ids]];
+    let games;
+    try { games = await ensure([...new Set(lists.flatMap(l => l[1]))]); } catch (e) { mount(box, errorEl(e, () => render(true))); return; }
+    const all = [];
+    for (const [tid, l] of lists) for (const gid of l) { const g = cache.get(gid); if (!g) continue; for (const e of pick(g.ev, tid)) all.push({ ...e, date: g.date, opp: g.teams.find(t => t.id !== (multi ? tid : e.t))?.abbr }); }
     const shown = all.filter(e => kinds.has(e.k));
+    const CAP = 6000, dots = shown.length > CAP ? shown.filter((_, i) => i % Math.ceil(shown.length / CAP) === 0) : shown;
     const att = all.length, sog = all.filter(e => e.k === 'G' || e.k === 'S').length, goals = all.filter(e => e.k === 'G').length;
     const gkMode = scope.kind === 'player' && scope.role === 'gk';
     let inner = '';
@@ -56,35 +60,33 @@ async function shotExplorer(D, scope, host) {
       for (const e of shown) { const [X, Y] = shotXY(e), k = Math.floor(Y / cell) * cols + Math.floor(X / cell); const v = (cnt.get(k) || 0) + 1; cnt.set(k, v); mx = Math.max(mx, v); }
       for (const [k, v] of cnt) { const r = Math.floor(k / cols), c = k % cols; inner += `<rect x="${c * cell}" y="${r * cell}" width="${cell}" height="${cell}" fill="var(--acc)" opacity="${(.12 + .8 * v / mx).toFixed(2)}"/>`; }
     } else {
-      shown.forEach((e, i) => { const [X, Y] = shotXY(e); inner += `<circle cx="${X.toFixed(1)}" cy="${Y.toFixed(1)}" r="${e.k === 'G' ? 1.7 : 1.15}" fill="${SHOT_CLR[e.k]}" fill-opacity="${e.k === 'G' ? 1 : .72}" stroke="${e.k === 'G' ? 'var(--bg)' : 'none'}" stroke-width=".3" data-i="${i}"/>`; });
+      dots.forEach((e, i) => { const [X, Y] = shotXY(e); inner += `<circle cx="${X.toFixed(1)}" cy="${Y.toFixed(1)}" r="${e.k === 'G' ? 1.7 : 1.15}" fill="${SHOT_CLR[e.k]}" fill-opacity="${e.k === 'G' ? 1 : .72}" stroke="${e.k === 'G' ? 'var(--bg)' : 'none'}" stroke-width=".3" data-i="${i}"/>`; });
     }
     const typeRows = [...new Map([...all.reduce((m, e) => { if (e.st && (e.k === 'G' || e.k === 'S')) { const a = m.get(e.st) || { n: 0, g: 0 }; a.n++; if (e.k === 'G') a.g++; m.set(e.st, a); } return m; }, new Map())].sort((a, b) => b[1].n - a[1].n)).entries()];
     const bands = [[0, 10, 'Within 10 ft'], [10, 20, '10 to 20 ft'], [20, 35, '20 to 35 ft'], [35, 200, '35 ft and out']].map(([a, b, l]) => { const s = all.filter(e => (e.k === 'G' || e.k === 'S') && shotDist(e) >= a && shotDist(e) < b); const g = s.filter(e => e.k === 'G').length; return [l, s.length, g]; });
     const sel = (opts, val, fn) => h('select', { class: 'sel sm', onchange: e => fn(e.target.value) }, opts.map(([v, l]) => h('option', { value: v, selected: String(v) === String(val) }, l)));
     const chips = ['G', 'S', 'M', 'B'].map(k => h('button', { class: 'chip' + (kinds.has(k) ? ' on' : ''), type: 'button', onclick: () => { kinds.has(k) ? kinds.delete(k) : kinds.add(k); if (!kinds.size) kinds.add(k); draw(); }, html: `<i style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${SHOT_CLR[k]};margin-right:5px"></i>${SHOT_LBL[k]}` }));
     const ctl = h('div', { class: 'row', style: { gap: '8px', flexWrap: 'wrap' } }, sel(GAMES_OPTS, n, v => { n = +v; draw(); }), segControl([['dots', 'Shots'], ['heat', 'Heat']], view, v => { view = v; draw(); }, 'sm'),
-      scope.kind === 'team' ? segControl([['for', 'For'], ['against', 'Against']], side, v => { side = v; draw(); }, 'sm') : null, h('div', { class: 'chips' }, chips));
+      multi ? segControl([['for', 'For'], ['against', 'Against']], side, v => { side = v; draw(); }, 'sm') : null, h('div', { class: 'chips' }, chips));
     const tiles = [['Attempts', att], ['On goal', sog], ['Goals', goals], [gkMode ? 'Save %' : 'Shooting %', gkMode ? (sog ? fmt(1 - goals / sog, 'f3') : '–') : (sog ? fmt(goals / sog * 100, 'f1') + '%' : '–')], ['Avg. distance', all.length ? fmt(mean(all.map(shotDist)), 'f1') + ' ft' : '–']];
-    const map = h('div', { class: 'panel pad' }, h('div', { class: 'row sb', style: { marginBottom: '8px', flexWrap: 'wrap', gap: '8px' } }, h('h2', {}, gkMode ? 'Shots faced' : scope.kind === 'team' ? (side === 'for' ? 'Shots taken' : 'Shots allowed') : 'Shot map'), h('span', { class: 'cap' }, `${games.length} games · all events shown from one end of the rink`)), ctl, h('div', { style: { marginTop: '10px' }, html: nhlRink(inner) }));
-    tipBind(map, i => { if (typeof i === 'string' && i[0] === 'h') return ''; const e = shown[i]; if (!e) return ''; return `<b>${esc(SHOT_LBL[e.k])}${e.st ? ' · ' + esc(e.st) : ''}</b>${e.shn ? tr('Shooter', esc(e.shn)) : ''}${tr('Distance', shotDist(e).toFixed(0) + ' ft')}${tr('When', `P${e.per} ${e.clk || ''}`)}${tr('Game', `${e.date} vs ${e.opp || ''}`)}`; });
+    const map = h('div', { class: 'panel pad' }, h('div', { class: 'row sb', style: { marginBottom: '8px', flexWrap: 'wrap', gap: '8px' } }, h('h2', {}, gkMode ? 'Shots faced' : multi ? (side === 'for' ? 'Shots taken' : 'Shots allowed') : 'Shot map'), h('span', { class: 'cap' }, `${games.length} games${multi && scope.tids.length > 1 ? ' · ' + scope.tids.length + ' teams' : ''} · all events shown from one end of the rink${dots.length < shown.length ? ' · dots are a ' + dots.length.toLocaleString() + '-shot sample, heat uses all' : ''}`)), ctl, h('div', { style: { marginTop: '10px' }, html: nhlRink(inner) }));
+    tipBind(map, i => { if (typeof i === 'string' && i[0] === 'h') return ''; const e = dots[i]; if (!e) return ''; return `<b>${esc(SHOT_LBL[e.k])}${e.st ? ' · ' + esc(e.st) : ''}</b>${multi ? tr('Team', esc(D.teams.get(e.t)?.abbr || '')) : ''}${e.shn ? tr('Shooter', esc(e.shn)) : ''}${tr('Distance', shotDist(e).toFixed(0) + ' ft')}${tr('When', `P${e.per} ${e.clk || ''}`)}${tr('Game', `${e.date} vs ${e.opp || ''}`)}`; });
     const tbl = h('div', { class: 'panel' }, h('div', { class: 'hd' }, h('h2', {}, 'By distance')), h('div', { class: 'sc', style: { padding: '4px 4px 6px' }, html: `<table class="dt"><thead><tr><th style="text-align:left">Range</th><th>SOG</th><th>Goals</th><th>${gkMode ? 'Sv%' : 'S%'}</th></tr></thead><tbody>${bands.map(([l, a, g]) => `<tr><td style="text-align:left">${l}</td><td>${a}</td><td>${g}</td><td>${a ? (gkMode ? fmt(1 - g / a, 'f3') : fmt(g / a * 100, 'f1') + '%') : '–'}</td></tr>`).join('')}</tbody></table>` }));
     const tbl2 = typeRows.length ? h('div', { class: 'panel' }, h('div', { class: 'hd' }, h('h2', {}, 'By shot type')), h('div', { class: 'sc', style: { padding: '4px 4px 6px' }, html: `<table class="dt"><thead><tr><th style="text-align:left">Type</th><th>SOG</th><th>Goals</th><th>${gkMode ? 'Sv%' : 'S%'}</th></tr></thead><tbody>${typeRows.map(([l, v]) => `<tr><td style="text-align:left">${esc(l)}</td><td>${v.n}</td><td>${v.g}</td><td>${gkMode ? fmt(1 - v.g / v.n, 'f3') : fmt(v.g / v.n * 100, 'f1') + '%'}</td></tr>`).join('')}</tbody></table>` })) : null;
     mount(box, h('div', { class: 'tiles', style: { gridTemplateColumns: 'repeat(auto-fit,minmax(110px,1fr))' }, html: tiles.map(([k, v]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="p">&nbsp;</div></div>`).join('') }), h('div', { class: 'grid2', style: { alignItems: 'start' } }, map, h('div', { class: 'stack' }, tbl, tbl2)));
   }
   draw();
 }
-/* Charts page: pick a team (and optionally a player on it) */
+/* Charts page: every team by default; tick any number of teams to narrow it. One team also unlocks a player picker. */
 App.pages.charts = async function ({ q, D, el }) {
-  const tid = +q.t || 0, pid = +q.p || 0;
-  const teams = [...D.teams.values()].sort((a, b) => a.name.localeCompare(b.name));
-  const roster = tid ? D.players && [...D.players.values()].filter(p => p.tid === tid).sort((a, b) => b.w - a.w) : [];
-  const sel = (id, opts, val, fn, ph) => h('select', { class: 'sel', id, onchange: e => fn(e.target.value) }, h('option', { value: '' }, ph), opts.map(([v, l]) => h('option', { value: v, selected: String(v) === String(val) }, l)));
-  const bar = h('div', { class: 'row', style: { gap: '10px', flexWrap: 'wrap', margin: '14px 0' } },
-    sel('ct', teams.map(t => [t.id, t.name]), tid, v => navTo('/charts', { t: v || undefined }), 'Choose a team'),
-    tid ? sel('cp', roster.map(p => [p.id, `${p.name} (${p.pos})`]), pid, v => navTo('/charts', { t: tid, p: v || undefined }), 'Whole team') : null);
+  const tids = teamsFromQ(q, D), pid = +q.p || 0, all = tids.length ? tids : [...D.teams.keys()];
+  const one = tids.length === 1 ? tids[0] : 0;
+  const roster = one ? [...D.players.values()].filter(p => p.tid === one).sort((a, b) => b.w - a.w) : [];
+  const go = ids => navTo('/charts', { t: ids.length ? ids.join(',') : undefined });
+  const bar = h('div', { class: 'row', style: { gap: '10px', flexWrap: 'wrap', margin: '14px 0 6px' } }, teamMultiPicker(D, tids, go),
+    one ? h('select', { class: 'sel', id: 'cp', onchange: e => navTo('/charts', { t: one, p: e.target.value || undefined }) }, h('option', { value: '' }, 'Whole team'), roster.map(p => h('option', { value: p.id, selected: p.id === pid }, `${p.name} (${p.pos})`))) : null);
   const out = h('div', {});
-  mount(el, pageHead('CHART EXPLORER', 'Shot maps', 'Every shot attempt with ice coordinates, straight from play-by-play. Pick a team, or a single player on it.'), bar, out);
-  if (!tid) { mount(out, h('div', { class: 'panel pad' }, h('p', { class: 'muted', style: { margin: 0 } }, 'Choose a team to see where it shoots from and where it gives shots up. Or open any player and use the Shots tab.'))); return; }
-  const pl = pid && D.players.get(pid);
-  shotExplorer(D, pl ? { kind: 'player', id: pid, role: pl.pos === 'G' ? 'gk' : 'sk' } : { kind: 'team', id: tid }, out);
+  mount(el, pageHead('CHART EXPLORER', 'Shot maps', 'Every shot attempt with ice coordinates, straight from play-by-play. Starts with the whole league; pick one team, several, or a single player on one team.'), bar, tids.length ? h('div', { style: { marginBottom: '10px' } }, teamChips(D, tids, go)) : null, out);
+  const pl = one && pid && D.players.get(pid);
+  shotExplorer(D, pl ? { kind: 'player', id: pid, role: pl.pos === 'G' ? 'gk' : 'sk' } : { kind: 'teams', tids: all, n: tids.length === 0 || tids.length > 6 ? 5 : 10 }, out);
 };

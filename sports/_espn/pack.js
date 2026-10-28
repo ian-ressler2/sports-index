@@ -138,3 +138,45 @@ async function gameIdsFor(kind, id, season, postToo = false) {
   const s = await ESPN_SCHED(id, season); return s.filter(g => g.final).sort((a, b) => a.t.localeCompare(b.t)).map(g => g.id);
 }
 const GAMES_OPTS = [[5, 'Last 5 games'], [10, 'Last 10 games'], [20, 'Last 20 games'], [40, 'Last 40 games'], [0, 'Whole season']];
+
+/* ---- multi-team scope for the chart pages ----
+   The ?t= query holds a comma list of team ids. An empty list means every team. */
+function teamsFromQ(q, D) { return (q.t || '').split(',').map(Number).filter(id => D.teams.has(id)); }
+/* last-n finished games per team (n = 0 for the whole season), loaded with a small pool */
+async function gameIdsByTeam(tids, season) {
+  const m = new Map();
+  await pool(tids, 6, async tid => { m.set(tid, await gameIdsFor('team', tid, season)); });
+  return m;
+}
+/* a dropdown of checkboxes grouped by division. selected: array of ids; apply(ids) fires on Apply */
+function teamMultiPicker(D, selected, apply) {
+  const cur = new Set(selected), teams = [...D.teams.values()];
+  const order = SPORT.standings?.divOrder || [];
+  const groups = [...new Set(teams.map(t => t.div || t.lg || 'Teams'))].sort((a, b) => (order.indexOf(a) < 0 ? 99 : order.indexOf(a)) - (order.indexOf(b) < 0 ? 99 : order.indexOf(b)) || a.localeCompare(b));
+  const label = () => cur.size ? `${cur.size} team${cur.size > 1 ? 's' : ''} selected` : `All ${teams.length} teams`;
+  const btn = h('button', { class: 'btn', type: 'button', 'aria-haspopup': 'true' }, label() + ' ▾');
+  const menu = h('div', { class: 'menu', style: { display: 'none', minWidth: '320px', maxHeight: '420px' } });
+  const boxes = new Map();
+  const sync = () => { btn.textContent = label() + ' ▾'; boxes.forEach((b, id) => b.checked = cur.has(id)); };
+  const head = h('div', { class: 'row', style: { gap: '8px', padding: '4px 6px 8px' } },
+    h('button', { class: 'btn sm', type: 'button', onclick: () => { cur.clear(); sync(); } }, 'All teams'),
+    h('button', { class: 'btn sm', type: 'button', onclick: () => { teams.forEach(t => cur.add(t.id)); sync(); } }, 'Select every box'),
+    h('button', { class: 'btn sm pri', type: 'button', style: { marginLeft: 'auto' }, onclick: () => { menu.style.display = 'none'; apply(cur.size === teams.length ? [] : [...cur]); } }, 'Apply'));
+  menu.append(head);
+  for (const g of groups) {
+    menu.append(h('div', { class: 'mh' }, g.toUpperCase()));
+    for (const t of teams.filter(t => (t.div || t.lg || 'Teams') === g).sort((a, b) => a.name.localeCompare(b.name))) {
+      const cb = h('input', { type: 'checkbox' }); cb.checked = cur.has(t.id); boxes.set(t.id, cb);
+      cb.onchange = () => { cb.checked ? cur.add(t.id) : cur.delete(t.id); btn.textContent = label() + ' ▾'; };
+      menu.append(h('label', { class: 'row', style: { gap: '10px', padding: '6px 10px', cursor: 'pointer', flexWrap: 'nowrap' } }, cb, h('span', { html: tbadge(D, t.id, 22) }), h('span', {}, t.name)));
+    }
+  }
+  btn.onclick = () => { menu.style.display = menu.style.display === 'none' ? '' : 'none'; };
+  const wrap = h('div', { class: 'pop' }, btn, menu);
+  document.addEventListener('click', function f(e) { if (!document.body.contains(wrap)) return document.removeEventListener('click', f); if (!wrap.contains(e.target)) menu.style.display = 'none'; });
+  return wrap;
+}
+/* removable chips for the selected teams */
+function teamChips(D, tids, apply) {
+  return h('div', { class: 'chips' }, tids.map(id => h('button', { class: 'chip on', type: 'button', title: 'Remove ' + (D.teams.get(id)?.name || ''), onclick: () => apply(tids.filter(x => x !== id)), html: `${esc(D.teams.get(id)?.abbr || id)} <span aria-hidden="true">×</span>` })));
+}
