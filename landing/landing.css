@@ -22,3 +22,4 @@
 .lp-feat h3{font-size:14px;margin-bottom:4px}
 .lp-feat p{margin:0;color:var(--fg2);font-size:13px}
 .lp-foot{margin-top:56px;padding-top:18px;border-top:1px solid var(--line);color:var(--fg3);font-size:12px;max-width:80ch}
+.lp-foot a{color:var(--fg2);text-decoration:underline;text-underline-offset:2px}.lp-foot a:hover{color:var(--fg)}
