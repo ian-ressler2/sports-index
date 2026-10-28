@@ -335,7 +335,7 @@ footer{border-top:1px solid var(--line);padding-block:22px calc(30px + env(safe-
   .phead{flex-direction:column;align-items:flex-start}
   .tile .v{font-size:20px}
 }
-.navm{display:none;gap:2px;overflow-x:auto;padding:0 max(16px,env(safe-area-inset-left,0px)) 8px}
+.navm{display:none;gap:2px;overflow-x:auto;scrollbar-width:none;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);padding:0 max(16px,env(safe-area-inset-left,0px)) 8px}
 .navm a{padding:6px 12px;border-radius:7px;color:var(--fg2);font-weight:500;white-space:nowrap}
 .navm a.on{background:var(--bg4);color:var(--fg)}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
