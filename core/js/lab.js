@@ -31,7 +31,7 @@ function kitchen(D, q, box) {
     const { sc, refRank } = compute(); const top = sc.slice(0, 30);
     const refL = COLMAP[g][ref].l;
     const rowsH = top.map(x => { const rr = refRank.get(x.r.id), dl = rr ? rr - x.rk : NaN; return `<tr class="clk" onclick="location.hash='${pLink(x.r.id)}'"><td class="rk">${x.rk}</td><td style="text-align:left"><span class="row" style="gap:8px;flex-wrap:nowrap">${avatar(x.r.id, x.r.name, 24)}<b>${esc(x.r.name)}</b><span class="dim">${esc(abbrOf(D, x.r))}</span></span></td><td style="font-weight:700;background:${pctColor(x.score)}">${x.score.toFixed(1)}</td><td>${rr ? '#' + rr : '–'}</td><td><span class="delta ${dl > 3 ? 'up' : dl < -3 ? 'dn' : 'z'}">${isFinite(dl) ? (dl > 0 ? '▲' + dl : dl < 0 ? '▼' + (-dl) : '=') : ''}</span></td>${Object.keys(ing).slice(0, 4).map(k => `<td class="dim">${fmt(x.r[k], COLMAP[g][k].f)}</td>`).join('')}</tr>`; }).join('');
-    const hdr = Object.keys(ing).slice(0, 4).map(k => `<th>${esc(COLMAP[g][k].l)}</th>`).join('');
+    const hdr = Object.keys(ing).slice(0, 4).map(k => `<th${statTip(COLMAP[g][k])}>${esc(COLMAP[g][k].l)}</th>`).join('');
     mount(out, h('div', { class: 'panel' }, h('div', { class: 'hd' }, h('h2', {}, 'Top 30'), h('div', { class: 'row' }, h('small', {}, `${sc.length} ranked · score 0–100 is the weighted average percentile`), h('button', { class: 'btn sm', type: 'button', html: ICON.share + ' Share top 10', onclick: () => shareCard({ title: 'Stat Kitchen', sub: `${D.season} · ` + Object.keys(ing).map(k => `${ing[k]}×${COLMAP[g][k].l}`).join(' + '), rows: top.slice(0, 10).map(x => ({ name: x.r.name, team: abbrOf(D, x.r), color: tcol(x.r.tid), value: x.score.toFixed(1) })) }) }))),
       h('div', { class: 'sc', style: { padding: '4px 4px 6px', maxHeight: '75vh' }, html: `<table class="dt"><thead><tr><th>#</th><th style="text-align:left">Player</th><th>Score</th><th>${esc(refL)} rank</th><th>vs ${esc(refL)}</th>${hdr}</tr></thead><tbody>${rowsH}</tbody></table>` })));
   };
@@ -39,7 +39,7 @@ function kitchen(D, q, box) {
   const drawIng = () => {
     mount(ingEls, Object.keys(ing).map(k => { const c = COLMAP[g][k]; const sl = h('input', { type: 'range', min: -3, max: 3, step: .5, value: ing[k], 'aria-label': 'Weight for ' + c.l }); const wv = h('span', { class: 'w' + (ing[k] < 0 ? ' neg' : '') }, (ing[k] > 0 ? '+' : '') + ing[k]);
       sl.oninput = () => { ing[k] = +sl.value; wv.textContent = (ing[k] > 0 ? '+' : '') + ing[k]; wv.classList.toggle('neg', ing[k] < 0); save(); drawOut(); };
-      return h('div', { class: 'ing' }, h('span', {}, c.l, h('span', { html: srcTag(c.src) })), h('span', { class: 'sl' }, sl), wv, h('button', { class: 'xbtn', type: 'button', 'aria-label': 'Remove', onclick: () => { delete ing[k]; save(); drawIng(); drawOut(); } }, '×')); }));
+      return h('div', { class: 'ing' }, h('span', { 'data-tip': statTipHtml(c) }, c.l, h('span', { html: srcTag(c.src) })), h('span', { class: 'sl' }, sl), wv, h('button', { class: 'xbtn', type: 'button', 'aria-label': 'Remove', onclick: () => { delete ing[k]; save(); drawIng(); drawOut(); } }, '×')); }));
   };
   const addSel = statSelect(g, '', k => { if (k && !(k in ing)) { ing[k] = 1; save(); drawIng(); drawOut(); } addSel.value = ''; }, { skip: c => c.g === 'vol' && !['hr', 'sb'].includes(c.k) && false });
   addSel.insertAdjacentHTML('afterbegin', '<option value="" selected>+ Add an ingredient</option>'); addSel.value = '';

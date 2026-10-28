@@ -53,7 +53,7 @@ App.pages.compare = async function ({ path, q, D, el }) {
     let win = 0; if (c.d !== 0 && isFinite(va) && isFinite(vb) && va !== vb) { win = (va > vb ? 1 : -1) * (c.d > 0 ? 1 : -1); if (win > 0) aw++; else bw++; }
     if (c.d !== 0 && isFinite(pa)) as_.push(pa); if (c.d !== 0 && isFinite(pb)) bs_.push(pb);
     const wa = isFinite(pa) ? pa : c.d === 0 && isFinite(va) ? Math.abs(va) / vmax * 100 : 0, wb = isFinite(pb) ? pb : c.d === 0 && isFinite(vb) ? Math.abs(vb) / vmax * 100 : 0;
-    return `<div class="tape-row"><div class="tv ${win > 0 ? 'win' : ''}">${fmt(va, c.f)}${isFinite(pa) ? `<small>${pa}</small>` : ''}</div><div class="tbars"><i class="l"><b style="width:${wa}%;background:${colorHex(0)}"></b></i><span class="tl" title="${esc(c.desc || '')}">${esc(c.l)}</span><i class="r"><b style="width:${wb}%;background:${colorHex(1)}"></b></i></div><div class="tv r ${win < 0 ? 'win' : ''}">${fmt(vb, c.f)}${isFinite(pb) ? `<small>${pb}</small>` : ''}</div></div>`;
+    return `<div class="tape-row"><div class="tv ${win > 0 ? 'win' : ''}">${fmt(va, c.f)}${isFinite(pa) ? `<small>${pa}</small>` : ''}</div><div class="tbars"><i class="l"><b style="width:${wa}%;background:${colorHex(0)}"></b></i><span class="tl"${statTip(c)}>${esc(c.l)}</span><i class="r"><b style="width:${wb}%;background:${colorHex(1)}"></b></i></div><div class="tv r ${win < 0 ? 'win' : ''}">${fmt(vb, c.f)}${isFinite(pb) ? `<small>${pb}</small>` : ''}</div></div>`;
   }).join('');
   const sa = mean(as_), sb = mean(bs_), tot = aw + bw || 1;
   const score = h('div', { class: 'panel pad' }, h('div', { class: 'row sb' }, h('h2', {}, 'Scoreboard'), h('span', { class: 'cap' }, 'average percentile · categories won')),

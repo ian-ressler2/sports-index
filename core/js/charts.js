@@ -2,7 +2,16 @@
 let UID = 0;
 const uid = () => 'u' + (++UID);
 let TipEl = null;
-function tipInit() { if (!TipEl) { TipEl = h('div', { class: 'tip' }); document.body.append(TipEl); } }
+function tipInit() {
+  if (TipEl) return;
+  TipEl = h('div', { class: 'tip' }); document.body.append(TipEl);
+  /* delegated hover cards for anything carrying data-tip (stat definitions) */
+  const go = e => { const t = e.target.closest?.('[data-tip]'); if (!t) return tipHide(); const r = t.getBoundingClientRect(); tipShow(t.dataset.tip, e.type === 'click' ? r.left : e.clientX, e.type === 'click' ? r.bottom : e.clientY); };
+  document.addEventListener('mouseover', go); document.addEventListener('mousemove', e => { if (e.target.closest?.('[data-tip]')) go(e); });
+  document.addEventListener('mouseout', e => { if (e.target.closest?.('[data-tip]') && !e.relatedTarget?.closest?.('[data-tip]')) tipHide(); });
+  document.addEventListener('click', e => { if (e.pointerType === 'touch' || matchMedia('(hover:none)').matches) go(e); });
+  addEventListener('scroll', tipHide, { passive: true, capture: true });
+}
 function tipShow(html, x, y) {
   tipInit(); TipEl.innerHTML = html; TipEl.classList.add('on');
   const r = TipEl.getBoundingClientRect(); let px = x + 14, py = y + 14;
@@ -20,9 +29,9 @@ const svg = (w, hh, inner, cls = 'chart') => `<svg class="${cls}" viewBox="0 0 $
 const f1 = v => (Math.round(v * 10) / 10).toString();
 
 /* ---------- percentile bar ---------- */
-function pbar(name, valText, p, tag) {
+function pbar(name, valText, p, tag, tip) {
   const has = isFinite(p);
-  return `<div class="pb"><div class="nm">${esc(name)}${tag ? `<span class="src ${tag.toLowerCase()}">${tag}</span>` : ''}</div>
+  return `<div class="pb"><div class="nm"${tip || ''}>${esc(name)}${tag ? `<span class="src ${tag.toLowerCase()}">${tag}</span>` : ''}</div>
   <div class="tr">${has ? `<b style="left:${p}%;background:${pctColor(p).replace(/,[.\d]+\)/, ',1)')}">${p}</b>` : ''}</div><div class="vl">${esc(valText)}</div></div>`;
 }
 
