@@ -333,6 +333,7 @@ footer{border-top:1px solid var(--line);padding-block:22px calc(30px + env(safe-
   .pb{grid-template-columns:96px 1fr 52px;gap:8px}
   .ing{grid-template-columns:1fr 40px 26px}.ing .sl{grid-column:1/-1;order:3}
   .phead{flex-direction:column;align-items:flex-start}
+  .phead{gap:12px;padding:16px}.phead>div:first-child>.av,.phead>div:first-child>.tb{width:64px!important;height:64px!important;font-size:20px!important}
   .tile .v{font-size:20px}
   .lb td.rk,.lb th.rk{width:32px;min-width:32px;padding:0 3px}
   .lb td.pl,.lb th.pl{left:32px;min-width:148px}
