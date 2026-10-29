@@ -427,3 +427,4 @@ table.odds td{padding:6px 8px}.odd{position:relative;display:block;min-width:64p
 @media (min-width:701px){.tabbar,.moresheet{display:none!important}}
 table.odds td:first-child,table.odds th:first-child{position:sticky;left:0;z-index:1;background:var(--bg2)}
 @media (max-width:700px){table.odds .opt{display:none}table.odds td:first-child b{max-width:92px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block}}
+.pal .pi{flex:none;width:34px;height:34px;border-radius:50%;background:var(--bg4);display:grid;place-items:center;color:var(--fg2)}.pal .pi svg{width:18px;height:18px}

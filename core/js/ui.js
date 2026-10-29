@@ -92,7 +92,7 @@ function buildShell() {
     <a class="brand" href="#/">${LOGO}<span>${esc(SPORT.first)}</span><b>${esc(SPORT.word)}</b></a>
     <select class="sel sportsel" id="sportsel" aria-label="Switch sport">${SPORT.siblings.map(([id, nm]) => `<option value="${id}"${id === SPORT.id ? ' selected' : ''}>${nm}</option>`).join('')}</select>
     <nav class="nav">${links()}</nav><span class="sp"></span>
-    <button class="sbtn" id="sbtn" aria-label="Search players and teams">${ICON.search}<span>Search players and teams</span><kbd>⌘</kbd><kbd>K</kbd></button>
+    <button class="sbtn" id="sbtn" aria-label="Search players, teams and pages">${ICON.search}<span>Search players, teams and pages</span><kbd>⌘</kbd><kbd>K</kbd></button>
     <select class="sel" id="season" aria-label="Season"></select>
     <button class="ibtn" id="theme" aria-label="Toggle light and dark theme">${ICON.sun}</button></div>
     <nav class="navm">${links()}</nav></header>
@@ -106,7 +106,7 @@ function buildShell() {
   $('#theme').onclick = () => { const cur = document.documentElement.getAttribute('data-theme'); const next = (cur || (isDark() ? 'dark' : 'light')) === 'dark' ? 'light' : 'dark'; store.set('theme', next); applyTheme(next); render(true); };
   const sheet = $('#moresheet'), mb = $('#morebtn'), closeMore = () => { sheet.hidden = true; if (mb) mb.setAttribute('aria-expanded', 'false'); };
   if (mb) { mb.onclick = () => { const open = sheet.hidden; sheet.hidden = !open; mb.setAttribute('aria-expanded', open ? 'true' : 'false'); if (open) sheet.querySelector('a')?.focus(); }; $('#moreclose').onclick = () => { closeMore(); mb.focus(); }; sheet.addEventListener('click', e => { if (e.target.closest('a')) closeMore(); }); addEventListener('hashchange', closeMore); addEventListener('keydown', e => { if (e.key === 'Escape' && !sheet.hidden) { closeMore(); mb.focus(); } }); document.addEventListener('click', e => { if (!sheet.hidden && !e.target.closest('#moresheet, #morebtn')) closeMore(); }); }
-  $('#sbtn').onclick = openSearch;
+  $('#sbtn').onclick = () => openSearch();
   addEventListener('keydown', e => {
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); openSearch(); }
     else if (e.key === '/' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName)) { e.preventDefault(); openSearch(); }
@@ -128,29 +128,43 @@ function searchIndex(D, qs) {
   for (const t of D.teams.values()) { const k = slugify(t.name + ' ' + t.abbr + ' ' + t.loc); if (k.includes(q)) out.push({ type: 't', t, sc: t.abbr.toLowerCase() === q ? 120 : k.startsWith(q) ? 95 : 70 }); }
   return out.sort((a, b) => b.sc - a.sc).slice(0, 12);
 }
-function openSearch() {
+/* everything the palette can find: players and teams, pages, shortcuts for a team, and the same search in the other sports */
+function paletteIndex(D, raw) {
+  const q = slugify(raw.trim()), res = D ? searchIndex(D, raw) : [], out = res.slice();
+  if (!q) return out;
+  for (const [k, l] of SPORT.nav) if (slugify(l).startsWith(q) || slugify(k).startsWith(q) || (q.length > 2 && slugify(l).includes(q))) out.push({ type: 'g', key: k, label: l, sc: 110 });
+  const top = res.find(r => r.type === 't');
+  if (top) { const t = top.t, tag = t.abbr || t.name; out.splice(res.indexOf(top) + 1, 0, { type: 'a', key: 'games', label: `${t.name} games`, sub: 'Replay a recent game', to: href('/games', { t: t.id }) }, { type: 'a', key: 'sim', label: `Simulate ${tag} at home`, sub: 'Game simulator', to: href('/sim', { h: t.id }) }); }
+  if (q.length >= 2) for (const [id, nm] of SPORT.siblings) if (id !== SPORT.id) out.push({ type: 'x', id, nm, q: raw.trim(), sc: 0 });
+  return out;
+}
+function openSearch(initial) {
   if ($('.ov')) return;
   const D = App.D; let items = [], idx = 0;
-  const inp = h('input', { placeholder: D ? `Search every player and team, ${D.season}` : 'Loading players…', autocomplete: 'off', spellcheck: 'false', 'aria-label': 'Search' });
+  const inp = h('input', { placeholder: D ? `Search players, teams and pages, ${SPORT.seasons.label(D.season)}` : 'Loading players…', autocomplete: 'off', spellcheck: 'false', 'aria-label': 'Search', value: typeof initial === 'string' ? initial : '' });
   const ul = h('ul'), ov = h('div', { class: 'ov', onclick: e => { if (e.target === ov) close(); } }, h('div', { class: 'pal' }, inp, ul, h('div', { class: 'ft' }, h('span', {}, '↑↓ move'), h('span', {}, '↵ open'), h('span', {}, 'esc close'))));
   const close = () => ov.remove();
   const paint = () => {
     mount(ul, items.length ? items.map((it, i) => {
-      const row = it.type === 'p' ? h('li', { class: i === idx ? 'on' : '', html: `${avatar(it.p.id, it.p.name, 34)}<div class="pc"><div><b>${esc(it.p.name)}</b><small>${esc(D.teams.get(it.p.tid)?.abbr || '')} · ${esc(it.p.pos || '')}</small></div></div><small>${esc(SPORT.playerTag ? SPORT.playerTag(it.p) : '')}</small>` })
+      const ico = k => `<span class="pi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON.nav[k] || ICON.nav.dot}</svg></span>`;
+      const row = it.type === 'g' ? h('li', { class: i === idx ? 'on' : '', html: `${ico(it.key)}<div class="pc"><div><b>${esc(it.label)}</b><small>Page</small></div></div><small>Go</small>` })
+        : it.type === 'a' ? h('li', { class: i === idx ? 'on' : '', html: `${ico(it.key)}<div class="pc"><div><b>${esc(it.label)}</b><small>${esc(it.sub)}</small></div></div><small>Shortcut</small>` })
+        : it.type === 'x' ? h('li', { class: i === idx ? 'on' : '', html: `${ico('stats')}<div class="pc"><div><b>Search “${esc(it.q)}” in ${esc(it.nm)}</b><small>Opens the ${esc(it.nm)} site</small></div></div><small>Other sport</small>` })
+        : it.type === 'p' ? h('li', { class: i === idx ? 'on' : '', html: `${avatar(it.p.id, it.p.name, 34)}<div class="pc"><div><b>${esc(it.p.name)}</b><small>${esc(D.teams.get(it.p.tid)?.abbr || '')} · ${esc(it.p.pos || '')}</small></div></div><small>${esc(SPORT.playerTag ? SPORT.playerTag(it.p) : '')}</small>` })
         : h('li', { class: i === idx ? 'on' : '', html: `${tbadge(D, it.t.id, 34)}<div class="pc"><div><b>${esc(it.t.name)}</b><small>${esc(it.t.div || '')}</small></div></div><small>Team</small>` });
       row.onmousemove = () => { if (idx !== i) { idx = i; $$('li', ul).forEach((x, j) => x.classList.toggle('on', j === i)); } };
       row.onclick = () => pick(it); return row;
     }) : (inp.value ? h('div', { class: 'em' }, 'No matches') : h('div', { class: 'em' }, SPORT.searchHint || 'Type a name')));
   };
-  const pick = it => { close(); navTo(it.type === 'p' ? '/player/' + it.p.id : '/team/' + it.t.id); };
-  inp.oninput = () => { items = D ? searchIndex(D, inp.value) : []; idx = 0; paint(); };
+  const pick = it => { close(); if (it.type === 'x') location.href = `../${it.id}/#/search?q=${encodeURIComponent(it.q)}`; else if (it.type === 'a') location.hash = it.to; else if (it.type === 'g') navTo('/' + it.key); else navTo(it.type === 'p' ? '/player/' + it.p.id : '/team/' + it.t.id); };
+  inp.oninput = () => { items = D ? paletteIndex(D, inp.value) : []; idx = 0; paint(); };
   inp.onkeydown = e => {
     if (e.key === 'Escape') close();
     else if (e.key === 'ArrowDown') { e.preventDefault(); idx = Math.min(items.length - 1, idx + 1); paint(); $('li.on', ul)?.scrollIntoView({ block: 'nearest' }); }
     else if (e.key === 'ArrowUp') { e.preventDefault(); idx = Math.max(0, idx - 1); paint(); $('li.on', ul)?.scrollIntoView({ block: 'nearest' }); }
     else if (e.key === 'Enter' && items[idx]) pick(items[idx]);
   };
-  document.body.append(ov); paint(); inp.focus();
+  document.body.append(ov); if (inp.value && D) items = paletteIndex(D, inp.value); paint(); inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length);
 }
 /* an inline picker used by Compare / Lab. returns element; onPick(item) */
 function pickerEl(D, placeholder, onPick, filter) {

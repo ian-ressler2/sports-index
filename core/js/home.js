@@ -23,3 +23,6 @@ function heroGeneric(cv) {
   const col = () => getComputedStyle(document.documentElement).getPropertyValue('--acc').trim() || '#f80';
   const f = () => { if (!document.body.contains(cv)) return; ctx.clearRect(0, 0, W, H); ctx.fillStyle = col(); ctx.globalAlpha = .5; dots.forEach(d => { d.x = (d.x + d.v) % 1; ctx.beginPath(); ctx.arc(d.x * W, d.y * H, 2.2, 0, 7); ctx.fill(); }); raf = requestAnimationFrame(f); }; f();
 }
+
+/* a search handed over from another sport's palette: open the palette with the words already typed */
+App.pages.search = async function ({ q }) { const words = q.q || ''; navTo('/'); const go = n => { if (App.D || n > 60) openSearch(words); else setTimeout(() => go(n + 1), 250); }; setTimeout(() => go(0), 300); };
