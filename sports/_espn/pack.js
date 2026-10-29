@@ -144,7 +144,7 @@ const ESPN_BOARD = (a, b) => cached(`bd:${a}-${b}`, 300e3, async () => {
   const days = [], d0 = new Date(Math.floor(a / 10000), Math.floor(a / 100) % 100 - 1, a % 100), d1 = new Date(Math.floor(b / 10000), Math.floor(b / 100) % 100 - 1, b % 100);
   for (const d = new Date(d0); d <= d1 && days.length < 14; d.setDate(d.getDate() + 1)) days.push(d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate());
   const seen = new Set(), events = [];
-  await pool(days, 7, async day => { const j = await getJSON(`${espnSite()}/scoreboard?dates=${day}&limit=300`).catch(() => ({})); for (const e of j.events || []) if (!seen.has(e.id)) { seen.add(e.id); events.push(e); } });
+  await pool(days, 7, async day => { const j = await getJSON(`${espnSite()}/scoreboard?dates=${day}&limit=300${ESPN.sbq}`).catch(() => ({})); for (const e of j.events || []) if (!seen.has(e.id)) { seen.add(e.id); events.push(e); } });
   return events.map(e => {
     const c = e.competitions?.[0]; if (!c) return null; const st = c.status?.type || {};
     const tm = w => { const k = c.competitors.find(z => z.homeAway === w); return { id: +k.team.id, abbr: k.team.abbreviation, name: k.team.displayName, logo: espnLogo(k.team), score: +(k.score?.value ?? k.score) }; };
@@ -156,7 +156,7 @@ SPORT.listGames = (a, b) => ESPN_BOARD(a, b);
 const espnClips = a => (a || []).map(v => ({ title: v.headline || v.description || 'Highlight', dur: fmtClip(v.duration), thumb: v.thumbnail || '', src: v.links?.source?.HD?.href || v.links?.source?.href || v.links?.mobile?.source?.href || '' })).filter(v => /^https:\/\/.*\.mp4/i.test(v.src)).slice(0, 12);
 /* one day's scoreboard including games not yet played, with each team's game leaders, the recap headline and the highlight reel */
 SPORT.today = day => cached(`today:${day}`, 60e3, async () => {
-  const j = await getJSON(`${espnSite()}/scoreboard?dates=${day}&limit=300`);
+  const j = await getJSON(`${espnSite()}/scoreboard?dates=${day}&limit=300${ESPN.sbq}`);
   return (j.events || []).map(e => {
     const c = e.competitions?.[0]; if (!c) return null; const st = c.status?.type || {};
     const tm = w => {
