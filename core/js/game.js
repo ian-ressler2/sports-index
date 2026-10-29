@@ -140,8 +140,9 @@ App.pages.sim = async function ({ q, D, el }) {
   const mine = () => { const on = id => id === hid || id === aid, o = [...adj.out].filter(id => W && [hid, aid].some(t => W.roster(D, t).some(r => String(r.id) === id))); return { o, g: Object.entries(adj.start).filter(([t]) => on(+t)) }; };
   const changed = () => { if (!W) return 0; const m = mine(); return m.o.length + m.g.length; };
   const Dx = () => changed() ? W.apply(D, { out: new Set(mine().o), start: Object.fromEntries(mine().g) }, hid, aid) : D;
-  const link = () => { const m = mine(); return href('/sim', { h: hid, a: aid, x: seed, o: m.o.join(','), g: m.g.map(([t, p]) => `${t}:${p}`).join(',') }); };
-  const sel = (val, fn, lab) => h('label', { class: 'fld' }, h('span', { class: 'cap' }, lab), h('select', { class: 'sel', onchange: e => { fn(+e.target.value); drawWhat(); } }, teams.map(t => h('option', { value: t.id, selected: t.id === val }, t.name))));
+  let ran = !!(q.x || (q.s && isNaN(+q.s)));
+  const link = () => { const m = mine(); return href('/sim', { h: hid, a: aid, x: ran ? seed : undefined, o: m.o.join(','), g: m.g.map(([t, p]) => `${t}:${p}`).join(',') }); };
+  const sel = (val, fn, lab) => h('label', { class: 'fld' }, h('span', { class: 'cap' }, lab), h('select', { class: 'sel', onchange: e => { fn(+e.target.value); drawWhat(); history.replaceState(null, '', link()); } }, teams.map(t => h('option', { value: t.id, selected: t.id === val }, t.name))));
   const out = h('div', { class: 'stack' }), stats = h('div', {}), whatBox = h('div', {}); const seedIn = h('input', { class: 'sel', value: seed, 'aria-label': 'Seed', style: { width: '120px', backgroundImage: 'none' }, oninput: e => { seed = e.target.value || randSeed(); } });
   const bar = h('div', { class: 'panel pad row', style: { gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end', margin: '14px 0' } }, sel(aid, v => { aid = v; }, 'Away'), sel(hid, v => { hid = v; }, 'Home'), h('label', { class: 'fld' }, h('span', { class: 'cap' }, 'Seed'), seedIn),
     h('button', { class: 'btn', type: 'button', title: 'New random seed', onclick: () => { seed = randSeed(); seedIn.value = seed; run(); } }, 'Shuffle'), h('button', { class: 'btn pri', type: 'button', onclick: () => run() }, 'Simulate game'), h('button', { class: 'btn', type: 'button', onclick: () => many() }, 'Run 1,000 games'));
@@ -161,7 +162,7 @@ App.pages.sim = async function ({ q, D, el }) {
       n ? h('div', { style: { marginTop: '10px' } }, h('button', { class: 'btn sm', type: 'button', onclick: () => { adj.out.clear(); for (const k of Object.keys(adj.start)) delete adj.start[k]; drawWhat(); } }, 'Reset all changes')) : null));
     const m = mine(); setQ({ o: m.o.join(','), g: m.g.map(([t, p]) => `${t}:${p}`).join(',') });
   }
-  function run() { stats.replaceChildren(); history.replaceState(null, '', link()); const DD = Dx(), G = SPORT.sim.run(DD, hid, aid, rngFrom(`${hid}-${aid}-${seed}`)); G.sim = true; G.date = changed() ? 'SIMULATED · WHAT IF' : 'SIMULATED'; mount(out, h('div', { class: 'stack' })); gameViewer(out.firstChild, G, DD); }
+  function run() { ran = true; stats.replaceChildren(); history.replaceState(null, '', link()); const DD = Dx(), G = SPORT.sim.run(DD, hid, aid, rngFrom(`${hid}-${aid}-${seed}`)); G.sim = true; G.date = changed() ? 'SIMULATED · WHAT IF' : 'SIMULATED'; mount(out, h('div', { class: 'stack' })); gameViewer(out.firstChild, G, DD); }
   /* play N games and tally the result */
   async function tally(DD, N, key, prog) {
     const rng = rngFrom(`m${hid}-${aid}-${key}`); let hw = 0, hs = 0, as = 0, ot = 0; const diff = {};

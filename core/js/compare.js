@@ -37,13 +37,13 @@ App.pages.compare = async function ({ path, q, D, el }) {
     const g0 = pG[0], m0 = SPORT.groups[g0], top = qualRows(D, g0).sort((x, y) => (y[m0.sort] - x[m0.sort]) * (m0.dir < 0 ? 1 : -1)).slice(0, 8);
     const pairs = []; for (let k = 0; k + 1 < top.length; k += 2) pairs.push([top[k], top[k + 1]]);
     const ts = [...D.stand.values()].sort((x, y) => y.pct - x.pct);
-    mount(el, pageHead('HEAD TO HEAD', 'Compare', 'Two players or two teams side by side: score, radar and a tale of the tape.', null), head, slots,
+    mount(el, pageHead('HEAD TO HEAD', 'Compare', 'Two players or two teams side by side: score, radar and a tale of the tape.', null, false), head, slots,
       h('div', { class: 'panel pad', style: { marginTop: '14px' } }, h('h2', {}, 'Quick matchups'), h('div', { class: 'chips', style: { marginTop: '10px' } }, pairs.map(([x, y]) => h('a', { class: 'chip', href: href(`/compare/${x.id}/${y.id}`) }, `${x.name} vs ${y.name}`)),
         ts.length > 1 ? h('a', { class: 'chip', href: href('/compare/t' + ts[0].id + '/t' + ts[1].id) }, 'Top two teams') : null)));
     return;
   }
   const out = h('div', { style: { marginTop: '14px' } });
-  mount(el, pageHead('HEAD TO HEAD', 'Compare', seasonLabel(D)), head, slots, out);
+  mount(el, pageHead('HEAD TO HEAD', 'Compare', seasonLabel(D), null, false), head, slots, out);
   if (!(dA && dB)) { mount(out, h('div', { class: 'empty' }, 'Pick two entries that both have a line this season to compare them.')); return; }
 
   const keys = CM.tape[g].filter(k => COLMAP[g][k] && (isFinite(dA[k]) || isFinite(dB[k])));

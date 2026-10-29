@@ -428,3 +428,4 @@ table.odds td{padding:6px 8px}.odd{position:relative;display:block;min-width:64p
 table.odds td:first-child,table.odds th:first-child{position:sticky;left:0;z-index:1;background:var(--bg2)}
 @media (max-width:700px){table.odds .opt{display:none}table.odds td:first-child b{max-width:92px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block}}
 .pal .pi{flex:none;width:34px;height:34px;border-radius:50%;background:var(--bg4);display:grid;place-items:center;color:var(--fg2)}.pal .pi svg{width:18px;height:18px}
+.sharebtn svg{width:14px;height:14px;margin-right:6px;vertical-align:-2px}@media (max-width:520px){.sharebtn span{display:none}.sharebtn svg{margin:0}}

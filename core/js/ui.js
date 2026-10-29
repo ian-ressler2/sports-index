@@ -34,8 +34,13 @@ function errorEl(e, retry) {
     h('button', { class: 'btn', onclick: retry }, 'Try again'));
 }
 function srcTag(s) { return s ? `<span class="src ${s.toLowerCase()}">${s}</span>` : ''; }
-function pageHead(eyebrow, title, sub, right) {
-  return h('div', { class: 'pagehead' }, h('div', {}, h('div', { class: 'eyebrow' }, eyebrow), h('h1', {}, title), sub ? h('p', { class: 'sub', style: { margin: '10px 0 0' } }, sub) : null), right || null);
+/* every page head carries a "Copy link" button: all page state lives in the address, so the copied link reopens this exact view */
+function shareBtn(label = 'Copy link') {
+  return h('button', { class: 'btn sm sharebtn', type: 'button', title: 'Copy a link to this exact view', html: ICON.share + `<span>${label}</span>`, onclick: async () => { toast(await copyText(location.href) ? 'Link copied' : 'Copy the address from the browser bar'); } });
+}
+function pageHead(eyebrow, title, sub, right, share = true) {
+  const side = share ? (right ? h('div', { class: 'row', style: { gap: '8px', flexWrap: 'wrap', alignItems: 'flex-start' } }, right, shareBtn()) : shareBtn()) : right;
+  return h('div', { class: 'pagehead' }, h('div', {}, h('div', { class: 'eyebrow' }, eyebrow), h('h1', {}, title), sub ? h('p', { class: 'sub', style: { margin: '10px 0 0' } }, sub) : null), side || null);
 }
 const seasonLabel = D => (D.final ? `${SPORT.seasons.label(D.season)} ${D.stage || 'REGULAR SEASON'}` : `${SPORT.seasons.label(D.season)} · THROUGH ${SPORT.unit || 'GAME'} ${D.maxG}`).toUpperCase();
 const sourceNote = () => SPORT.sourceNote || '';
