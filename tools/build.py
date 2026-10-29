@@ -88,8 +88,8 @@ def build():
     if land.exists():
         lcss = read("landing/landing.css")
         ljs = read("landing/landing.js")
-        sports_json = json.dumps({k: {x: v[x] for x in ("name", "short", "desc", "accent", "tagline")} for k, v in SPORTS.items()})
-        html = page("Sports Index · MLB, NHL, NBA and NFL stats", "Leaderboards, percentiles, charts and a stat lab for baseball, hockey, basketball and football.", "landing", "",
+        sports_json = json.dumps({k: {**{x: v[x] for x in ("name", "short", "desc", "accent", "tagline")}, "light": (v.get("theme") or {}).get("light", {}).get("acc", v["accent"])} for k, v in SPORTS.items()})
+        html = page("Sports Index · stats for every sport", "Leaderboards, percentiles, charts and a stat lab for baseball, hockey, basketball, football and more.", "landing", "",
                     f"<style>\n{base_css}\n{lcss}\n</style>", f"<script>const SPORTS_META = {sports_json};</script>\n<script>\n{ljs}\n</script>", icon("#ff8a4c"))
         (DIST / "index.html").write_text(html)
         print("landing built")

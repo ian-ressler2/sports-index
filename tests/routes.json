@@ -91,5 +91,32 @@
     "/charts?t=1,2",
     "/odds",
     "/watch"
+  ],
+  "wnba": [
+    "/",
+    "/stats/pl",
+    "/stats/tof",
+    "/stats/tdf",
+    "/lab",
+    "/compare",
+    "/compare/100001/100002",
+    "/compare/t1/t2",
+    "/charts",
+    "/charts?t=1",
+    "/charts?t=1,2",
+    "/charts?t=1,2,3,4,5,6,7",
+    "/charts?t=1&p=100000",
+    "/teams",
+    "/team/1",
+    "/player/100001",
+    "/player/100001?tab=stats",
+    "/player/100001?tab=splits",
+    "/player/100001?tab=log",
+    "/player/100001?tab=shots",
+    "/games",
+    "/game/9000",
+    "/sim?h=1&a=2&x=abc",
+    "/odds",
+    "/watch"
   ]
 }

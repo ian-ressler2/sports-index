@@ -96,6 +96,42 @@
    }
   }
  },
+ "wnba": {
+  "name": "Hardwood Index",
+  "short": "WNBA",
+  "accent": "#ff9f1c",
+  "tagline": "Shot charts, TS%, usage and playoff odds",
+  "desc": "Women’s basketball leaderboards, percentiles, play-by-play shot charts, team ratings, playoff odds, compare and a stat lab.",
+  "files": [
+   "../_espn/espn",
+   "../_espn/pack",
+   "cols",
+   "data",
+   "hero",
+   "shots",
+   "game",
+   "sim",
+   "season",
+   "gloss",
+   "config"
+  ],
+  "theme": {
+   "light": {
+    "acc": "#c76b00",
+    "acc2": "#f5a33b",
+    "a": "#c76b00",
+    "b": "#6a3fc0",
+    "accbg": "rgba(199,107,0,.10)"
+   },
+   "dark": {
+    "acc": "#ff9f1c",
+    "acc2": "#ffc46b",
+    "a": "#ff9f1c",
+    "b": "#a78bfa",
+    "accbg": "rgba(255,159,28,.10)"
+   }
+  }
+ },
  "nfl": {
   "name": "Gridiron Index",
   "short": "NFL",
