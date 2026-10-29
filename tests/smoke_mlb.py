@@ -77,6 +77,18 @@ def handle(route):
                 codes=re.search(r'sitCodes=([^&]+)',u).group(1).split(',')
                 return ful(J({'stats':[{'splits':[{'split':{'code':c},'stat':st} for c in codes]}]}))
         if re.search(r'/people/\d+',u): return ful(J({'people':[{'fullName':'Bat Player0','primaryPosition':{'name':'Shortstop'},'currentTeam':{'name':'City108 Team108'},'batSide':{'code':'R'},'pitchHand':{'code':'R'},'height':"6' 1\"",'weight':200,'mlbDebutDate':'2019-04-01'}]}))
+        if 'startDate=' in u and '/schedule' in u:
+            gs=[{'gamePk':900+i,'gameDate':f'2025-04-0{1+i%2}T20:00:00Z','officialDate':f'2025-04-0{1+i%2}','status':{'abstractGameCode':'F','codedGameState':'F','detailedState':'Final'},'teams':{'home':{'team':{'id':TEAMS[i*2],'name':f'City{TEAMS[i*2]} Team','abbreviation':f'T{i*2}'},'score':5+i},'away':{'team':{'id':TEAMS[i*2+1],'name':f'City{TEAMS[i*2+1]} Team','abbreviation':f'T{i*2+1}'},'score':3}}} for i in range(6)]
+            return ful(J({'dates':[{'date':'2025-04-01','games':gs}]}))
+        if '/feed/live' in u:
+            def pe(n,call,x,z): return {'isPitch':True,'pitchNumber':n,'details':{'call':{'description':call},'type':{'code':'FF','description':'Four-Seam Fastball'}},'count':{'balls':0,'strikes':0},'pitchData':{'startSpeed':94.5,'strikeZoneTop':3.4,'strikeZoneBottom':1.6,'coordinates':{'pX':x,'pZ':z}}}
+            plays=[]
+            for i in range(8):
+                top=i<4; ev=['Strikeout','Single','Home Run','Walk'][i%4]; et=['strikeout','single','home_run','walk'][i%4]
+                evs=[pe(1,'Ball',1.2,2.0),pe(2,'Called Strike',0.1,2.5),pe(3,'In play, out(s)' if et!='strikeout' else 'Swinging Strike',-0.2,2.3)]
+                if et in ('single','home_run'): evs[-1]['hitData']={'launchSpeed':101.2,'launchAngle':24,'totalDistance':390,'coordinates':{'coordX':140+i*5,'coordY':80+i*8}}
+                plays.append({'result':{'event':ev,'eventType':et,'description':f'Batter {i} {ev.lower()}.','awayScore':min(3,i//2),'homeScore':i//3},'about':{'inning':1+i//4,'isTopInning':top,'isComplete':True,'isScoringPlay':et=='home_run'},'count':{'outs':i%3},'matchup':{'batter':{'fullName':f'Bat Player{i}'},'pitcher':{'fullName':'Pit Hurler1'},'postOnFirst':{'id':1} if et in('single','walk') else None,'postOnSecond':None,'postOnThird':None},'playEvents':evs})
+            return ful(J({'gameData':{'datetime':{'officialDate':'2025-04-01'},'status':{'detailedState':'Final'},'teams':{'home':{'id':108,'name':'City108 Team','abbreviation':'T8'},'away':{'id':109,'name':'City109 Team','abbreviation':'T9'}}},'liveData':{'plays':{'allPlays':plays},'linescore':{'teams':{'home':{'runs':3},'away':{'runs':3}}}}}))
         if '/schedule' in u:
             return ful(J({'dates':[{'games':[{'gameDate':f'2025-04-{1+i%28:02d}T20:00:00Z','officialDate':f'2025-04-{1+i%28:02d}','status':{'abstractGameState':'Final'},'teams':{'home':{'team':{'id':108,'name':'A'},'score':random.randint(0,9)},'away':{'team':{'id':109,'name':'B'},'score':random.randint(0,9)}}} for i in range(100)]}]}))
         if '/stats?' in u:
