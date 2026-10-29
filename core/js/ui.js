@@ -27,7 +27,11 @@ function segControl(opts, cur, onPick, cls = '') {
   return el;
 }
 function toggle(label, on, onChange) { const inp = h('input', { type: 'checkbox', checked: on ? true : null, onchange: e => onChange(e.target.checked) }); if (on) inp.checked = true; return h('label', { class: 'sw' }, inp, h('i'), label); }
-function loadingEl(msg = 'Loading', pct) { return h('div', { class: 'load' }, h('div', {}, h('div', { class: 'spin' }), h('div', { id: 'lmsg' }, msg), h('div', { class: 'bar2' }, h('b', { id: 'lbar', style: { width: ((pct || 0) * 100) + '%' } })))); }
+function loadingEl(msg = 'Loading', pct) {
+  /* a spinner with the shape of the page ghosted behind it, so the layout does not jump when the data arrives */
+  const sk = h('div', { class: 'skpage', 'aria-hidden': 'true' }, h('div', { class: 'skel', style: { height: '34px', width: '38%', marginBottom: '14px' } }), h('div', { class: 'panel pad' }, Array.from({ length: 7 }, (_, i) => h('div', { class: 'skel', style: { height: '16px', width: (92 - (i * 7) % 30) + '%', margin: '12px 0' } }))));
+  return h('div', { class: 'loadwrap', role: 'status', 'aria-live': 'polite' }, h('div', { class: 'load' }, h('div', {}, h('div', { class: 'spin' }), h('div', { id: 'lmsg' }, msg), h('div', { class: 'bar2' }, h('b', { id: 'lbar', style: { width: ((pct || 0) * 100) + '%' } })))), sk);
+}
 function errorEl(e, retry) {
   return h('div', { class: 'err' }, h('b', {}, 'Could not load the data'), h('p', { class: 'muted', style: { margin: '6px 0 12px' } }, String(e.message || e)),
     h('p', { class: 'dim', style: { margin: '0 0 12px', fontSize: '12.5px' } }, `This site reads live data from ${SPORT.dataSrc || 'statsapi.mlb.com and baseballsavant.mlb.com'} in your browser. If it is running inside a sandboxed preview that blocks outside requests, open index.html in a normal browser tab.`),

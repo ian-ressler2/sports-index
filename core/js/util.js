@@ -140,7 +140,10 @@ async function cached(key, ttl, loader) {
   if (MEM.has(key)) return MEM.get(key);
   const p = (async () => {
     const hit = await IDB.get(key);
-    if (hit && Date.now() - hit.t < ttl) return hit.v;
+    const age = hit ? Date.now() - hit.t : Infinity;
+    if (age < ttl) return hit.v;
+    /* stale-while-revalidate: data a little past its time is shown at once and refreshed behind the scenes, so the next visit is fresh */
+    if (age < Math.min(ttl * 12, 3 * 86400e3)) { loader().then(v => IDB.set(key, { t: Date.now(), v })).catch(() => { }); return hit.v; }
     const v = await loader();
     IDB.set(key, { t: Date.now(), v });
     return v;
