@@ -34,7 +34,7 @@ def make_handler(spec, seed=7):
             chunk = athletes[(page - 1) * limit: page * limit]
             return J({'pagination': {'count': len(athletes), 'limit': limit, 'page': page, 'pages': math.ceil(len(athletes) / limit)}, 'athletes': [athlete_row(a) for a in chunk], 'requestedSeason': {'year': spec.season, 'displayName': f'{spec.season-1}-{spec.season%100:02d}'}, 'categories': head_cats()})
         if '/statistics/byteam' in path:
-            return J({'teams': [{'team': team_obj(t, spec.lg), 'categories': [{'name': n, 'values': (spec.tgen(t, rnd, n, i) if spec.tgen.__code__.co_argcount > 3 else spec.tgen(t, rnd, n))} for i, (n, _) in enumerate(spec.tcats)]} for t in teams], 'categories': [{'name': n, 'names': names} for n, names in spec.tcats]})
+            return J({'teams': [{'team': team_obj(t, spec.lg), 'categories': [{'name': n, 'values': (spec.tgen(t, rnd, n, i) if spec.tgen.__code__.co_argcount > 3 else spec.tgen(t, rnd, n))} for i, (n, _) in enumerate(spec.tcats)]} for t in teams], 'categories': [{'name': n, 'names': names} for n, names in getattr(spec, 'thead', spec.tcats)]})
         if path.endswith('/standings'):
             ch = []
             for conf, dvs in spec.divs.items():
@@ -45,7 +45,8 @@ def make_handler(spec, seed=7):
                         t = next(x for x in teams if x['id'] == tid); st = spec.stand_stats(t, rnd)
                         ents.append({'team': team_obj(t, spec.lg), 'stats': [{'name': k, 'value': v, 'displayValue': str(v)} for k, v in st.items() if not isinstance(v, str)] + [{'name': k, 'displayValue': v} for k, v in st.items() if isinstance(v, str)]})
                     kids.append({'name': dv, 'standings': {'entries': ents}})
-                ch.append({'name': conf, 'children': kids})
+                if getattr(spec, 'flat', False): ch.append({'name': conf, 'standings': {'entries': [e for kd in kids for e in kd['standings']['entries']]}})  # college: conferences hold the entries directly
+                else: ch.append({'name': conf, 'children': kids})
             return J({'name': 'x', 'children': ch})
         m = re.search(r'/athletes/(\d+)/gamelog', path)
         if m:
@@ -81,7 +82,7 @@ def make_handler(spec, seed=7):
                 a, b = teams[(k * 2) % len(teams)], teams[(k * 2 + 1) % len(teams)]
                 state = 'post' if k < 5 else 'in' if k == 5 else 'pre'
                 lead = [{'name': n, 'shortDisplayName': n[:3].title(), 'leaders': [{'displayValue': str(v + k), 'value': v + k, 'athlete': {'id': str(100000 + k), 'shortName': f'P. {k}', 'displayName': f'Player {k}'}}]} for n, v in LV.items()]
-                tm = lambda t, w, sc: {'homeAway': w, 'score': str(sc), 'team': {'id': str(t['id']), 'abbreviation': t.get('abbr', 'T'), 'displayName': t.get('name', 'Team'), 'logos': []}, 'records': [{'type': 'total', 'summary': '3-1'}], 'leaders': lead if state != 'pre' else []}
+                tm = lambda t, w, sc: {**({'curatedRank': {'current': 1 + len(t['name']) % 30}} if spec.lg.startswith('mens-college') else {}), 'homeAway': w, 'score': str(sc), 'team': {'id': str(t['id']), 'abbreviation': t.get('abbr', 'T'), 'displayName': t.get('name', 'Team'), 'logos': []}, 'records': [{'type': 'total', 'summary': '3-1'}], 'leaders': lead if state != 'pre' else []}
                 comp = {'status': {'type': {'completed': state == 'post', 'state': state, 'shortDetail': 'Final' if state == 'post' else '3rd 4:12' if state == 'in' else '7:00 PM'}}, 'competitors': [tm(a, 'home', 24 + k), tm(b, 'away', 17 + k)]}
                 if state == 'post':
                     comp['headlines'] = [{'shortLinkText': f'Team {k} wins a thriller', 'description': 'recap'}]

@@ -118,5 +118,30 @@
     "/sim?h=1&a=2&x=abc",
     "/odds",
     "/watch"
+  ],
+  "cbb": [
+    "/",
+    "/stats/pl",
+    "/stats/tof",
+    "/stats/tdf",
+    "/lab",
+    "/compare",
+    "/compare/100001/100002",
+    "/compare/t100/t101",
+    "/charts",
+    "/charts?t=100",
+    "/charts?t=100,101",
+    "/charts?t=100&p=100000",
+    "/teams",
+    "/team/100",
+    "/player/100001",
+    "/player/100001?tab=stats",
+    "/player/100001?tab=splits",
+    "/player/100001?tab=log",
+    "/player/100001?tab=shots",
+    "/games",
+    "/game/9000",
+    "/today",
+    "/watch"
   ]
 }

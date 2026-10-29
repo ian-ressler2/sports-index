@@ -168,5 +168,39 @@
     "accbg": "rgba(63,191,111,.10)"
    }
   }
+ },
+ "cbb": {
+  "name": "March Index",
+  "short": "CBB",
+  "accent": "#9b8cff",
+  "tagline": "Shot charts, team ratings, AP-ranked scoreboard",
+  "desc": "Division I men’s basketball leaderboards, percentiles, play-by-play shot charts, team ratings, the daily scoreboard, compare and a stat lab.",
+  "files": [
+   "../_espn/espn",
+   "../_espn/pack",
+   "cols",
+   "data",
+   "hero",
+   "shots",
+   "game",
+   "gloss",
+   "config"
+  ],
+  "theme": {
+   "light": {
+    "acc": "#5b45d6",
+    "acc2": "#8f7bff",
+    "a": "#5b45d6",
+    "b": "#c76b00",
+    "accbg": "rgba(91,69,214,.10)"
+   },
+   "dark": {
+    "acc": "#9b8cff",
+    "acc2": "#bcb1ff",
+    "a": "#9b8cff",
+    "b": "#ff9f1c",
+    "accbg": "rgba(155,140,255,.10)"
+   }
+  }
  }
 }

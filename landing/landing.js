@@ -7,6 +7,7 @@ const art={
  nba:'<svg viewBox="0 0 240 72" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 66V6h228v60" opacity=".5"/><path d="M96 6v30h48V6" opacity=".5"/><path d="M60 6v24a60 60 0 0 0 120 0V6" opacity=".5"/><circle cx="120" cy="14" r="5"/><circle cx="84" cy="44" r="3" fill="currentColor"/><circle cx="150" cy="52" r="3" fill="currentColor"/><circle cx="176" cy="30" r="3" fill="currentColor"/></svg>',
  nfl:'<svg viewBox="0 0 240 72" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="6" y="6" width="228" height="60" rx="3" opacity=".5"/><path d="M42 6v60M78 6v60M114 6v60M126 6v60M162 6v60M198 6v60" opacity=".35"/><path d="M30 50 C80 50 90 22 150 24 S200 20 214 14" stroke-dasharray="4 4"/><circle cx="214" cy="14" r="3.5" fill="currentColor"/></svg>'};
 art.wnba=art.nba;
+art.cbb='<svg viewBox="0 0 240 72" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 8h34M8 24h34M42 8v16M42 16h30M8 48h34M8 64h34M42 48v16M42 56h30M72 16v40M72 36h38" opacity=".5"/><path d="M232 8h-34M232 24h-34M198 8v16M198 16h-30M232 48h-34M232 64h-34M198 48v16M198 56h-30M168 16v40M168 36h-38" opacity=".5"/><circle cx="120" cy="36" r="10"/><path d="M110 36h20M120 26v20" opacity=".7"/></svg>';
 for(const k in SPORTS_META)if(!ACC[k])ACC[k]=[SPORTS_META[k].light||SPORTS_META[k].accent,SPORTS_META[k].accent];
 function paint(){const d=dark()?1:0;for(const k in ACC)document.documentElement.style.setProperty('--c-'+k,ACC[k][d]);}
 function el(h){const t=document.createElement('template');t.innerHTML=h.trim();return t.content.firstChild}
