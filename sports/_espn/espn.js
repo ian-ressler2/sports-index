@@ -88,7 +88,7 @@ const ESPN_SCHED = (tid, season) => cached(`sch:${tid}:${season}`, 3600e3, async
   return (j.events || []).map(e => {
     const c = e.competitions?.[0]; if (!c) return null;
     const me = c.competitors.find(k => k.team.id === String(tid)), op = c.competitors.find(k => k !== me);
-    return { id: e.id, date: (e.date || '').slice(0, 10), t: e.date, final: c.status?.type?.completed || c.status?.type?.name === 'STATUS_FINAL', home: me?.homeAway === 'home', me: +(me?.score?.value ?? me?.score), op: +(op?.score?.value ?? op?.score), opp: op?.team?.abbreviation, oppName: op?.team?.displayName };
+    return { id: e.id, date: (e.date || '').slice(0, 10), t: e.date, final: c.status?.type?.completed || c.status?.type?.name === 'STATUS_FINAL', home: me?.homeAway === 'home', me: +(me?.score?.value ?? me?.score), op: +(op?.score?.value ?? op?.score), oppId: op?.team?.id, opp: op?.team?.abbreviation, oppName: op?.team?.displayName };
   }).filter(Boolean);
 });
 const ESPN_SUMMARY = id => cached(`sum:${id}`, 30 * 86400e3, async () => {

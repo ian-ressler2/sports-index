@@ -70,7 +70,9 @@ def make_handler(spec, seed=7):
             evs = []
             for k in range(min(40, spec.gp)):
                 opp = teams[(k + 3) % len(teams)]
-                evs.append({'id': f'{9000 + k}', 'date': f'2025-1{k % 3}-{k % 27 + 1:02d}T00:00Z', 'competitions': [{'status': {'type': {'completed': True, 'name': 'STATUS_FINAL'}}, 'competitors': [{'homeAway': 'home' if k % 2 else 'away', 'team': {'id': tid, 'abbreviation': 'ME'}, 'score': {'value': rnd.randint(0, 6)}}, {'homeAway': 'away' if k % 2 else 'home', 'team': {'id': str(opp['id']), 'abbreviation': opp['abbr'], 'displayName': opp['name']}, 'score': {'value': rnd.randint(0, 6)}}]}]})
+                done = k < 28
+                sc = (lambda: {'value': rnd.randint(0, 6)}) if done else (lambda: {})
+                evs.append({'id': f'{9000 + k}' if tid == str(teams[0]['id']) else f'g{tid}-{k}', 'date': f'2025-1{k % 3}-{k % 27 + 1:02d}T00:00Z', 'competitions': [{'status': {'type': {'completed': done, 'name': 'STATUS_FINAL' if done else 'STATUS_SCHEDULED'}}, 'competitors': [{'homeAway': 'home' if k % 2 else 'away', 'team': {'id': tid, 'abbreviation': 'ME'}, 'score': sc()}, {'homeAway': 'away' if k % 2 else 'home', 'team': {'id': str(opp['id']), 'abbreviation': opp['abbr'], 'displayName': opp['name']}, 'score': sc()}]}]})
             return J({'events': evs})
         if path.endswith('/scoreboard'):
             evs = []

@@ -204,3 +204,21 @@ function teamMultiPicker(D, selected, apply) {
 function teamChips(D, tids, apply) {
   return h('div', { class: 'chips' }, tids.map(id => h('button', { class: 'chip on', type: 'button', title: 'Remove ' + (D.teams.get(id)?.name || ''), onclick: () => apply(tids.filter(x => x !== id)), html: `${esc(D.teams.get(id)?.abbr || id)} <span aria-hidden="true">×</span>` })));
 }
+
+/* ---- every team's schedule for a season, merged into one game list for the season simulator ---- */
+async function espnSeasonGames(D, season, prog) {
+  const ids = [...D.teams.keys()], seen = new Map(); let n = 0;
+  const all = await pool(ids, 6, async id => { const r = await ESPN_SCHED(id, season); prog && prog(++n / ids.length); return r; });
+  ids.forEach((id, k) => { for (const g of all[k] || []) {
+    if (seen.has(g.id) || !D.teams.has(+g.oppId)) continue;
+    seen.set(g.id, g.home ? { id: g.id, h: id, a: +g.oppId, hs: g.me, as: g.op, final: g.final } : { id: g.id, h: +g.oppId, a: id, hs: g.op, as: g.me, final: g.final });
+  } });
+  return [...seen.values()];
+}
+/* current season (finished + remaining) and last season (finished), for SPORT.season.games */
+async function espnSeasonData(D, prog) {
+  const cur = await espnSeasonGames(D, D.season, f => prog && prog(f * .5));
+  let prev = []; try { prev = (await espnSeasonGames(D, D.season - 1, f => prog && prog(.5 + f * .5))).filter(g => g.final); } catch (e) { /* last season is only a prior */ }
+  const fin = g => g.final && isFinite(g.hs) && isFinite(g.as);
+  return { cur: cur.filter(fin), rem: cur.filter(g => !g.final), prev };
+}

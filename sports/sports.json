@@ -18,6 +18,7 @@
    "charts_page",
    "game",
    "sim",
+   "season",
    "gloss",
    "config"
   ],
@@ -38,6 +39,7 @@
    "shots",
    "game",
    "sim",
+   "season",
    "gloss",
    "config"
   ],
@@ -73,6 +75,7 @@
    "shots",
    "game",
    "sim",
+   "season",
    "gloss",
    "config"
   ],
@@ -109,6 +112,7 @@
    "plays",
    "game",
    "sim",
+   "season",
    "gloss",
    "config"
   ],
