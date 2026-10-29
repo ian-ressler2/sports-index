@@ -49,6 +49,6 @@ App.pages.charts = async function ({ D, el, q }) {
     sel('Min distance', [[0, 'Any'], [380, '380+ ft'], [420, '420+ ft'], [440, '440+ ft'], [460, '460+ ft']], F.min, v => { F.min = +v; draw(); }),
     sel('Color', [['dist', 'Distance'], ['ev', 'Exit velo'], ['angle', 'Launch angle']], F.color, v => { F.color = v; draw(); }),
     h('input', { class: 'fld', placeholder: 'Find a batter', style: { width: '160px' }, oninput: debounce(e => { F.find = e.target.value; draw(); }, 180), 'aria-label': 'Find a batter' })));
-  mount(el, head, bar, h('div', { style: { marginTop: '14px' } }, chart), stats, lists);
+  mount(el, head, bar, h('div', { style: { marginTop: '14px' } }, chart), explainer('<p>Every home run of the season on a field with home plate at the bottom. Each dot is where the ball landed, so the farther from the plate, the longer the shot. Color by distance, exit velocity or launch angle; click a dot to open that batter’s spray chart. Filters narrow by team, month, batter hand and minimum distance.</p>'), stats, lists);
   draw();
 };

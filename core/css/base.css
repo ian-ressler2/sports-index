@@ -437,3 +437,5 @@ table.odds td:first-child,table.odds th:first-child{position:sticky;left:0;z-ind
 :root[data-theme="dark"][data-cb="1"]{--good:#56b4e9;--bad:#e69f00;--a:#56b4e9;--b:#e69f00;--hot:230,159,0;--cold:86,180,233;--warn:#f0e442}
 .cbtoggle{background:none;border:0;color:var(--fg2);font:inherit;text-decoration:underline;cursor:pointer;padding:0}.cbtoggle[aria-pressed="true"]{color:var(--fg);font-weight:600}
 .gtlw:focus-visible{outline:2px solid var(--acc);outline-offset:3px;border-radius:6px}
+
+.explain{margin-top:14px}.explain summary{cursor:pointer;font-weight:600;font-size:13px}.explain summary:focus-visible{outline:2px solid var(--fg2);outline-offset:3px}.ex-body{margin-top:10px;font-size:13px;line-height:1.55;color:var(--fg2)}.ex-body p{margin:0 0 8px}.ex-body b{color:var(--fg)}

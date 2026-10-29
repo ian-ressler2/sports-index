@@ -42,6 +42,10 @@ function srcTag(s) { return s ? `<span class="src ${s.toLowerCase()}">${s}</span
 function shareBtn(label = 'Copy link') {
   return h('button', { class: 'btn sm sharebtn', type: 'button', title: 'Copy a link to this exact view', html: ICON.share + `<span>${label}</span>`, onclick: async () => { toast(await copyText(location.href) ? 'Link copied' : 'Copy the address from the browser bar'); } });
 }
+/* collapsible "what am I looking at?" panel; body is trusted HTML written in-repo */
+function explainer(body, title) {
+  return h('details', { class: 'panel pad explain' }, h('summary', {}, title || 'What am I looking at?'), h('div', { class: 'ex-body', html: body }));
+}
 function pageHead(eyebrow, title, sub, right, share = true) {
   const side = share ? (right ? h('div', { class: 'row', style: { gap: '8px', flexWrap: 'wrap', alignItems: 'flex-start' } }, right, shareBtn()) : shareBtn()) : right;
   return h('div', { class: 'pagehead' }, h('div', {}, h('div', { class: 'eyebrow' }, eyebrow), h('h1', {}, title), sub ? h('p', { class: 'sub', style: { margin: '10px 0 0' } }, sub) : null), side || null);

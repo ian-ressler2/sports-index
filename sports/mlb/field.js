@@ -81,6 +81,14 @@ function tipForPitch(p, role) {
 
 /* ---- Field Explorer ---- */
 const FX_VIEWS_BAT = [['spray', 'Spray chart'], ['zone', 'Zone map'], ['pitches', 'Pitch locations'], ['evla', 'EV / launch angle']];
+const FX_HELP = {
+  spray: '<p>A bird’s-eye view of the field with home plate at the bottom. Each dot is a ball put in play, placed where it landed or was fielded: left of center is the third-base side, right of center the first-base side, and farther from the plate means it traveled farther. Home runs are drawn larger.</p><p>Color by <b>Result</b> shows hits versus outs, <b>Exit velo</b> shows how hard it was struck, and <b>xwOBA</b> shows how valuable the contact was expected to be from speed and angle alone.</p>',
+  zone: '<p>The box is the strike zone as the catcher sees it, split into nine cells, with the shadow zone around it. Each cell is shaded by the measure you pick (for example how often pitches went there, or how often the batter hit them). Hotter colors mean a higher number in that cell, so you can see where a hitter feasts or a pitcher lives.</p>',
+  pitches: '<p>Every pitch plotted where it crossed the plate, seen from the catcher’s view, with the strike zone outlined. Each pitch type has its own color so you can see whether a pitcher repeats locations or a hitter chases away.</p>',
+  move: '<p>How much each pitch moves compared with a pitch thrown with no spin: right-left on the horizontal axis and up-down on the vertical, in inches. Clusters show each pitch type’s shape; a tighter cluster means a more repeatable pitch.</p>',
+  evla: '<p>Each dot is a batted ball plotted by launch angle (up and down) and exit velocity (left to right). The sweet spot for damage is hard contact between roughly 8 and 32 degrees; grounders sit low and pop-ups sit high.</p>',
+  velo: '<p>Pitch speed by start in order across the season. A steady line means consistent velocity; a downward drift can be a sign of fatigue or injury, and an upward one of added velocity.</p>'
+};
 const FX_VIEWS_PIT = [['zone', 'Zone map'], ['pitches', 'Pitch locations'], ['move', 'Movement'], ['spray', 'Batted balls'], ['evla', 'EV / launch angle'], ['velo', 'Velocity by start']];
 const ZONE_METRICS = {
   bat: [['n', 'Pitches seen'], ['swing', 'Swing%'], ['whiff', 'Whiff%'], ['xwobacon', 'xwOBA on contact'], ['woba', 'wOBA (results)'], ['ev', 'Avg exit velo']],
@@ -109,7 +117,7 @@ async function fieldExplorer(D, id, role, { compact = false, initView } = {}) {
   const F = { role, types: new Set(), hand: '', res: '', count: '', month: '' };
   const V = { view: initView || (role === 'pit' ? 'zone' : 'spray'), color: 'result', zm: 'n', zonePick: role === 'pit' ? 'n' : 'n' };
   const ctl = h('div', { class: 'panel fxc' }), main = h('div', { class: 'stack' });
-  const chartBox = h('div', { class: 'panel pad' }), sumBox = h('div', { class: 'panel' });
+  const exBox = h('div', {}), chartBox = h('div', { class: 'panel pad' }), sumBox = h('div', { class: 'panel' });
   function ctlUI() {
     const kids = [];
     const views = role === 'pit' ? FX_VIEWS_PIT : FX_VIEWS_BAT;
@@ -163,12 +171,13 @@ async function fieldExplorer(D, id, role, { compact = false, initView } = {}) {
       tipFn = i => { const si = Math.floor(i / 10000), k = i % 10000, se = series[si], p = se.pts[k]; return p ? `<b>${esc(PITCH_NAMES[se.name] || se.name)}</b>${tr('Date', dates[p[0]])}${tr('Avg velo', p[1].toFixed(1) + ' mph')}` : ''; }; note = 'Average velocity per outing';
     }
     chartBox.innerHTML = `<div class="row sb" style="margin-bottom:10px"><span class="cap">${esc(note)}</span></div><div id="fxchart" style="max-width:${mode === 'evla' || mode === 'move' ? 720 : mode === 'zone' || mode === 'pitches' ? 560 : 760}px;margin:0 auto">${html}</div><div class="legend" style="justify-content:center">${legend}</div>`;
+    mount(exBox, FX_HELP[mode] ? explainer(FX_HELP[mode]) : null);
     const cb = $('#fxchart', chartBox); if (tipFn) tipBind(cb, tipFn);
     const cell = (k, v, f) => `<div class="tile"><div class="k">${k}</div><div class="v">${f === 'int' ? Math.round(v) : fmt(v, f)}</div></div>`;
     const bbeTiles = [['Pitches', sm.pitches, 'int'], ['Batted balls', sm.bbe, 'int'], ['Avg EV', sm.ev, 'f1'], ['Max EV', sm.maxEV, 'f1'], ['Hard-hit%', sm.hh, 'f1'], ['Barrel%', sm.brl, 'f1'], ['xwOBAcon', sm.xwobacon, 'f3'], ['Whiff%', sm.whiff, 'f1'], ['Chase%', sm.chase, 'f1'], ['HR', sm.hr, 'int']];
     sumBox.innerHTML = `<div class="tiles" style="border-top:0">${bbeTiles.map(t => cell(...t)).join('')}</div>`;
   }
-  ctlUI(); main.append(chartBox, sumBox); box.append(ctl, main); draw();
+  ctlUI(); main.append(chartBox, exBox, sumBox); box.append(ctl, main); draw();
   return box;
 }
 const median = a => { const b = a.filter(isFinite).sort((x, y) => x - y); return b.length ? b[b.length >> 1] : NaN; };
