@@ -72,6 +72,13 @@ def make_handler(spec, seed=7):
                 opp = teams[(k + 3) % len(teams)]
                 evs.append({'id': f'{9000 + k}', 'date': f'2025-1{k % 3}-{k % 27 + 1:02d}T00:00Z', 'competitions': [{'status': {'type': {'completed': True, 'name': 'STATUS_FINAL'}}, 'competitors': [{'homeAway': 'home' if k % 2 else 'away', 'team': {'id': tid, 'abbreviation': 'ME'}, 'score': {'value': rnd.randint(0, 6)}}, {'homeAway': 'away' if k % 2 else 'home', 'team': {'id': str(opp['id']), 'abbreviation': opp['abbr'], 'displayName': opp['name']}, 'score': {'value': rnd.randint(0, 6)}}]}]})
             return J({'events': evs})
+        if path.endswith('/scoreboard'):
+            evs = []
+            for k in range(8):
+                a, b = teams[(k * 2) % len(teams)], teams[(k * 2 + 1) % len(teams)]
+                tm = lambda t, w, sc: {'homeAway': w, 'score': str(sc), 'team': {'id': str(t['id']), 'abbreviation': t.get('abbr', 'T'), 'displayName': t.get('name', 'Team'), 'logos': []}}
+                evs.append({'id': str(9000 + k), 'date': f'2026-10-{20 + k % 6:02d}T23:00Z', 'competitions': [{'status': {'type': {'completed': True, 'state': 'post', 'shortDetail': 'Final'}}, 'competitors': [tm(a, 'home', 24 + k), tm(b, 'away', 17 + k)]}]})
+            return J({'events': evs})
         if path.endswith('/summary'):
             return J({'header': {'competitions': [{'date': '2025-10-09T02:00Z', 'competitors': [{'team': {'id': '1', 'abbreviation': 'AAA'}, 'homeAway': 'home', 'score': '3'}, {'team': {'id': '2', 'abbreviation': 'BBB'}, 'homeAway': 'away', 'score': '4'}]}]}, 'boxscore': {'players': [{'team': {'id': '1'}, 'statistics': [{'name': 'goalies', 'athletes': [{'athlete': {'id': athletes[45]['id']}}]}]}, {'team': {'id': '2'}, 'statistics': [{'name': 'goalies', 'athletes': [{'athlete': {'id': athletes[46]['id']}}]}]}]}, **({'drives': {'previous': [{'plays': spec.plays(rnd, [a for a in athletes])}]}} if spec.sp == 'football' else {'plays': spec.plays(rnd, [a for a in athletes]) if spec.plays else []})})
         return 404, 'text/plain', 'no ' + path

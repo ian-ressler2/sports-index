@@ -119,7 +119,7 @@ function buildTeamsAndStandings(D, rows, teamMeta, cfg) {
 const teamColorFrom = D => id => { const t = App.D?.teams?.get(+id) || D?.teams?.get(+id); return t?.color || '#667788'; };
 
 /* ---- per-game play events (shots, passes) kept lean and cached for 60 days ---- */
-const ESPN_EVENTS = id => cached(`ev:${id}`, 60 * 86400e3, async () => {
+const ESPN_EVENTS = id => cached(`ev${SPORT.evVer || ''}:${id}`, 60 * 86400e3, async () => {
   const j = await getJSON(`${espnSite()}/summary?event=${id}`);
   const comp = j.header?.competitions?.[0];
   const teams = (comp?.competitors || []).map(c => ({ id: +c.team.id, abbr: c.team.abbreviation, home: c.homeAway === 'home', score: +c.score }));
@@ -137,6 +137,25 @@ async function gameIdsFor(kind, id, season, postToo = false) {
   if (kind === 'player') { const gl = await ESPN_GL(id, season); return gl.games.filter(g => postToo || !g.post).map(g => g.id); }
   const s = await ESPN_SCHED(id, season); return s.filter(g => g.final).sort((a, b) => a.t.localeCompare(b.t)).map(g => g.id);
 }
+/* ---- game center: the scoreboard for a date window and one game's full play by play ---- */
+const ESPN_BOARD = (a, b) => cached(`bd:${a}-${b}`, 300e3, async () => {
+  const j = await getJSON(`${espnSite()}/scoreboard?dates=${a}-${b}&limit=500`);
+  return (j.events || []).map(e => {
+    const c = e.competitions?.[0]; if (!c) return null; const st = c.status?.type || {};
+    const tm = w => { const k = c.competitors.find(z => z.homeAway === w); return { id: +k.team.id, abbr: k.team.abbreviation, name: k.team.displayName, logo: espnLogo(k.team), score: +(k.score?.value ?? k.score) }; };
+    if (st.state === 'pre') return null;
+    return { id: e.id, t: e.date, day: new Date(e.date).toLocaleDateString('en-CA'), final: !!st.completed, status: st.shortDetail || st.description || '', home: tm('home'), away: tm('away') };
+  }).filter(Boolean);
+});
+SPORT.listGames = (a, b) => ESPN_BOARD(a, b);
+SPORT.loadGame = id => cached(`game:${id}:${SPORT.evVer || 1}`, 600e3, async () => {
+  const j = await getJSON(`${espnSite()}/summary?event=${id}`);
+  const comp = j.header?.competitions?.[0]; if (!comp) throw new Error('Game not found');
+  const tm = w => { const c = comp.competitors.find(k => k.homeAway === w); return { id: +c.team.id, abbr: c.team.abbreviation, name: c.team.displayName, logo: espnLogo(c.team), color: c.team.color ? '#' + c.team.color : '', score: +c.score }; };
+  const G = { id, sim: false, date: (comp.date || '').slice(0, 10), sub: comp.status?.type?.detail || '', home: tm('home'), away: tm('away'), ev: [], tot: 0 };
+  SPORT.gameEvents(j, G); return G;
+});
+
 const GAMES_OPTS = [[5, 'Last 5 games'], [10, 'Last 10 games'], [20, 'Last 20 games'], [40, 'Last 40 games'], [0, 'Whole season']];
 
 /* ---- multi-team scope for the chart pages ----
