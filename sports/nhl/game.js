@@ -3,6 +3,7 @@ SPORT.perName = (p, short) => p <= 3 ? `P${p}` : p === 4 ? 'OT' : p === 5 ? 'SO'
 SPORT.seasonEnd = s => new Date(s, 5, 25);
 SPORT.gameSpan = 3;
 SPORT.gamesNote = 'Open a game to see every shot, hit and goal placed on the ice as it happened.';
+const NHL_NONPEN = /^(Face Off|Hit|Blocked|Giveaway|Stoppage|Missed|Shot|Takeaway|Goal|Closing Hand|Shootout|Challenge|Official|Timeout|Delayed|Video)/i;
 const NHL_SKIP = /^(Period Start|Period End|End Period|Game End|Game Start|Start of|End of|Shootout (Start|End))/i;
 SPORT.gameEvents = (j, G) => {
   const raw = (j.plays || []).filter(p => p.text && !NHL_SKIP.test(p.type?.text || ''));
@@ -14,7 +15,7 @@ SPORT.gameEvents = (j, G) => {
     const c = p.coordinate, okc = c && isFinite(c.x) && isFinite(c.y) && Math.abs(c.x) <= 110 && Math.abs(c.y) <= 50, tx = p.text.replace(/\s+/g, ' ').trim();
     const so = per === 5, t = so ? base[5] + ev.filter(e => e.per === 5).length : base[per] + len[per] - Math.min(len[per], clockSecs(p.clock?.displayValue));
     const kind = ty === 'Goal' ? 'G' : ty === 'Shot' ? 'S' : ty === 'Missed' ? 'M' : ty === 'Blocked' ? 'B' : '';
-    ev.push({ per, clk: so ? '' : p.clock?.displayValue || '', t, h: hs, a: as, tid: +p.team?.id || 0, tx, ctx: ty, k: p.scoringPlay ? 'sc' : /Penalty/i.test(ty) ? 'bg' : '', p: { kind, x: okc ? c.x : null, y: okc ? c.y : null, ty, tid: +p.team?.id || 0 } });
+    ev.push({ per, clk: so ? '' : p.clock?.displayValue || '', t, h: hs, a: as, tid: +p.team?.id || 0, tx, ctx: ty, k: p.scoringPlay ? 'sc' : ty && !NHL_NONPEN.test(ty) ? 'bg' : '', p: { kind, x: okc ? c.x : null, y: okc ? c.y : null, ty, tid: +p.team?.id || 0 } });
   }
   G.ev = ev; G.tot = acc || 3600; G.dividers = [1200, 2400, 3600].filter(t => t < G.tot); return G;
 };
