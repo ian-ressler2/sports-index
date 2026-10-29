@@ -66,7 +66,7 @@ SPORT.groupOrder = ['qb', 'rb', 'rec', 'def', 'k', 'p', 'tof', 'tdf'];
 Object.assign(SPORT, {
   id: 'nfl', name: 'Gridiron Index', first: 'Gridiron', word: 'INDEX', short: 'NFL', accent: '#3fbf6f',
   seasons: { first: 2012, current: nflCurrentSeason(), label: s => `${s}` },
-  nav: [['stats', 'Stats'], ['lab', 'Lab'], ['compare', 'Compare'], ['charts', 'Tendencies'], ['teams', 'Teams']],
+  nav: [['stats', 'Stats'], ['lab', 'Lab'], ['compare', 'Compare'], ['charts', 'Tendencies'], ['games', 'Games'], ['sim', 'Simulator'], ['teams', 'Teams']],
   unit: 'GAME',
   credit: 'Data: ESPN',
   footer: 'Not affiliated with or endorsed by the National Football League or any club. Statistics and play-by-play come from ESPN’s public feeds.<br>Player photos and team logos are loaded from ESPN’s image host.',

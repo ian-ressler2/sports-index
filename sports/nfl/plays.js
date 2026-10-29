@@ -1,13 +1,15 @@
 /* plays.js: NFL play explorer built from drive-by-drive play text (ESPN has no tracking coordinates for football) */
+SPORT.evVer = 2;
 SPORT.playsOf = j => (j.drives?.previous || []).concat(j.drives?.current ? [j.drives.current] : []).flatMap(d => d.plays || []);
 const RUN_GAPS = [['left end', 'LE', 'Left end'], ['left tackle', 'LT', 'Left tackle'], ['left guard', 'LG', 'Left guard'], ['up the middle', 'M', 'Middle'], ['right guard', 'RG', 'Right guard'], ['right tackle', 'RT', 'Right tackle'], ['right end', 'RE', 'Right end']];
 SPORT.leanPlay = p => {
   const ty = p.type?.text || '', tx = p.text || ''; if (p.isPenalty || /two-point|2-pt|kneel|spike|no play/i.test(tx)) return null;
-  const k = /^Rush|Rushing Touchdown/.test(ty) ? 'r' : /^Sack/.test(ty) ? 's' : /Pass (Reception|Incompletion)|Passing Touchdown|Pass Interception|Interception/.test(ty) ? 'p' : '';
+  const k = /^Rush|Rushing Touchdown/.test(ty) ? 'r' : /^Sack/.test(ty) ? 's' : /Pass (Reception|Incompletion)|Passing Touchdown|Pass Interception|Interception/.test(ty) ? 'p' : /^Field Goal/.test(ty) ? 'f' : '';
   if (!k) return null;
   const o = (p.teamParticipants || []).find(t => t.type === 'offense')?.id || p.start?.team?.id; if (!o || !p.start?.down) return null;
   const a = tx.replace(/^(\([^)]*\)\s*)+/, ''), y = k === 's' ? (p.statYardage ?? 0) : (p.statYardage || 0), st = p.start, td = !!p.scoringPlay && /Touchdown/.test(ty);
-  const e = { o: +o, k, y: /Incompletion/.test(ty) ? 0 : y, d: st.down, dist: st.distance || 0, yte: st.yardsToEndzone, td: td ? 1 : 0, to: p.isTurnover || /Interception/.test(ty) ? 1 : 0, inc: /Incompletion/.test(ty) ? 1 : 0, per: p.period?.number, clk: p.clock?.displayValue, a: a.slice(0, 34) };
+  const e = { o: +o, k, y: /Incompletion/.test(ty) ? 0 : y, d: st.down, dist: st.distance || 0, yte: st.yardsToEndzone, td: td ? 1 : 0, to: p.isTurnover || /Interception/.test(ty) ? 1 : 0, inc: /Incompletion/.test(ty) ? 1 : 0, per: p.period?.number, clk: p.clock?.displayValue, a: a.slice(0, 34), t: tx.replace(/\s+/g, ' ').trim().slice(0, 140) };
+  if (k === 'f') { e.mk = /Good/.test(ty) ? 1 : 0; e.wide = /left/i.test(tx) ? -1 : 1; }
   if (k === 'r') { const g = RUN_GAPS.find(x => tx.includes(x[0])); if (g) e.gap = g[1]; }
   if (k === 'p') {
     const m = tx.match(/pass (?:incomplete )?(short|deep)?\s?(left|middle|right)?/i); if (m) { e.dep = (m[1] || '').toLowerCase()[0] || ''; e.dir = (m[2] || '').toLowerCase()[0] || ''; }
@@ -25,7 +27,7 @@ const sumY = a => a.reduce((s, e) => s + e.y, 0);
 
 async function playExplorer(D, scope, host) {
   const multi = scope.kind === 'teams';
-  let n = scope.n ?? 10, kind = 'all', side = scope.side || 'for';
+  let n = scope.n ?? 10, kind = 'all', mapLayer = 'all', side = scope.side || 'for';
   const box = h('div', { class: 'stack' }); mount(host, box);
   const status = h('div', { class: 'cap' }, 'Loading games'); mount(box, h('div', { class: 'panel pad' }, h('div', { class: 'skel', style: { height: '240px' } }), status));
   let ids, idsBy; try { if (multi) { idsBy = await gameIdsByTeam(scope.tids, D.season); ids = [...new Set([...idsBy.values()].flat())]; } else ids = await gameIdsFor(scope.kind, scope.id, D.season); } catch (e) { mount(host, errorEl(e, () => render(true))); return; }
@@ -44,7 +46,7 @@ async function playExplorer(D, scope, host) {
   async function draw() {
     const lists = multi ? scope.tids.map(t => [t, n ? idsBy.get(t).slice(-n) : idsBy.get(t)]) : [[scope.id, n ? ids.slice(-n) : ids]]; let games;
     try { games = await ensure([...new Set(lists.flatMap(l => l[1]))]); } catch (e) { mount(box, errorEl(e, () => render(true))); return; }
-    const all = lists.flatMap(([tid, l]) => l.flatMap(gid => cache.get(gid)?.ev.filter(e => mine(e, tid)) || [])); const A = kind === 'all' ? all : all.filter(e => kind === 'pass' ? e.k !== 'r' : e.k === 'r');
+    const raw = lists.flatMap(([tid, l]) => l.flatMap(gid => cache.get(gid)?.ev.filter(e => mine(e, tid)) || [])), all = raw.filter(e => e.k !== 'f'); const A = kind === 'all' ? all : all.filter(e => kind === 'pass' ? e.k !== 'r' : e.k === 'r');
     const N = A.length, ypp = N ? sumY(A) / N : NaN, sr = N ? A.filter(nflSuccess).length / N * 100 : NaN, fdp = N ? A.filter(nflFirst).length / N * 100 : NaN, pr = N ? A.filter(e => e.k !== 'r').length / N * 100 : NaN;
     const tiles = [['Plays', N], ['Yds/play', fmt(ypp, 'f2')], ['Success %', fmt(sr, 'f1')], ['1st-down %', fmt(fdp, 'f1')], ['Pass %', fmt(pr, 'f1')], ['TD', A.filter(e => e.td).length], ['Turnovers', A.filter(e => e.to).length]];
     const sel = (opts, val, fn) => h('select', { class: 'sel sm', onchange: e => fn(e.target.value) }, opts.map(([v, l]) => h('option', { value: v, selected: String(v) === String(val) }, l)));
@@ -74,9 +76,11 @@ async function playExplorer(D, scope, host) {
     let ft = '<table class="dt"><thead><tr><th style="text-align:left">Field position</th><th>Plays</th><th>Pass %</th><th>Y/play</th><th>Success</th><th>TD</th></tr></thead><tbody>';
     for (const [l, lo, hi] of FIELD_B) { const c = A.filter(e => e.yte >= lo && e.yte <= hi); ft += `<tr><td style="text-align:left">${l}</td><td>${c.length}</td><td>${c.length ? Math.round(c.filter(e => e.k !== 'r').length / c.length * 100) + '%' : '–'}</td><td>${c.length ? fmt(sumY(c) / c.length, 'f2') : '–'}</td><td>${c.length ? Math.round(c.filter(nflSuccess).length / c.length * 100) + '%' : '–'}</td><td>${c.filter(e => e.td).length}</td></tr>`; }
     ft += '</tbody></table>';
+    const mapPanel = h('div', { class: 'panel' }, h('div', { class: 'hd' }, h('h2', {}, 'Field map'), h('small', {}, 'every play from the line of scrimmage, offense moving left to right')), nflPlayMap(raw, mapLayer, v => { mapLayer = v; draw(); }));
     const panel = (title, sub, body) => h('div', { class: 'panel' }, h('div', { class: 'hd' }, h('h2', {}, title), sub ? h('small', {}, sub) : null), h('div', { class: 'sc', style: { padding: '10px 12px 12px' }, html: body }));
     mount(box, h('div', { class: 'panel pad' }, h('div', { class: 'row sb', style: { marginBottom: '8px', flexWrap: 'wrap', gap: '8px' } }, h('h2', {}, scope.kind !== 'player' ? (side === 'for' ? 'Offensive tendencies' : 'What opponents do against them') : 'Play log'), h('span', { class: 'cap' }, `${games.length} games${multi && scope.tids.length > 1 ? ' · ' + scope.tids.length + ' teams' : ''} · scrimmage plays from play-by-play · success = 40/60/100% of yards to go`)), ctl),
       h('div', { class: 'tiles', style: { gridTemplateColumns: 'repeat(auto-fit,minmax(100px,1fr))' }, html: tiles.map(([k, v]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="p">&nbsp;</div></div>`).join('') }),
+      mapPanel,
       h('div', { class: 'grid2', style: { alignItems: 'start' } }, panel('Down and distance', 'pass rate shaded · plays · yards per play', grid), panel('Field position', '', ft)),
       h('div', { class: 'grid2', style: { alignItems: 'start' } }, panel('Run direction', 'carries by gap · yards per carry', gapSvg), panel('Pass map', 'attempts · completion % · yards per attempt', pmap)));
   }
@@ -94,3 +98,35 @@ App.pages.charts = async function ({ q, D, el }) {
   const pl = one && pid && D.players.get(pid); const role = pl ? (D.qb.has(pid) ? 'qb' : D.rb.has(pid) && !D.rec.has(pid) ? 'rb' : D.rec.has(pid) && !D.rb.has(pid) ? 'rec' : (D.rec.get(pid)?.tgt || 0) > (D.rb.get(pid)?.att || 0) ? 'rec' : 'rb') : '';
   playExplorer(D, pl ? { kind: 'player', id: pid, role } : { kind: 'teams', tids: all, n: tids.length === 0 || tids.length > 6 ? 5 : 10 }, out);
 };
+
+/* ---------- field map: every play drawn on a field, offense always moving left to right ---------- */
+function nflPlayMap(plays, layer, setLayer) {
+  const want = e => layer === 'all' ? true : layer === 'pass' ? e.k === 'p' || e.k === 's' : layer === 'run' ? e.k === 'r' : e.k === 'f';
+  let list = plays.filter(want), note = '';
+  const CAP = layer === 'all' ? 1200 : 2000;
+  if (list.length > CAP) { const step = list.length / CAP; list = Array.from({ length: CAP }, (_, i) => list[Math.floor(i * step)]); note = `Showing an even sample of ${CAP.toLocaleString()} of ${plays.filter(want).length.toLocaleString()} plays.`; }
+  const geo = list.map((e, i) => {
+    const jit = ((i * 37) % 21 - 10) * 2.6, k = e.k === 'f' ? 'f' : e.k === 'p' ? 'p' : e.k;
+    const lane = e.k === 'r' ? NF_RUN_LANE[e.gap] ?? 0 : e.k === 'p' ? NF_PASS_LANE[e.dir] ?? 0 : 0;
+    const g = nflGeom({ k, x0: e.k === 'f' ? 100 - e.yte - 7 : 100 - e.yte, dir: 1, y: e.y, lane, inc: !!e.inc, to: !!e.to, td: !!e.td, dep: e.dep, made: !!e.mk, wide: e.wide, drift: e.k === 'f' ? 0 : jit, x1: e.td && e.k !== 'f' ? 100 : null });
+    return { e, g };
+  });
+  const dens = Math.max(.14, Math.min(1, 260 / Math.max(1, list.length))), order = ['inc', 'run', 'pass', 'sack', 'int', 'td', 'fgN', 'fgY'], by = {}; for (const o of geo) (by[o.g.cls] || (by[o.g.cls] = [])).push(o);
+  let body = nflFieldBg({ abbr: 'OWN', color: '#26402f' }, { abbr: 'OPP', color: '#26402f' });
+  for (const c of order) if (by[c]) {
+    body += `<path d="${by[c].map(o => o.g.d).join(' ')}" fill="none" stroke="${NF_C[c]}" stroke-width="${c === 'fgY' || c === 'fgN' ? 3 : 2.4}" stroke-opacity="${((c === 'inc' ? .38 : .6) * dens).toFixed(2)}" stroke-linecap="round"${c === 'inc' || c === 'fgN' ? ' stroke-dasharray="7 7"' : ''}/>`;
+    body += `<path d="${by[c].map(o => `M${(o.g.x - 3.4).toFixed(1)} ${o.g.y.toFixed(1)}a3.4 3.4 0 1 0 6.8 0a3.4 3.4 0 1 0 -6.8 0`).join('')}" fill="${NF_C[c]}" fill-opacity="${Math.min(.9, (c === 'inc' ? .45 : .85) * Math.max(.5, dens * 1.6)).toFixed(2)}"/>`;
+  }
+  const svgEl = h('div', {}); svgEl.innerHTML = `<svg class="gstage" viewBox="0 0 ${NF.W} ${NF.H}" role="img" aria-label="Field map of plays">${body}</svg>`;
+  const svg = svgEl.firstChild;
+  svg.addEventListener('mousemove', ev => {
+    const r = svg.getBoundingClientRect(), x = (ev.clientX - r.left) / r.width * NF.W, y = (ev.clientY - r.top) / r.height * NF.H; let best = null, bd = 26 * 26;
+    for (const o of geo) { const d = (o.g.x - x) ** 2 + (o.g.y - y) ** 2; if (d < bd) { bd = d; best = o; } }
+    if (!best) return tipHide(); const e = best.e;
+    tipShow(`<b>${esc(e.k === 'f' ? `${e.y}-yard field goal ${e.mk ? 'good' : 'no good'}` : e.k === 'p' ? (e.inc ? 'Incomplete pass' : e.to ? 'Interception' : `Pass for ${e.y} yards`) : e.k === 's' ? 'Sack' : `Run for ${e.y} yards`)}</b>${e.t ? `<span class="td">${esc(e.t)}</span>` : ''}${tr('Down and distance', e.k === 'f' ? '–' : `${ord(e.d)} & ${e.dist}`)}${tr('Yards to end zone', e.yte)}`, ev.clientX, ev.clientY);
+  });
+  svg.addEventListener('mouseleave', tipHide);
+  const cnt = c => (by[c] || []).length, leg = (c, l) => cnt(c) ? `<span class="lg"><i style="background:${NF_C[c]}"></i>${l} <b>${cnt(c)}</b></span>` : '';
+  return h('div', {}, h('div', { class: 'row sb', style: { padding: '10px 14px', gap: '8px', flexWrap: 'wrap' } }, segControl([['all', 'Everything'], ['pass', 'Passes'], ['run', 'Runs'], ['fg', 'Field goals']], layer, setLayer, 'sm'), h('div', { class: 'row maplg', style: { gap: '12px', flexWrap: 'wrap' }, html: leg('pass', 'Complete') + leg('inc', 'Incomplete') + leg('int', 'Interception') + leg('run', 'Run') + leg('sack', 'Sack') + leg('td', 'Touchdown') + leg('fgY', 'FG good') + leg('fgN', 'FG missed') })),
+    svgEl, h('div', { class: 'cap', style: { padding: '8px 14px 12px' } }, `Pass and run lanes come from the play description (left, middle, right and the gap), so the sideways spread is approximate. ESPN does not publish tracking coordinates for football. ${note}`));
+}

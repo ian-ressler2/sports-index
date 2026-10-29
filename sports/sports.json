@@ -99,7 +99,10 @@
    "cols",
    "data",
    "hero",
+   "field",
    "plays",
+   "game",
+   "sim",
    "gloss",
    "config"
   ],
