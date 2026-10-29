@@ -2,6 +2,7 @@
 SPORT.perName = (p, short) => p <= 3 ? `P${p}` : p === 4 ? 'OT' : p === 5 ? 'SO' : `${p - 3}OT`;
 SPORT.seasonEnd = s => new Date(s, 5, 25);
 SPORT.gameSpan = 3;
+SPORT.noteRef = { goals: 2, assists: 3, points: 3, saves: 35 }; SPORT.closeMargin = 1;
 SPORT.gamesNote = 'Open a game to see every shot, hit and goal placed on the ice as it happened.';
 const NHL_NONPEN = /^(Face Off|Hit|Blocked|Giveaway|Stoppage|Missed|Shot|Takeaway|Goal|Closing Hand|Shootout|Challenge|Official|Timeout|Delayed|Video)/i;
 const NHL_SKIP = /^(Period Start|Period End|End Period|Game End|Game Start|Start of|End of|Shootout (Start|End))/i;

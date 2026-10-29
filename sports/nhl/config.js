@@ -42,7 +42,7 @@ SPORT.groupOrder = ['sk', 'gk', 'tsk', 'tgk'];
 Object.assign(SPORT, {
   id: 'nhl', name: 'Ice Index', first: 'Ice', word: 'INDEX', short: 'NHL', accent: '#5cc8ff',
   seasons: { first: 2008, current: nhlCurrentSeason(), label: s => `${s - 1}-${String(s).slice(2)}` },
-  nav: [['stats', 'Stats'], ['lab', 'Lab'], ['compare', 'Compare'], ['charts', 'Shot maps'], ['games', 'Games'], ['sim', 'Simulator'], ['odds', 'Odds'], ['watch', 'Watchlist'], ['teams', 'Teams']],
+  nav: [['stats', 'Stats'], ['lab', 'Lab'], ['compare', 'Compare'], ['charts', 'Shot maps'], ['games', 'Games'], ['today', 'Today'], ['sim', 'Simulator'], ['odds', 'Odds'], ['watch', 'Watchlist'], ['teams', 'Teams']],
   unit: 'GAME',
   credit: 'Data: ESPN',
   footer: 'Not affiliated with or endorsed by the National Hockey League or any club. Statistics and play-by-play come from ESPN’s public feeds.<br>Player photos and team logos are loaded from ESPN’s image host.',

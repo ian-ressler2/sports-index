@@ -36,7 +36,7 @@ SPORT.groupOrder = ['pl', 'tof', 'tdf'];
 Object.assign(SPORT, {
   id: 'nba', name: 'Court Index', first: 'Court', word: 'INDEX', short: 'NBA', accent: '#ff6b57',
   seasons: { first: 2008, current: nbaCurrentSeason(), label: s => `${s - 1}-${String(s).slice(2)}` },
-  nav: [['stats', 'Stats'], ['lab', 'Lab'], ['compare', 'Compare'], ['charts', 'Shot charts'], ['games', 'Games'], ['sim', 'Simulator'], ['odds', 'Odds'], ['watch', 'Watchlist'], ['teams', 'Teams']],
+  nav: [['stats', 'Stats'], ['lab', 'Lab'], ['compare', 'Compare'], ['charts', 'Shot charts'], ['games', 'Games'], ['today', 'Today'], ['sim', 'Simulator'], ['odds', 'Odds'], ['watch', 'Watchlist'], ['teams', 'Teams']],
   unit: 'GAME',
   credit: 'Data: ESPN',
   footer: 'Not affiliated with or endorsed by the National Basketball Association or any club. Statistics and play-by-play come from ESPN’s public feeds.<br>Player photos and team logos are loaded from ESPN’s image host.',

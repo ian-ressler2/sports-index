@@ -13,8 +13,10 @@ App.pages.home = async function ({ D, el }) {
     return h('div', { class: 'panel lead' }, h('h3', {}, title, h('a', { href: href('/stats/' + g, { sort: k, dir: asc ? 'asc' : '' }) }, 'All →')),
       h('ol', {}, rows.map((r, i) => h('li', { onclick: () => navTo((isT ? '/team/' : '/player/') + r.id), html: `<i>${i + 1}</i><span class="ln">${esc(isT ? D.teams.get(r.id).name : r.name)}${isT ? '' : `<small>${esc(D.teams.get(r.tid)?.abbr || '')}</small>`}</span><b>${fmt(r[k], f)}</b>` }))));
   };
-  mount(el, hero, cards, h('div', { style: { marginTop: '30px' } }, h('div', { class: 'eyebrow' }, `${SPORT.seasons.label(D.season)} LEADERS · ${D.final ? 'FINAL ' + (D.stage || 'REGULAR SEASON') : 'THROUGH ' + (SPORT.unit || 'GAME') + ' ' + D.maxG}`)), h('div', { class: 'leaders' }, H.leaders.map(list)));
+  const strip = h('a', { class: 'panel pad todaystrip', href: href('/today'), style: { display: 'none' } });
+  mount(el, hero, cards, strip, h('div', { style: { marginTop: '30px' } }, h('div', { class: 'eyebrow' }, `${SPORT.seasons.label(D.season)} LEADERS · ${D.final ? 'FINAL ' + (D.stage || 'REGULAR SEASON') : 'THROUGH ' + (SPORT.unit || 'GAME') + ' ' + D.maxG}`)), h('div', { class: 'leaders' }, H.leaders.map(list)));
   (SPORT.heroCanvas || heroGeneric)(cv);
+  if (SPORT.today && App.season === SPORT.seasons.current) SPORT.today(ymd(new Date())).then(gs => { if (!gs.length) return; const live = gs.filter(g => g.state === 'in').length, fin = gs.filter(g => g.state === 'post').length; strip.style.display = ''; strip.innerHTML = `<div class="row sb"><div><div class="eyebrow">TODAY</div><b>${gs.length} ${gs.length === 1 ? 'game' : 'games'}${live ? ` · ${live} live` : ''}${fin ? ` · ${fin} final` : ''}</b></div><span class="cap">Scores, standout performances and highlights →</span></div>`; }).catch(() => { });
 };
 /* fallback hero: drifting dots */
 function heroGeneric(cv) {

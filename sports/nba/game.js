@@ -2,6 +2,7 @@
 SPORT.perName = p => p <= 4 ? `Q${p}` : p === 5 ? 'OT' : `${p - 4}OT`;
 SPORT.seasonEnd = s => new Date(s, 5, 25);
 SPORT.gameSpan = 3;
+SPORT.noteRef = { points: 30, rebounds: 14, assists: 11 }; SPORT.closeMargin = 3;
 SPORT.gamesNote = 'Open a game to watch every possession and see the shot chart build up shot by shot.';
 const NBA_SKIP = /^(Substitution|End Period|End Game|Start Period|Start of|End of)/i;
 const nbaClock = (per, clk) => { const len = per <= 4 ? 720 : 300, base = per <= 4 ? (per - 1) * 720 : 2880 + (per - 5) * 300; return base + len - Math.min(len, clockSecs(clk)); };

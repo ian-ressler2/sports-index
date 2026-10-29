@@ -2,6 +2,7 @@
 SPORT.perName = p => p <= 4 ? `Q${p}` : p === 5 ? 'OT' : `OT${p - 4}`;
 SPORT.seasonEnd = s => new Date(s + 1, 1, 12);
 SPORT.gameSpan = 7;
+SPORT.noteRef = { passingYards: 300, rushingYards: 100, receivingYards: 120 }; SPORT.closeMargin = 3;
 SPORT.gamesNote = 'Pick any week, then open a game to watch every snap on the field.';
 const NFL_SKIP = /^(End Period|End of Half|End of Regulation|End of Game|Two-minute warning|Official Timeout|Timeout|Coin Toss|Start of|Game Start)/i;
 const nflClock = (per, clk) => { const len = per <= 4 ? 900 : 600, base = per <= 4 ? (per - 1) * 900 : 3600 + (per - 5) * 600; return base + len - Math.min(len, clockSecs(clk)); };
