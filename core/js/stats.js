@@ -101,7 +101,7 @@ App.pages.stats = async function ({ path, q, D, el }) {
     const pcf = S.situ ? localPct(S.sitRows.filter(r => r[(meta.sitThr || meta.thr).field] >= (S.min || 40)), cols) : (c, v) => pctile(D, g, c.k, v);
     let gh = '<tr class="g"><th class="rk"></th><th class="pl"></th>', ch = `<tr class="c"><th class="rk">#</th><th class="pl${S.sort === 'name' ? ' s' : ''}" data-k="name">${meta.singular}</th>`;
     if (!S.situ) { let i = 0; while (i < cols.length) { let j = i; while (j < cols.length && cols[j].g === cols[i].g) j++; const gr = groups.find(x => x.id === cols[i].g); gh += `<th colspan="${j - i}" class="sep">${esc((gr?.l || '').toUpperCase())}</th>`; i = j; } } else gh += `<th colspan="${cols.length}" class="sep">${esc((SIT_LABEL[S.situ] || S.situ).toUpperCase())}</th>`;
-    cols.forEach((c, i) => { const first = i === 0 || cols[i - 1].g !== c.g; ch += `<th data-k="${c.k}" class="${first ? 'sep ' : ''}${S.sort === c.k ? 's' : ''}" ${statTip(c)}>${esc(c.l)}${S.sort === c.k ? `<span class="ar">${S.dir === 'asc' ? '↑' : '↓'}</span>` : ''}</th>`; });
+    cols.forEach((c, i) => { const first = i === 0 || cols[i - 1].g !== c.g; ch += `<th data-k="${c.k}" tabindex="0" class="${first ? 'sep ' : ''}${S.sort === c.k ? 's' : ''}"${statTip(c)}>${esc(c.l)}${S.sort === c.k ? `<span class="ar">${S.dir === 'asc' ? '↑' : '↓'}</span>` : ''}</th>`; });
     gh += '</tr>'; ch += '</tr>';
     const shown = rows.slice(0, S.n); let body = '';
     shown.forEach((r, i) => {
@@ -117,6 +117,7 @@ App.pages.stats = async function ({ path, q, D, el }) {
     twrap.innerHTML = `<table class="lb"><thead>${gh}${ch}</thead><tbody>${body}</tbody></table>${rows.length > S.n ? `<div class="more"><button class="btn" type="button" id="moreb">Show ${Math.min(100, rows.length - S.n)} more of ${rows.length - S.n} remaining</button></div>` : `<div class="more dim mono" style="font-size:11.5px">${rows.length} ${isTeam ? 'teams' : 'players'}</div>`}`;
     $('#moreb', twrap)?.addEventListener('click', () => { S.n += 100; sync(); const top = twrap.scrollTop; draw(); twrap.scrollTop = top; });
   }
+  twrap.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches?.('th[data-k]')) { e.preventDefault(); e.target.click(); } });
   twrap.addEventListener('click', e => {
     const th = e.target.closest('th[data-k]');
     if (th) { const k = th.dataset.k; if (S.sort === k) S.dir = S.dir === 'asc' ? 'desc' : 'asc'; else { S.sort = k; const c = COLMAP[g][k]; S.dir = k === 'name' ? 'asc' : (c && c.d < 0 ? 'asc' : 'desc'); } sync(); draw(); return; }

@@ -10,6 +10,8 @@ function tipInit() {
   document.addEventListener('mouseover', go); document.addEventListener('mousemove', e => { if (e.target.closest?.('[data-tip]')) go(e); });
   document.addEventListener('mouseout', e => { if (e.target.closest?.('[data-tip]') && !e.relatedTarget?.closest?.('[data-tip]')) tipHide(); });
   document.addEventListener('click', e => { if (e.pointerType === 'touch' || matchMedia('(hover:none)').matches) go(e); });
+  document.addEventListener('focusin', e => { const t = e.target.closest?.('[data-tip]'); if (t) { const r = t.getBoundingClientRect(); tipShow(t.dataset.tip, r.left, r.bottom - 8); } });
+  document.addEventListener('focusout', tipHide);
   addEventListener('scroll', tipHide, { passive: true, capture: true });
 }
 function tipShow(html, x, y) {
