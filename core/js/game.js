@@ -133,15 +133,15 @@ App.pages.game = async function ({ path, D, el }) {
 
 /* ---------- simulator ---------- */
 App.pages.sim = async function ({ q, D, el }) {
-  const teams = [...D.teams.values()].sort((a, b) => a.name.localeCompare(b.name)); let hid = +q.h || teams[0].id, aid = +q.a || teams[1].id, seed = q.s || randSeed();
+  const teams = [...D.teams.values()].sort((a, b) => a.name.localeCompare(b.name)); let hid = +q.h || teams[0].id, aid = +q.a || teams[1].id, seed = q.x || (q.s && isNaN(+q.s) ? q.s : '') || randSeed();
   if (hid === aid) aid = teams.find(t => t.id !== hid).id;
   const sel = (val, fn, lab) => h('label', { class: 'fld' }, h('span', { class: 'cap' }, lab), h('select', { class: 'sel', onchange: e => fn(+e.target.value) }, teams.map(t => h('option', { value: t.id, selected: t.id === val }, t.name))));
   const out = h('div', { class: 'stack' }), stats = h('div', {}); const seedIn = h('input', { class: 'sel', value: seed, 'aria-label': 'Seed', style: { width: '120px', backgroundImage: 'none' }, oninput: e => { seed = e.target.value || randSeed(); } });
-  const params = () => { navTo('/sim', { h: hid, a: aid, s: seed }); };
+  const params = () => { navTo('/sim', { h: hid, a: aid, x: seed }); };
   const bar = h('div', { class: 'panel pad row', style: { gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end', margin: '14px 0' } }, sel(aid, v => { aid = v; }, 'Away'), sel(hid, v => { hid = v; }, 'Home'), h('label', { class: 'fld' }, h('span', { class: 'cap' }, 'Seed'), seedIn),
     h('button', { class: 'btn', type: 'button', title: 'New random seed', onclick: () => { seed = randSeed(); seedIn.value = seed; run(); } }, 'Shuffle'), h('button', { class: 'btn pri', type: 'button', onclick: () => run() }, 'Simulate game'), h('button', { class: 'btn', type: 'button', onclick: () => many() }, 'Run 1,000 games'));
   mount(el, pageHead('SIMULATOR', 'Game simulator', `Pick any two ${SPORT.short} teams and play out a full game, play by play. ${SPORT.sim.blurb || ''}`), bar, stats, out, h('details', { class: 'panel pad', style: { marginTop: '14px' } }, h('summary', {}, 'How the simulation works'), h('div', { class: 'cap', style: { marginTop: '8px', lineHeight: 1.6 }, html: SPORT.sim.note || '' })));
-  function run() { stats.replaceChildren(); history.replaceState(null, '', href('/sim', { h: hid, a: aid, s: seed })); const G = SPORT.sim.run(D, hid, aid, rngFrom(`${hid}-${aid}-${seed}`)); G.sim = true; G.date = 'SIMULATED'; mount(out, h('div', { class: 'stack' })); gameViewer(out.firstChild, G, D); }
+  function run() { stats.replaceChildren(); history.replaceState(null, '', href('/sim', { h: hid, a: aid, x: seed })); const G = SPORT.sim.run(D, hid, aid, rngFrom(`${hid}-${aid}-${seed}`)); G.sim = true; G.date = 'SIMULATED'; mount(out, h('div', { class: 'stack' })); gameViewer(out.firstChild, G, D); }
   function many() {
     const N = 1000, rng = rngFrom(`m${hid}-${aid}-${seed}`); let hw = 0, aw = 0, hs = 0, as = 0, ot = 0; const diff = {};
     for (let n = 0; n < N; n++) { const G = SPORT.sim.run(D, hid, aid, rng, { log: false }); hs += G.home.score; as += G.away.score; if (G.home.score > G.away.score) hw++; else aw++; if (G.ot) ot++; const d = clamp(Math.round((G.home.score - G.away.score) / SPORT.sim.bin), -12, 12); diff[d] = (diff[d] || 0) + 1; }
@@ -151,5 +151,5 @@ App.pages.sim = async function ({ q, D, el }) {
       h('div', { class: 'tiles', style: { gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', margin: '10px 0' }, html: [[`${T(aid).abbr} win`, (aw / N * 100).toFixed(1) + '%'], [`${T(hid).abbr} win`, (hw / N * 100).toFixed(1) + '%'], [`${T(aid).abbr} avg`, (as / N).toFixed(1)], [`${T(hid).abbr} avg`, (hs / N).toFixed(1)]].map(([k, v]) => `<div class="tile"><div class="k">${esc(k)}</div><div class="v">${v}</div><div class="p">&nbsp;</div></div>`).join('') }),
       h('div', { html: `<svg viewBox="0 0 604 120" style="width:100%;max-width:640px"><line x1="302" x2="302" y1="0" y2="100" stroke="var(--line2)"/>${bars.join('')}<text x="4" y="116" font-size="10" fill="var(--fg3)">${esc(T(aid).abbr)} wins by more</text><text x="600" y="116" font-size="10" text-anchor="end" fill="var(--fg3)">${esc(T(hid).abbr)} wins by more</text></svg>` })));
   }
-  if (q.s) run();
+  if (q.x || (q.s && isNaN(+q.s))) run();
 };

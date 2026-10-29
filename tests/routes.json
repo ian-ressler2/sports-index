@@ -24,7 +24,7 @@
   "/player/100006?tab=shots",
   "/games",
   "/game/9000",
-  "/sim?h=1&a=2&s=abc",
+  "/sim?h=1&a=2&x=abc",
   "/odds"
  ],
  "nba": [
@@ -50,7 +50,7 @@
   "/player/100001?tab=shots",
   "/games",
   "/game/9000",
-  "/sim?h=1&a=2&s=abc",
+  "/sim?h=1&a=2&x=abc",
   "/odds"
  ],
  "nfl": [
@@ -85,7 +85,7 @@
   "/player/100010",
   "/games",
   "/game/9000",
-  "/sim?h=1&a=2&s=abc",
+  "/sim?h=1&a=2&x=abc",
   "/charts?t=1,2",
   "/odds"
  ]
