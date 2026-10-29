@@ -194,7 +194,7 @@ function teamMultiPicker(D, selected, apply) {
   const cur = new Set(selected), teams = [...D.teams.values()];
   const order = SPORT.standings?.divOrder || [];
   const groups = [...new Set(teams.map(t => t.div || t.lg || 'Teams'))].sort((a, b) => (order.indexOf(a) < 0 ? 99 : order.indexOf(a)) - (order.indexOf(b) < 0 ? 99 : order.indexOf(b)) || a.localeCompare(b));
-  const label = () => cur.size ? `${cur.size} team${cur.size > 1 ? 's' : ''} selected` : `All ${teams.length} teams`;
+  const label = () => cur.size ? `${cur.size} team${cur.size > 1 ? 's' : ''} selected` : SPORT.pickerNone || `All ${teams.length} teams`;
   const btn = h('button', { class: 'sel', type: 'button', 'aria-haspopup': 'true', style: { minWidth: '150px', textAlign: 'left' } }, label());
   const menu = h('div', { class: 'menu', style: { display: 'none', minWidth: '320px', maxHeight: '420px' } });
   const boxes = new Map();
