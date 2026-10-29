@@ -55,3 +55,10 @@ SPORT.stage = {
     } };
   },
 };
+/* win probability: the score margin against the time left, plus the value of who has the ball and where (expected points from the spot of the next snap) */
+const nflEP = yte => Math.max(-.6, 6 * Math.pow(1 - yte / 100, 1.6) - .5);
+SPORT.winProb = (e, n, G) => {
+  const end = e.per <= 4 ? 3600 : 3600 + (e.per - 4) * 600; let d = e.h - e.a; const nx = G.ev[n + 1]?.p;
+  if (nx && nx.k && 'rps'.includes(nx.k) && isFinite(nx.x0)) d += (nx.off === G.home.id ? 1 : -1) * nflEP(nx.dir > 0 ? 100 - nx.x0 : nx.x0);
+  return wpNormal(d, Math.max(0, end - e.t) / 3600, 13.5, 2, .95);
+};

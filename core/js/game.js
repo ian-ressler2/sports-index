@@ -18,6 +18,24 @@ const randSeed = () => Math.floor(Math.random() * 1e6).toString(36);
 const clockSecs = s => { const m = String(s || '').match(/^(\d+):(\d{2})(?:\.\d+)?$/); return m ? +m[1] * 60 + +m[2] : (isFinite(+s) ? +s : 0); };
 const gTeamColor = (D, id) => visColor(D?.teams?.get(+id)?.color || tcol(id) || '#667788');
 
+/* win probability. normCdf is the normal curve; wpNormal turns "home leads by diff with remFrac of the game left" into the home win chance
+   (sigma = spread of a full game's final margin, edge = home advantage over a full game, both in the sport's own scoring units, fat = extra late-game variance) */
+function normCdf(z) { const t = 1 / (1 + .2316419 * Math.abs(z)), d = .3989423 * Math.exp(-z * z / 2), p = d * t * (.3193815 + t * (-.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274)))); return z > 0 ? 1 - p : p; }
+function wpNormal(diff, remFrac, sigma, edge, fat = 0) {
+  if (remFrac <= 0) return diff > 0 ? 1 : diff < 0 ? 0 : .5;
+  /* a pure random walk is too sure of itself late: fouls, onside kicks and empty nets add variance, which fat (a share of the full-game variance) puts back */
+  const v = sigma * sigma * (remFrac + fat * Math.pow(remFrac, .7) * Math.pow(1 - remFrac, 2)); return normCdf((diff + edge * remFrac) / Math.sqrt(v));
+}
+/* the home win chance after every play, plus the pre-game number; null when the sport has no model */
+function winProbSeries(G) {
+  if (!SPORT.winProb || !G.ev.length) return null;
+  const ev = G.ev, start = { per: 1, clk: '', t: 0, h: 0, a: 0, tid: 0, tx: '', ctx: '', k: '', p: {} };
+  const pre = clamp(SPORT.winProb(start, -1, G), .001, .999), p = ev.map((e, n) => clamp(SPORT.winProb(e, n, G), .001, .999));
+  const done = G.sim || /^final/i.test(G.sub || ''), last = ev[ev.length - 1];
+  if (done) p[p.length - 1] = last.h > last.a ? 1 : last.h < last.a ? 0 : .5;
+  return { pre, p };
+}
+
 function gameViewer(host, G, D) {
   const ev = G.ev; if (!ev.length) { mount(host, h('div', { class: 'panel empty' }, 'No play-by-play is available for this game.')); return; }
   let i = 0, playing = false, speed = 2, timer = 0, only = '';
@@ -40,6 +58,19 @@ function gameViewer(host, G, D) {
     <polygon points="${pts} ${X(T)},${Y(0)}" fill="${ch}" opacity=".35" clip-path="url(#gcu)"/><polygon points="${pts} ${X(T)},${Y(0)}" fill="${ca}" opacity=".35" clip-path="url(#gcd)"/><polyline points="${pts}" fill="none" stroke="var(--fg2)" stroke-width="1.4" vector-effect="non-scaling-stroke"/>
     ${ev.map((e, n) => e.k === 'sc' ? `<circle cx="${X(e.t)}" cy="${Y(marg[n])}" r="2.6" fill="${e.tid == G.home.id ? ch : ca}"/>` : '').join('')}<line data-cur x1="0" x2="0" y1="0" y2="${H}" stroke="var(--acc)" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>`;
   const tl = h('div', { class: 'gtlw', html: svgT });
+  /* win probability chart: the home win chance after every play, with the biggest swings listed under it */
+  const WP = winProbSeries(G); let wpPanel = null, wpNow = null;
+  if (WP) {
+    const WH = 110, Y2 = v => 4 + (1 - v) * (WH - 8); let q = `${X(0)},${Y2(WP.pre)} `; ev.forEach((e, n) => { q += `${X(e.t)},${Y2(n ? WP.p[n - 1] : WP.pre)} ${X(e.t)},${Y2(WP.p[n])} `; }); q += `${X(T)},${Y2(WP.p[WP.p.length - 1])}`;
+    const svgW = `<svg viewBox="0 0 ${W} ${WH}" class="gtl gwp" preserveAspectRatio="none" role="img" aria-label="Win probability chart"><defs><clipPath id="gwu"><rect x="0" y="0" width="${W}" height="${Y2(.5)}"/></clipPath><clipPath id="gwd"><rect x="0" y="${Y2(.5)}" width="${W}" height="${WH}"/></clipPath></defs>${divs.replace(/y2="\d+"/g, `y2="${WH}"`)}
+      <line x1="0" x2="${W}" y1="${Y2(.5)}" y2="${Y2(.5)}" class="gdv"/><polygon points="${q} ${X(T)},${Y2(.5)} ${X(0)},${Y2(.5)}" fill="${ch}" opacity=".35" clip-path="url(#gwu)"/><polygon points="${q} ${X(T)},${Y2(.5)} ${X(0)},${Y2(.5)}" fill="${ca}" opacity=".35" clip-path="url(#gwd)"/>
+      <polyline points="${q}" fill="none" stroke="var(--fg2)" stroke-width="1.4" vector-effect="non-scaling-stroke"/><line data-wcur x1="0" x2="0" y1="0" y2="${WH}" stroke="var(--acc)" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>`;
+    const wtl = h('div', { class: 'gtlw', html: svgW }); wtl.addEventListener('pointerdown', e => { drag = true; seekAt(e); }); wtl.addEventListener('pointermove', e => { if (drag) seekAt(e); });
+    const swings = ev.map((e, n) => ({ n, d: WP.p[n] - (n ? WP.p[n - 1] : WP.pre) })).filter(x => Math.abs(x.d) >= .04).sort((a, b) => Math.abs(b.d) - Math.abs(a.d)).slice(0, 5);
+    const sw = swings.length ? h('div', { class: 'gsw' }, h('div', { class: 'cap', style: { fontWeight: 600, margin: '8px 0 4px' } }, 'Biggest swings'), swings.map(({ n, d }) => { const e = ev[n], toHome = d > 0, t = toHome ? G.home : G.away; return h('button', { class: 'gswb', type: 'button', onclick: () => go(n, true), title: 'Jump to this play' }, h('b', { style: { color: toHome ? ch : ca } }, `${esc(t.abbr)} +${Math.round(Math.abs(d) * 100)}%`), h('span', { class: 'tm' }, `${SPORT.perName(e.per, true)} ${e.clk || ''}`), h('span', { class: 'tx' }, e.tx)); })) : null;
+    wpNow = h('span', { class: 'cap', 'aria-live': 'off' });
+    wpPanel = h('div', { class: 'panel pad' }, h('div', { class: 'row sb', style: { marginBottom: '6px', flexWrap: 'wrap', gap: '6px' } }, h('h2', {}, 'Win probability'), wpNow), wtl, sw, h('div', { class: 'cap', style: { marginTop: '6px' } }, 'Estimated from the score, the time left and the situation. A simple model, not a betting line.'));
+  }
   const seekAt = e => { const r = tl.getBoundingClientRect(), t = clamp((e.clientX - r.left) / r.width, 0, 1) * T; let b = 0; for (let n = 0; n < ev.length; n++) if (ev[n].t <= t) b = n; go(b, true); };
   let drag = false; tl.addEventListener('pointerdown', e => { drag = true; seekAt(e); }); addEventListener('pointerup', () => drag = false); tl.addEventListener('pointermove', e => { if (drag) seekAt(e); });
   /* controls */
@@ -54,6 +85,7 @@ function gameViewer(host, G, D) {
   function update() {
     const e = ev[i]; setSb(e); stage?.show(i, e, G);
     cap.innerHTML = `<div class="ctx">${esc(e.ctx || '')}</div><div class="tx">${esc(e.tx)}</div>`;
+    if (WP) { const pv = WP.p[i], c = wpPanel.querySelector('[data-wcur]'); c.setAttribute('x1', X(e.t)); c.setAttribute('x2', X(e.t)); wpNow.innerHTML = `<b style="color:${ca}">${esc(G.away.abbr)} ${Math.round((1 - pv) * 100)}%</b> · <b style="color:${ch}">${esc(G.home.abbr)} ${Math.round(pv * 100)}%</b>`; }
     slider.value = i; tl.querySelector('[data-cur]').setAttribute('x1', X(e.t)); tl.querySelector('[data-cur]').setAttribute('x2', X(e.t));
     list.querySelector('.gp.cur')?.classList.remove('cur'); const b = list.children[i]; b.classList.add('cur'); const lt = b.offsetTop - list.clientHeight / 2 + b.clientHeight / 2; list.scrollTop = Math.max(0, lt);
   }
@@ -63,7 +95,7 @@ function gameViewer(host, G, D) {
   function toggle() { if (playing) return stop(); if (i >= ev.length - 1) i = 0; playing = true; pp.textContent = 'Pause'; update(); timer = setTimeout(tick, 900 / speed); }
   const key = e => { if (!host.isConnected) return removeEventListener('keydown', key); if (/INPUT|SELECT|TEXTAREA/.test(e.target.tagName) && e.target.type !== 'range') return; if (e.key === 'ArrowRight') { go(i + 1, true); e.preventDefault(); } else if (e.key === 'ArrowLeft') { go(i - 1, true); e.preventDefault(); } else if (e.key === ' ' && e.target.tagName !== 'BUTTON') { toggle(); e.preventDefault(); } };
   addEventListener('keydown', key);
-  mount(host, sb, h('div', { class: 'ggrid' }, h('div', { class: 'stack' }, h('div', { class: 'panel gst' }, stage ? stage.el : null, cap, ctrl), h('div', { class: 'panel pad' }, h('div', { class: 'row sb', style: { marginBottom: '6px' } }, h('h2', {}, G.sim ? 'Score margin in this simulation' : 'Score margin'), h('span', { class: 'cap' }, `${esc(G.home.abbr)} ahead above the line · click to jump`)), tl)),
+  mount(host, sb, h('div', { class: 'ggrid' }, h('div', { class: 'stack' }, h('div', { class: 'panel gst' }, stage ? stage.el : null, cap, ctrl), h('div', { class: 'panel pad' }, h('div', { class: 'row sb', style: { marginBottom: '6px' } }, h('h2', {}, G.sim ? 'Score margin in this simulation' : 'Score margin'), h('span', { class: 'cap' }, `${esc(G.home.abbr)} ahead above the line · click to jump`)), tl), wpPanel),
     h('div', { class: 'panel gpl' }, h('div', { class: 'hd' }, h('h2', {}, 'Play by play'), filt), list)));
   update();
 }

@@ -66,3 +66,15 @@ SPORT.stage = {
     } };
   },
 };
+/* win probability from the score, the inning and the base-out state, using the standard run-expectancy table for the half inning in progress */
+const MLB_RE = [[.50, .90, 1.10, 1.50, 1.35, 1.75, 1.96, 2.28], [.27, .54, .66, .95, .95, 1.14, 1.38, 1.54], [.10, .23, .32, .46, .35, .49, .58, .76]];
+SPORT.winProb = e => {
+  const p = e.p; if (!p.bases) return .54;
+  let per = e.per, outs = p.outs, b = 0, d = e.h - e.a;
+  if (outs >= 3) { if (per >= 18 && per % 2 === 0) return d > 0 ? 1 : d < 0 ? 0 : .53; per++; outs = 0; } else b = (p.bases[0] ? 1 : 0) + (p.bases[1] ? 2 : 0) + (p.bases[2] ? 4 : 0);
+  if (per === 18 && d > 0) return 1;                                   // the home team never bats in the bottom of the ninth when it is already ahead
+  const batHome = per % 2 === 0, re = MLB_RE[outs][b], endHalf = per <= 18 ? 18 : per % 2 ? per + 1 : per;
+  let homeF = 0, awayF = 0; for (let k = per + 1; k <= endHalf; k++) k % 2 ? awayF++ : homeF++;
+  const m = d + (batHome ? re : -re) + .5 * (homeF - awayF) + .1;       // about half a run per half inning
+  return normCdf(m / Math.sqrt(endHalf - per + .5 + 1.4 * re));       // the half inning in progress is riskier when more runners are on and fewer are out
+};

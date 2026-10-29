@@ -30,6 +30,7 @@ with sync_playwright() as p:
         pg.wait_for_timeout(2200)
         txt = pg.evaluate("document.querySelector('#view').innerText.slice(0,150).replace(/\\n/g,' | ')")
         ov = pg.evaluate('document.documentElement.scrollWidth-innerWidth')
+        if '/game' in rt: print('  win-prob chart:', pg.evaluate("document.querySelectorAll('.gwp').length"), 'swings:', pg.evaluate("document.querySelectorAll('.gswb').length"), flush=True)
         pg.screenshot(path=f'tests/shots/{sport}_{i:02d}_{re.sub(chr(92)+"W+", "_", rt)[:30]}.png')
         flag = '' if (ov <= 0 and not errs and 'went wrong' not in txt.lower()) else '  <-- CHECK'
         if flag: bad += 1

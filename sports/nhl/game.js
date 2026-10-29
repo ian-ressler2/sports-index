@@ -48,3 +48,5 @@ SPORT.stage = {
     } };
   },
 };
+/* win probability: goals are rare, so the spread of a final margin is only about 2.4 goals; a tie after 60 minutes is a coin flip in overtime */
+SPORT.winProb = e => { const end = e.per <= 3 ? 3600 : e.per === 4 ? 3900 : 3960; return wpNormal(e.h - e.a, Math.max(0, end - e.t) / 3600, 2.4, .15, .17); };

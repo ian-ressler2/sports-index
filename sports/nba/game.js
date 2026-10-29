@@ -36,3 +36,5 @@ SPORT.stage = {
     } };
   },
 };
+/* win probability: the score margin against the time left, with a small home edge (the final margin of an NBA game has a spread of about 12 points) */
+SPORT.winProb = e => { const end = e.per <= 4 ? 2880 : 2880 + (e.per - 4) * 300; return wpNormal(e.h - e.a, Math.max(0, end - e.t) / 2880, 12, 2.5, .9); };
