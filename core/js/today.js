@@ -62,7 +62,7 @@ App.pages.today = async function ({ q, D, el }) {
   const sorted = games.slice().sort((a, b) => order[a.state] - order[b.state] || a.t.localeCompare(b.t));
   const card = g => {
     const done = g.state !== 'pre', wa = g.state === 'post' && g.away.score > g.home.score, wh = g.state === 'post' && g.home.score > g.away.score;
-    const row = (t, w) => `<div class="r${w ? ' w' : ''}">${t.logo ? `<img src="${esc(t.logo)}" alt="" loading="lazy">` : '<i></i>'}<span class="nm">${esc(t.name || t.abbr)}${t.rec ? ` <small class="dim">${esc(t.rec)}</small>` : ''}</span><b>${done && t.score != null ? t.score : ''}</b></div>`;
+    const row = (t, w) => `<div class="r${w ? ' w' : ''}">${t.logo ? `<img src="${esc(t.logo)}" alt="" loading="lazy">` : '<i></i>'}<span class="nm">${t.rank ? `<small class="dim">${t.rank}</small> ` : ''}${esc(t.name || t.abbr)}${t.rec ? ` <small class="dim">${esc(t.rec)}</small>` : ''}</span><b>${done && t.score != null ? t.score : ''}</b></div>`;
     const status = g.state === 'pre' ? clockOf(g.t) : g.state === 'in' ? 'LIVE · ' + g.status : g.status || 'Final';
     const tail = g.extra?.length ? `<div class="cap">${esc(g.extra.join(' · '))}</div>` : '';
     const live = g.state !== 'pre', link = !live ? (SPORT.sim ? href('/sim', { h: g.home.id, a: g.away.id }) : '') : href('/game/' + g.id), tag = link ? 'a' : 'div';

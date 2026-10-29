@@ -161,7 +161,7 @@ SPORT.today = day => cached(`today:${day}`, 60e3, async () => {
     const c = e.competitions?.[0]; if (!c) return null; const st = c.status?.type || {};
     const tm = w => {
       const k = c.competitors.find(z => z.homeAway === w); if (!k) return null;
-      return { id: +k.team.id, abbr: k.team.abbreviation, name: k.team.displayName, logo: espnLogo(k.team), score: st.state === 'pre' || k.score == null ? null : +(k.score?.value ?? k.score), rec: (k.records || []).find(r => r.type === 'total')?.summary || '',
+      return { id: +k.team.id, abbr: k.team.abbreviation, name: k.team.displayName, logo: espnLogo(k.team), rank: k.curatedRank?.current > 0 && k.curatedRank.current <= 25 ? k.curatedRank.current : 0, score: st.state === 'pre' || k.score == null ? null : +(k.score?.value ?? k.score), rec: (k.records || []).find(r => r.type === 'total')?.summary || '',
         lead: (k.leaders || []).map(l => { const t = l.leaders?.[0]; return t && t.athlete ? { k: l.name, lab: l.shortDisplayName || l.displayName || l.name, v: t.displayValue, val: +t.value, who: t.athlete.shortName || t.athlete.displayName, pid: +t.athlete.id || 0 } : null; }).filter(Boolean) };
     };
     const home = tm('home'), away = tm('away'); if (!home || !away) return null;
