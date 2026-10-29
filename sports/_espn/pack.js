@@ -153,11 +153,28 @@ const ESPN_BOARD = (a, b) => cached(`bd:${a}-${b}`, 300e3, async () => {
   }).filter(Boolean);
 });
 SPORT.listGames = (a, b) => ESPN_BOARD(a, b);
+const espnClips = a => (a || []).map(v => ({ title: v.headline || v.description || 'Highlight', dur: fmtClip(v.duration), thumb: v.thumbnail || '', src: v.links?.source?.HD?.href || v.links?.source?.href || v.links?.mobile?.source?.href || '' })).filter(v => /^https:\/\/.*\.mp4/i.test(v.src)).slice(0, 12);
+/* one day's scoreboard including games not yet played, with each team's game leaders, the recap headline and the highlight reel */
+SPORT.today = day => cached(`today:${day}`, 60e3, async () => {
+  const j = await getJSON(`${espnSite()}/scoreboard?dates=${day}&limit=300`);
+  return (j.events || []).map(e => {
+    const c = e.competitions?.[0]; if (!c) return null; const st = c.status?.type || {};
+    const tm = w => {
+      const k = c.competitors.find(z => z.homeAway === w); if (!k) return null;
+      return { id: +k.team.id, abbr: k.team.abbreviation, name: k.team.displayName, logo: espnLogo(k.team), score: st.state === 'pre' || k.score == null ? null : +(k.score?.value ?? k.score), rec: (k.records || []).find(r => r.type === 'total')?.summary || '',
+        lead: (k.leaders || []).map(l => { const t = l.leaders?.[0]; return t && t.athlete ? { k: l.name, lab: l.shortDisplayName || l.displayName || l.name, v: t.displayValue, val: +t.value, who: t.athlete.shortName || t.athlete.displayName, pid: +t.athlete.id || 0 } : null; }).filter(Boolean) };
+    };
+    const home = tm('home'), away = tm('away'); if (!home || !away) return null;
+    const hd = c.headlines?.[0];
+    return { id: e.id, t: e.date, state: st.state, final: !!st.completed, status: st.shortDetail || st.description || '', home, away, headline: hd?.shortLinkText || hd?.description || '', note: c.notes?.[0]?.headline || '', videos: espnClips(c.highlights).slice(0, 1), extra: [] };
+  }).filter(Boolean);
+});
 SPORT.loadGame = id => cached(`game:${id}:${SPORT.evVer || 1}`, 600e3, async () => {
   const j = await getJSON(`${espnSite()}/summary?event=${id}`);
   const comp = j.header?.competitions?.[0]; if (!comp) throw new Error('Game not found');
   const tm = w => { const c = comp.competitors.find(k => k.homeAway === w); return { id: +c.team.id, abbr: c.team.abbreviation, name: c.team.displayName, logo: espnLogo(c.team), color: c.team.color ? '#' + c.team.color : '', score: +c.score }; };
   const G = { id, sim: false, date: (comp.date || '').slice(0, 10), sub: comp.status?.type?.detail || '', home: tm('home'), away: tm('away'), ev: [], tot: 0 };
+  G.videos = espnClips(j.videos);
   SPORT.gameEvents(j, G); return G;
 });
 

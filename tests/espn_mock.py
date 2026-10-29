@@ -76,12 +76,19 @@ def make_handler(spec, seed=7):
             return J({'events': evs})
         if path.endswith('/scoreboard'):
             evs = []
+            LV = {'points': 32, 'rebounds': 15, 'assists': 12, 'goals': 2, 'passingYards': 320, 'rushingYards': 110}
             for k in range(8):
                 a, b = teams[(k * 2) % len(teams)], teams[(k * 2 + 1) % len(teams)]
-                tm = lambda t, w, sc: {'homeAway': w, 'score': str(sc), 'team': {'id': str(t['id']), 'abbreviation': t.get('abbr', 'T'), 'displayName': t.get('name', 'Team'), 'logos': []}}
-                evs.append({'id': str(9000 + k), 'date': f'2026-10-{20 + k % 6:02d}T23:00Z', 'competitions': [{'status': {'type': {'completed': True, 'state': 'post', 'shortDetail': 'Final'}}, 'competitors': [tm(a, 'home', 24 + k), tm(b, 'away', 17 + k)]}]})
+                state = 'post' if k < 5 else 'in' if k == 5 else 'pre'
+                lead = [{'name': n, 'shortDisplayName': n[:3].title(), 'leaders': [{'displayValue': str(v + k), 'value': v + k, 'athlete': {'id': str(100000 + k), 'shortName': f'P. {k}', 'displayName': f'Player {k}'}}]} for n, v in LV.items()]
+                tm = lambda t, w, sc: {'homeAway': w, 'score': str(sc), 'team': {'id': str(t['id']), 'abbreviation': t.get('abbr', 'T'), 'displayName': t.get('name', 'Team'), 'logos': []}, 'records': [{'type': 'total', 'summary': '3-1'}], 'leaders': lead if state != 'pre' else []}
+                comp = {'status': {'type': {'completed': state == 'post', 'state': state, 'shortDetail': 'Final' if state == 'post' else '3rd 4:12' if state == 'in' else '7:00 PM'}}, 'competitors': [tm(a, 'home', 24 + k), tm(b, 'away', 17 + k)]}
+                if state == 'post':
+                    comp['headlines'] = [{'shortLinkText': f'Team {k} wins a thriller', 'description': 'recap'}]
+                    comp['highlights'] = [{'headline': f'Game {k} Highlights', 'duration': 72, 'thumbnail': 'https://example.com/t.jpg', 'links': {'source': {'href': 'https://example.com/v.mp4', 'HD': {'href': 'https://example.com/v.mp4'}}}}]
+                evs.append({'id': str(9000 + k), 'date': f'2026-10-{20 + k % 6:02d}T23:00Z', 'competitions': [comp]})
             return J({'events': evs})
         if path.endswith('/summary'):
-            return J({'header': {'competitions': [{'date': '2025-10-09T02:00Z', 'competitors': [{'team': {'id': '1', 'abbreviation': 'AAA'}, 'homeAway': 'home', 'score': '3'}, {'team': {'id': '2', 'abbreviation': 'BBB'}, 'homeAway': 'away', 'score': '4'}]}]}, 'boxscore': {'players': [{'team': {'id': '1'}, 'statistics': [{'name': 'goalies', 'athletes': [{'athlete': {'id': athletes[45]['id']}}]}]}, {'team': {'id': '2'}, 'statistics': [{'name': 'goalies', 'athletes': [{'athlete': {'id': athletes[46]['id']}}]}]}]}, **({'drives': {'previous': [{'plays': spec.plays(rnd, [a for a in athletes])}]}} if spec.sp == 'football' else {'plays': spec.plays(rnd, [a for a in athletes]) if spec.plays else []})})
+            return J({'videos': [{'headline': 'Game Highlights', 'duration': 72, 'thumbnail': 'https://example.com/t.jpg', 'links': {'source': {'href': 'https://example.com/a.mp4'}}}, {'headline': 'Top plays', 'duration': 95, 'links': {'source': {'href': 'https://example.com/b.mp4'}}}], 'header': {'competitions': [{'date': '2025-10-09T02:00Z', 'competitors': [{'team': {'id': '1', 'abbreviation': 'AAA'}, 'homeAway': 'home', 'score': '3'}, {'team': {'id': '2', 'abbreviation': 'BBB'}, 'homeAway': 'away', 'score': '4'}]}]}, 'boxscore': {'players': [{'team': {'id': '1'}, 'statistics': [{'name': 'goalies', 'athletes': [{'athlete': {'id': athletes[45]['id']}}]}]}, {'team': {'id': '2'}, 'statistics': [{'name': 'goalies', 'athletes': [{'athlete': {'id': athletes[46]['id']}}]}]}]}, **({'drives': {'previous': [{'plays': spec.plays(rnd, [a for a in athletes])}]}} if spec.sp == 'football' else {'plays': spec.plays(rnd, [a for a in athletes]) if spec.plays else []})})
         return 404, 'text/plain', 'no ' + path
     return handle

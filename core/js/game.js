@@ -127,7 +127,7 @@ App.pages.game = async function ({ path, D, el }) {
   const id = path[1]; mount(el, loadingEl('Loading play by play'));
   let G; try { G = await SPORT.loadGame(id, D); } catch (e) { mount(el, errorEl(e, () => render(true))); return; }
   const head = pageHead(`${G.date || ''} · REPLAY`, `${G.away.name} at ${G.home.name}`, G.sub || '', h('a', { class: 'btn sm', href: href('/sim', { h: G.home.id, a: G.away.id }) }, 'Simulate this matchup'));
-  const host = h('div', { class: 'stack' }); mount(el, h('div', { style: { marginBottom: '6px' } }, h('a', { class: 'cap', href: href('/games') }, '‹ All games')), head, host);
+  const host = h('div', { class: 'stack' }); mount(el, h('div', { style: { marginBottom: '6px' } }, h('a', { class: 'cap', href: href('/games') }, '‹ All games')), head, highlightsPanel(G.videos) ? h('div', { style: { margin: '14px 0' } }, highlightsPanel(G.videos, 'Game highlights')) : null, host);
   gameViewer(host, G, D);
 };
 

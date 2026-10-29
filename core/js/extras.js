@@ -120,3 +120,23 @@ async function openPlayerCard(ctx) {
   const share = navigator.canShare && navigator.canShare({ files: [file] }) ? h('button', { class: 'btn', type: 'button', onclick: () => navigator.share({ files: [file], title: ctx.name }).catch(() => { }) }, 'Share') : null;
   mount(body, h('img', { src: url, alt: `${ctx.name} player card`, class: 'cm-img' }), h('div', { class: 'row', style: { gap: '8px', marginTop: '12px', flexWrap: 'wrap' } }, save, copy, share), map ? null : h('p', { class: 'cap', style: { marginTop: '8px' } }, SPORT.cardMap ? 'No map on this card: not enough tracked shots for this player.' : 'No map on this card; it shows percentiles only.'));
 }
+
+/* ---------- highlight clips: a list of { title, dur, thumb, src } played inline ---------- */
+const fmtClip = d => {
+  if (d == null || d === '') return '';
+  if (typeof d === 'number' || /^\d+$/.test(String(d))) { const n = +d; return `${Math.floor(n / 60)}:${String(n % 60).padStart(2, '0')}`; }
+  const m = String(d).match(/^(\d+):(\d+):(\d+)$/); if (!m) return String(d);
+  return +m[1] ? `${+m[1]}:${m[2]}:${m[3]}` : `${+m[2]}:${m[3]}`;
+};
+function highlightsPanel(clips, title = 'Highlights') {
+  clips = (clips || []).filter(c => c && /^https:/.test(c.src || '')); if (!clips.length) return null;
+  const stage = h('div', { class: 'hlstage' }), items = [];
+  const show = (i, auto) => {
+    const c = clips[i];
+    mount(stage, h('video', { src: c.src, poster: c.thumb || undefined, controls: true, playsinline: true, preload: auto ? 'auto' : 'none', autoplay: !!auto, 'aria-label': c.title, onerror: e => { const n = e.target.parentNode.querySelector('.hlerr'); if (n) n.hidden = false; } }), h('div', { class: 'cap hlerr', hidden: true, style: { marginTop: '6px' } }, 'This clip could not be played here. The video host may be blocking it.'), h('div', { class: 'cap', style: { marginTop: '6px' } }, c.title));
+    items.forEach((b, j) => { b.classList.toggle('on', j === i); b.setAttribute('aria-current', j === i ? 'true' : 'false'); });
+  };
+  const list = h('div', { class: 'hllist' }, clips.map((c, i) => { const b = h('button', { class: 'hlitem', type: 'button', onclick: () => show(i, true) }, c.thumb ? h('img', { src: c.thumb, alt: '', loading: 'lazy', onerror: e => e.target.remove() }) : h('i', {}), h('span', {}, c.title), c.dur ? h('small', {}, c.dur) : null); items.push(b); return b; }));
+  show(0, false);
+  return h('div', { class: 'panel pad hlpanel' }, h('div', { class: 'row sb' }, h('h2', {}, title), h('span', { class: 'cap' }, clips.length + (clips.length === 1 ? ' clip' : ' clips'))), h('div', { class: 'hlgrid', style: { marginTop: '10px' } }, stage, list));
+}

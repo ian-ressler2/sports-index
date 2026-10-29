@@ -2,7 +2,7 @@
    and, when the ball was put in play, Statcast's hit coordinates. The same stage draws simulated games. */
 SPORT.perName = (p, short) => `${p % 2 ? (short ? 'T' : 'Top') : (short ? 'B' : 'Bot')} ${Math.ceil(p / 2)}`;
 SPORT.seasonEnd = s => new Date(s, 9, 31);
-SPORT.gameSpan = 2;
+SPORT.gameSpan = 2; SPORT.closeMargin = 1;
 SPORT.gamesNote = 'Open a game to see every pitch in the strike zone and every ball in play on the field.';
 const mlbLogo = id => `https://www.mlbstatic.com/team-logos/${id}.svg`;
 const mlbDay = n => { const s = String(n); return `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`; };
@@ -14,11 +14,34 @@ SPORT.listGames = (a, b) => cached(`bd:${a}-${b}`, 300e3, async () => {
     return { id: String(g.gamePk), t: g.gameDate, day: g.officialDate || d.date, final: st.abstractGameCode === 'F', status: st.detailedState || '', home: tm('home'), away: tm('away') };
   }).filter(Boolean));
 });
+/* MLB's content feed lists every highlight clip as several encodings; use the 720p mp4 */
+const mlbClip = it => {
+  const pb = (it.playbacks || []).find(p => p.name === 'mp4Avc') || (it.playbacks || []).find(p => /\.mp4$/i.test(p.url || '')); if (!pb) return null;
+  const cuts = (it.image?.cuts || []).filter(c => c.width >= 320).sort((a, b) => a.width - b.width);
+  return { title: it.headline || it.blurb || 'Highlight', dur: fmtClip(it.duration), thumb: (cuts[0] || {}).src || '', src: pb.url };
+};
+const mlbClips = items => (items || []).map(mlbClip).filter(Boolean).slice(0, 12);
+/* one day's schedule with probable pitchers, decisions, the recap headline and the highlight reel */
+SPORT.today = day => cached(`today:${day}`, 60e3, async () => {
+  const j = await getJSON(`${API}/schedule?sportId=1&date=${mlbDay(day)}&gameType=R,F,D,L,W&hydrate=team,linescore,decisions,probablePitcher,game(content(editorial(recap),highlights(highlights)))`);
+  return (j.dates || []).flatMap(d => d.games.map(g => {
+    const st = g.status || {}; if (st.codedGameState === 'S' && st.abstractGameCode === 'P' || /postponed|cancel|suspended/i.test(st.detailedState || '')) return null;
+    const state = st.abstractGameCode === 'F' ? 'post' : st.abstractGameCode === 'L' ? 'in' : 'pre';
+    const tm = w => { const t = g.teams[w], lr = t.leagueRecord; return { id: t.team.id, abbr: t.team.abbreviation, name: t.team.name, logo: mlbLogo(t.team.id), score: state === 'pre' ? null : t.score, rec: lr ? `${lr.wins}-${lr.losses}` : '', lead: [], pp: t.probablePitcher?.fullName || '' }; };
+    const home = tm('home'), away = tm('away'), dc = g.decisions || {}, extra = [];
+    if (state === 'post' && dc.winner) extra.push(`W: ${dc.winner.fullName}`, dc.loser ? `L: ${dc.loser.fullName}` : '', dc.save ? `SV: ${dc.save.fullName}` : '');
+    else if (state === 'pre') extra.push(`${away.pp || 'TBD'} vs ${home.pp || 'TBD'}`);
+    else if (state === 'in') { const ls = g.linescore || {}; extra.push(`${ls.inningHalf || ''} ${ls.currentInningOrdinal || ''}`.trim()); }
+    const ex = g.content?.editorial?.recap?.mlb;
+    return { id: String(g.gamePk), t: g.gameDate, state, final: state === 'post', status: st.detailedState || '', home, away, headline: ex?.headline || '', note: g.seriesDescription && /World|League|Division|Wild/i.test(g.seriesDescription) ? `${g.seriesDescription}${g.seriesGameNumber ? ', Game ' + g.seriesGameNumber : ''}` : '', videos: mlbClips(g.content?.highlights?.highlights?.items).slice(0, 1), extra: extra.filter(Boolean) };
+  }).filter(Boolean));
+});
 SPORT.loadGame = (id, D) => cached(`game:${id}:1`, 600e3, async () => {
-  const j = await getJSON(`https://statsapi.mlb.com/api/v1.1/game/${id}/feed/live`);
+  const [j, content] = await Promise.all([getJSON(`https://statsapi.mlb.com/api/v1.1/game/${id}/feed/live`), getJSON(`${API}/game/${id}/content`).catch(() => null)]);
   const gd = j.gameData || {}, ls = j.liveData?.linescore || {};
   const tm = w => { const t = gd.teams[w]; return { id: t.id, abbr: t.abbreviation, name: t.name, logo: mlbLogo(t.id), color: tcol(t.id), score: ls.teams?.[w]?.runs ?? 0 }; };
   const G = { id, sim: false, date: gd.datetime?.officialDate || '', sub: gd.status?.detailedState || '', home: tm('home'), away: tm('away'), ev: [], tot: 0 };
+  G.videos = mlbClips(content?.highlights?.highlights?.items);
   SPORT.gameEvents(j, G); return G;
 });
 const mlbShort = n => { const p = String(n || '').trim().split(/\s+/); return p.length > 1 ? `${p[0][0]}. ${p.slice(1).join(' ')}` : p[0] || ''; };
