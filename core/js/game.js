@@ -40,7 +40,7 @@ function gameViewer(host, G, D) {
   const ev = G.ev; if (!ev.length) { mount(host, h('div', { class: 'panel empty' }, 'No play-by-play is available for this game.')); return; }
   let i = 0, playing = false, speed = 2, timer = 0, only = '';
   const stage = SPORT.stage ? SPORT.stage.make(G, D) : null;
-  const ch = gTeamColor(D, G.home.id), ca = gTeamColor(D, G.away.id);
+  const cb = cbOn(), ch = cb ? '#0072b2' : gTeamColor(D, G.home.id), ca = cb ? '#e69f00' : gTeamColor(D, G.away.id);
   /* scoreboard */
   const side = (t, c, cls) => `<div class="gtm ${cls}" style="--tc:${c}">${t.logo ? `<img src="${esc(t.logo)}" alt="" loading="lazy">` : ''}<div><div class="nm">${esc(t.name || t.abbr)}</div><div class="cap">${esc(cls === 'a' ? 'Away' : 'Home')}</div></div><div class="sc" data-s="${cls}">0</div></div>`;
   const sb = h('div', { class: 'gsb panel', html: `${side(G.away, ca, 'a')}<div class="gmid"><div class="per" data-per></div><div class="clk" data-clk></div></div>${side(G.home, ch, 'h')}` });

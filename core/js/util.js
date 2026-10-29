@@ -90,7 +90,7 @@ function heat(p) {
 function pctColor(p) {
   if (p == null || !isFinite(p)) return 'var(--bg4)';
   const t = (p - 50) / 50;
-  return t >= 0 ? `rgba(224,74,74,${(0.45 + t * 0.55).toFixed(2)})` : `rgba(58,122,224,${(0.45 + -t * 0.55).toFixed(2)})`;
+  return t >= 0 ? `rgba(var(--hot),${(0.45 + t * 0.55).toFixed(2)})` : `rgba(var(--cold),${(0.45 + -t * 0.55).toFixed(2)})`;
 }
 
 /* CSV */

@@ -430,3 +430,9 @@ table.odds td:first-child,table.odds th:first-child{position:sticky;left:0;z-ind
 .pal .pi{flex:none;width:34px;height:34px;border-radius:50%;background:var(--bg4);display:grid;place-items:center;color:var(--fg2)}.pal .pi svg{width:18px;height:18px}
 .sharebtn svg{width:14px;height:14px;margin-right:6px;vertical-align:-2px}@media (max-width:520px){.sharebtn span{display:none}.sharebtn svg{margin:0}}
 .loadwrap{position:relative}.loadwrap .load{min-height:0;padding:28px 0;position:relative;z-index:1}.skpage{opacity:.55;max-width:720px;margin:0 auto}@media (prefers-reduced-motion:reduce){.skel,.spin{animation:none}}
+
+/* colorblind-safe palette (Okabe-Ito): blue and orange instead of red and green, so every good/bad and hot/cold pair differs in lightness and hue */
+:root[data-cb="1"]{--good:#0072b2;--bad:#d55e00;--a:#0072b2;--b:#e69f00;--hot:213,94,0;--cold:0,114,178;--warn:#b58900}
+@media (prefers-color-scheme:dark){:root[data-cb="1"]:not([data-theme="light"]){--good:#56b4e9;--bad:#e69f00;--a:#56b4e9;--b:#e69f00;--hot:230,159,0;--cold:86,180,233;--warn:#f0e442}}
+:root[data-theme="dark"][data-cb="1"]{--good:#56b4e9;--bad:#e69f00;--a:#56b4e9;--b:#e69f00;--hot:230,159,0;--cold:86,180,233;--warn:#f0e442}
+.cbtoggle{background:none;border:0;color:var(--fg2);font:inherit;text-decoration:underline;cursor:pointer;padding:0}.cbtoggle[aria-pressed="true"]{color:var(--fg);font-weight:600}

@@ -88,9 +88,12 @@ const ICON = {
   filter: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>',
 };
 const DEFAULT_LOGO = '<svg viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="var(--bg3)" stroke="var(--line2)"/><path d="M16 6.5 25.5 16 16 25.5 6.5 16Z" fill="none" stroke="var(--fg)" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 21.5c4-1 8.5-5 12-11.5" stroke="var(--acc)" stroke-width="1.9" fill="none" stroke-linecap="round"/><circle cx="22.2" cy="9.4" r="2.5" fill="var(--acc)"/></svg>';
+function applyCb(on) { if (on) document.documentElement.setAttribute('data-cb', '1'); else document.documentElement.removeAttribute('data-cb'); }
+const cbOn = () => document.documentElement.getAttribute('data-cb') === '1';
 function applyTheme(t) { if (t) document.documentElement.setAttribute('data-theme', t); else document.documentElement.removeAttribute('data-theme'); }
 function buildShell() {
   applyTheme(store.get('theme', null));
+  applyCb(store.get('cb', false));
   const LOGO = SPORT.logo || DEFAULT_LOGO;
   const links = (cls) => SPORT.nav.map(([k, l]) => `<a href="${href('/' + k)}" data-nav="${k}">${l}</a>`).join('');
   const ti = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON.nav[k] || ICON.nav.dot}</svg>`;
@@ -108,7 +111,8 @@ function buildShell() {
     <nav class="tabbar" aria-label="Main navigation">${tabbar}</nav>
     <div class="moresheet" id="moresheet" role="dialog" aria-label="More pages" hidden><div class="mshd"><b>More</b><button class="ibtn" id="moreclose" type="button" aria-label="Close">×</button></div>${moreLinks}</div>
     <div class="wrap"><main id="view"></main></div>
-    <footer><div class="wrap">${SPORT.footer}<br><a href="../">All sports</a> · Open source on GitHub.</div></footer>`;
+    <footer><div class="wrap">${SPORT.footer}<br><a href="../">All sports</a> · Open source on GitHub · <button type="button" class="cbtoggle" id="cbtoggle" aria-pressed="false" title="Swap red and green for blue and orange">Colorblind-safe colors</button></div></footer>`;
+  const cbb = $('#cbtoggle'); if (cbb) { cbb.setAttribute('aria-pressed', cbOn() ? 'true' : 'false'); cbb.onclick = () => { const on = !cbOn(); applyCb(on); store.set('cb', on); cbb.setAttribute('aria-pressed', on ? 'true' : 'false'); render(true); }; }
   const sel = $('#season'); seasonList().forEach(y => sel.append(h('option', { value: y }, SPORT.seasons.label(y))));
   $('#sportsel').onchange = e => { location.href = '../' + e.target.value + '/'; };
   sel.onchange = () => { const q = { ...parseHash().q, s: sel.value }; if (+sel.value === App.defSeason) delete q.s; const p = parseHash().path; location.hash = '#/' + p.join('/') + (Object.keys(q).length ? '?' + new URLSearchParams(q) : ''); };
