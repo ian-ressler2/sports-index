@@ -65,8 +65,8 @@ App.pages.today = async function ({ q, D, el }) {
     const row = (t, w) => `<div class="r${w ? ' w' : ''}">${t.logo ? `<img src="${esc(t.logo)}" alt="" loading="lazy">` : '<i></i>'}<span class="nm">${esc(t.name || t.abbr)}${t.rec ? ` <small class="dim">${esc(t.rec)}</small>` : ''}</span><b>${done && t.score != null ? t.score : ''}</b></div>`;
     const status = g.state === 'pre' ? clockOf(g.t) : g.state === 'in' ? 'LIVE · ' + g.status : g.status || 'Final';
     const tail = g.extra?.length ? `<div class="cap">${esc(g.extra.join(' · '))}</div>` : '';
-    const link = g.state === 'pre' ? href('/sim', { h: g.home.id, a: g.away.id }) : href('/game/' + g.id);
-    return `<a class="gcard${g.state === 'in' ? ' live' : ''}" href="${link}">${row(g.away, wa)}${row(g.home, wh)}<div class="cap">${esc(status)}${g.note ? ' · ' + esc(g.note) : ''}</div>${tail}${g.state === 'pre' ? '<div class="cap dim">Open to simulate this matchup</div>' : ''}</a>`;
+    const live = g.state !== 'pre', link = !live ? (SPORT.sim ? href('/sim', { h: g.home.id, a: g.away.id }) : '') : href('/game/' + g.id), tag = link ? 'a' : 'div';
+    return `<${tag} class="gcard${g.state === 'in' ? ' live' : ''}"${link ? ` href="${link}"` : ''}>${row(g.away, wa)}${row(g.home, wh)}<div class="cap">${esc(status)}${g.note ? ' · ' + esc(g.note) : ''}</div>${tail}${g.state === 'pre' && SPORT.sim ? '<div class="cap dim">Open to simulate this matchup</div>' : ''}</${tag}>`;
   };
   const nLive = games.filter(g => g.state === 'in').length, nDone = games.filter(g => g.state === 'post').length;
   const parts = [h('div', { class: 'panel pad', style: { marginTop: '14px' } }, h('div', { class: 'row sb' }, h('h2', {}, 'Scoreboard'), h('span', { class: 'cap' }, `${games.length} ${games.length === 1 ? 'game' : 'games'}${nLive ? ` · ${nLive} live` : ''}${nDone ? ` · ${nDone} final` : ''}`)), h('div', { class: 'gcards', style: { marginTop: '10px' }, html: sorted.map(card).join('') }))];

@@ -108,9 +108,9 @@ App.pages.games = async function ({ q, D, el }) {
   const end = q.d ? parseYmd(+q.d) : defEnd, start = new Date(end); start.setDate(start.getDate() - span + 1);
   const shift = k => { const d = new Date(end); d.setDate(d.getDate() + k * span); navTo('/games', { d: ymd(d) }); };
   const dateIn = h('input', { type: 'date', class: 'sel sm', value: end.toISOString().slice(0, 10), onchange: e => { const v = e.target.value; if (v) navTo('/games', { d: v.replaceAll('-', '') }); } });
-  const bar = h('div', { class: 'row', style: { gap: '8px', flexWrap: 'wrap', margin: '14px 0' } }, h('button', { class: 'btn sm', type: 'button', onclick: () => shift(-1) }, '‹ Earlier'), dateIn, h('button', { class: 'btn sm', type: 'button', onclick: () => shift(1) }, 'Later ›'), h('a', { class: 'btn sm pri', href: href('/sim') }, 'Simulate a game'));
+  const bar = h('div', { class: 'row', style: { gap: '8px', flexWrap: 'wrap', margin: '14px 0' } }, h('button', { class: 'btn sm', type: 'button', onclick: () => shift(-1) }, '‹ Earlier'), dateIn, h('button', { class: 'btn sm', type: 'button', onclick: () => shift(1) }, 'Later ›'), SPORT.sim ? h('a', { class: 'btn sm pri', href: href('/sim') }, 'Simulate a game') : null);
   const out = h('div', {}, loadingEl('Loading games'));
-  mount(el, pageHead('GAME CENTER', 'Games', `Replay any finished ${SPORT.short} game play by play, or simulate your own matchup. ${SPORT.gamesNote || ''}`), bar, out);
+  mount(el, pageHead('GAME CENTER', 'Games', `Replay any finished ${SPORT.short} game play by play${SPORT.sim ? ', or simulate your own matchup' : ''}. ${SPORT.gamesNote || ''}`), bar, out);
   let games; try { games = await SPORT.listGames(ymd(start), ymd(end)); } catch (e) { mount(out, errorEl(e, () => render(true))); return; }
   if (!games.length) { mount(out, h('div', { class: 'panel empty' }, 'No games in this window. Try an earlier date.')); return; }
   const team = q.t ? +q.t : 0; const tsel = h('select', { class: 'sel sm', onchange: e => navTo('/games', { d: q.d, t: e.target.value || undefined }) }, h('option', { value: '' }, 'All teams'), [...D.teams.values()].sort((a, b) => a.name.localeCompare(b.name)).map(t => h('option', { value: t.id, selected: t.id === team }, t.name)));
@@ -126,7 +126,7 @@ App.pages.games = async function ({ q, D, el }) {
 App.pages.game = async function ({ path, D, el }) {
   const id = path[1]; mount(el, loadingEl('Loading play by play'));
   let G; try { G = await SPORT.loadGame(id, D); } catch (e) { mount(el, errorEl(e, () => render(true))); return; }
-  const head = pageHead(`${G.date || ''} · REPLAY`, `${G.away.name} at ${G.home.name}`, G.sub || '', h('a', { class: 'btn sm', href: href('/sim', { h: G.home.id, a: G.away.id }) }, 'Simulate this matchup'));
+  const head = pageHead(`${G.date || ''} · REPLAY`, `${G.away.name} at ${G.home.name}`, G.sub || '', SPORT.sim ? h('a', { class: 'btn sm', href: href('/sim', { h: G.home.id, a: G.away.id }) }, 'Simulate this matchup') : null);
   const host = h('div', { class: 'stack' }); mount(el, h('div', { style: { marginBottom: '6px' } }, h('a', { class: 'cap', href: href('/games') }, '‹ All games')), head, highlightsPanel(G.videos) ? h('div', { style: { margin: '14px 0' } }, highlightsPanel(G.videos, 'Game highlights')) : null, host);
   gameViewer(host, G, D);
 };

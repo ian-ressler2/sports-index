@@ -156,7 +156,7 @@ function paletteIndex(D, raw) {
   if (!q) return out;
   for (const [k, l] of SPORT.nav) if (slugify(l).startsWith(q) || slugify(k).startsWith(q) || (q.length > 2 && slugify(l).includes(q))) out.push({ type: 'g', key: k, label: l, sc: 110 });
   const top = res.find(r => r.type === 't');
-  if (top) { const t = top.t, tag = t.abbr || t.name; out.splice(res.indexOf(top) + 1, 0, { type: 'a', key: 'games', label: `${t.name} games`, sub: 'Replay a recent game', to: href('/games', { t: t.id }) }, { type: 'a', key: 'sim', label: `Simulate ${tag} at home`, sub: 'Game simulator', to: href('/sim', { h: t.id }) }); }
+  if (top) { const t = top.t, tag = t.abbr || t.name; out.splice(res.indexOf(top) + 1, 0, { type: 'a', key: 'games', label: `${t.name} games`, sub: 'Replay a recent game', to: href('/games', { t: t.id }) }, ...(SPORT.sim ? [{ type: 'a', key: 'sim', label: `Simulate ${tag} at home`, sub: 'Game simulator', to: href('/sim', { h: t.id }) }] : [])); }
   if (q.length >= 2) for (const [id, nm] of SPORT.siblings) if (id !== SPORT.id) out.push({ type: 'x', id, nm, q: raw.trim(), sc: 0 });
   return out;
 }
