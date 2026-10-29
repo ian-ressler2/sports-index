@@ -71,6 +71,11 @@ const ICON = {
   sun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
   share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg>',
   swap: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/></svg>',
+  nav: {
+    stats: '<path d="M5 20V11M12 20V4M19 20v-6"/>', lab: '<path d="M9 3h6M10 3v6l-5.5 9.5A2 2 0 0 0 6.2 21h11.6a2 2 0 0 0 1.7-2.5L14 9V3"/>', compare: '<path d="M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/>',
+    charts: '<circle cx="12" cy="12" r="7"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5"/>', games: '<circle cx="12" cy="12" r="9"/><path d="m10 8.5 5 3.5-5 3.5z"/>', sim: '<rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9" r="1"/><circle cx="15" cy="15" r="1"/><circle cx="15" cy="9" r="1"/><circle cx="9" cy="15" r="1"/>',
+    odds: '<path d="m3 17 6-6 4 4 8-8M15 7h6v6"/>', teams: '<path d="M12 3 4 6v6c0 4.5 3.4 7.6 8 9 4.6-1.4 8-4.5 8-9V6z"/>', more: '<circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/>', dot: '<circle cx="12" cy="12" r="3"/>',
+  },
   filter: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>',
 };
 const DEFAULT_LOGO = '<svg viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="var(--bg3)" stroke="var(--line2)"/><path d="M16 6.5 25.5 16 16 25.5 6.5 16Z" fill="none" stroke="var(--fg)" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 21.5c4-1 8.5-5 12-11.5" stroke="var(--acc)" stroke-width="1.9" fill="none" stroke-linecap="round"/><circle cx="22.2" cy="9.4" r="2.5" fill="var(--acc)"/></svg>';
@@ -79,6 +84,10 @@ function buildShell() {
   applyTheme(store.get('theme', null));
   const LOGO = SPORT.logo || DEFAULT_LOGO;
   const links = (cls) => SPORT.nav.map(([k, l]) => `<a href="${href('/' + k)}" data-nav="${k}">${l}</a>`).join('');
+  const ti = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON.nav[k] || ICON.nav.dot}</svg>`;
+  const prim = SPORT.navPrimary || ['stats', 'games', 'odds', 'teams'], hasMore = SPORT.nav.some(([k]) => !prim.includes(k));
+  const tabbar = SPORT.nav.filter(([k]) => prim.includes(k)).map(([k, l]) => `<a href="${href('/' + k)}" data-nav="${k}">${ti(k)}<span>${l}</span></a>`).join('') + (hasMore ? `<button type="button" id="morebtn" aria-haspopup="dialog" aria-expanded="false">${ti('more')}<span>More</span></button>` : '');
+  const moreLinks = SPORT.nav.filter(([k]) => !prim.includes(k)).map(([k, l]) => `<a href="${href('/' + k)}" data-nav="${k}">${ti(k)}<span>${l}</span></a>`).join('');
   document.body.innerHTML = `<header class="top"><div class="wrap">
     <a class="brand" href="#/">${LOGO}<span>${esc(SPORT.first)}</span><b>${esc(SPORT.word)}</b></a>
     <select class="sel sportsel" id="sportsel" aria-label="Switch sport">${SPORT.siblings.map(([id, nm]) => `<option value="${id}"${id === SPORT.id ? ' selected' : ''}>${nm}</option>`).join('')}</select>
@@ -87,12 +96,16 @@ function buildShell() {
     <select class="sel" id="season" aria-label="Season"></select>
     <button class="ibtn" id="theme" aria-label="Toggle light and dark theme">${ICON.sun}</button></div>
     <nav class="navm">${links()}</nav></header>
+    <nav class="tabbar" aria-label="Main navigation">${tabbar}</nav>
+    <div class="moresheet" id="moresheet" role="dialog" aria-label="More pages" hidden><div class="mshd"><b>More</b><button class="ibtn" id="moreclose" type="button" aria-label="Close">×</button></div>${moreLinks}</div>
     <div class="wrap"><main id="view"></main></div>
     <footer><div class="wrap">${SPORT.footer}<br><a href="../">All sports</a> · Open source on GitHub.</div></footer>`;
   const sel = $('#season'); seasonList().forEach(y => sel.append(h('option', { value: y }, SPORT.seasons.label(y))));
   $('#sportsel').onchange = e => { location.href = '../' + e.target.value + '/'; };
   sel.onchange = () => { const q = { ...parseHash().q, s: sel.value }; if (+sel.value === App.defSeason) delete q.s; const p = parseHash().path; location.hash = '#/' + p.join('/') + (Object.keys(q).length ? '?' + new URLSearchParams(q) : ''); };
   $('#theme').onclick = () => { const cur = document.documentElement.getAttribute('data-theme'); const next = (cur || (isDark() ? 'dark' : 'light')) === 'dark' ? 'light' : 'dark'; store.set('theme', next); applyTheme(next); render(true); };
+  const sheet = $('#moresheet'), mb = $('#morebtn'), closeMore = () => { sheet.hidden = true; if (mb) mb.setAttribute('aria-expanded', 'false'); };
+  if (mb) { mb.onclick = () => { const open = sheet.hidden; sheet.hidden = !open; mb.setAttribute('aria-expanded', open ? 'true' : 'false'); if (open) sheet.querySelector('a')?.focus(); }; $('#moreclose').onclick = () => { closeMore(); mb.focus(); }; sheet.addEventListener('click', e => { if (e.target.closest('a')) closeMore(); }); addEventListener('hashchange', closeMore); addEventListener('keydown', e => { if (e.key === 'Escape' && !sheet.hidden) { closeMore(); mb.focus(); } }); document.addEventListener('click', e => { if (!sheet.hidden && !e.target.closest('#moresheet, #morebtn')) closeMore(); }); }
   $('#sbtn').onclick = openSearch;
   addEventListener('keydown', e => {
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); openSearch(); }
@@ -100,7 +113,7 @@ function buildShell() {
   });
   tipInit();
 }
-function markNav(first) { $$('[data-nav]').forEach(a => a.classList.toggle('on', a.dataset.nav === first)); const s = $('#season'); if (s) s.value = App.season; }
+function markNav(first) { $$('[data-nav]').forEach(a => { const on = a.dataset.nav === first; a.classList.toggle('on', on); if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); }); $('#morebtn')?.classList.toggle('on', !!$('#moresheet [data-nav].on')); const s = $('#season'); if (s) s.value = App.season; }
 
 /* ---- search palette ---- */
 function searchIndex(D, qs) {

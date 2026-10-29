@@ -325,6 +325,11 @@ footer{border-top:1px solid var(--line);padding-block:22px calc(30px + env(safe-
   .navm{display:flex!important}
 }
 @media (max-width:700px){
+  .navm{display:none!important}
+  .tabbar{display:flex}
+  main#view{padding-bottom:84px}footer{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+}
+@media (max-width:700px){
   .grid2,.grid3,.modes{grid-template-columns:1fr}
   .top .wrap{gap:8px}
   .sbtn{min-width:0}.sbtn kbd{display:none}
@@ -410,3 +415,15 @@ table.odds td{padding:6px 8px}.odd{position:relative;display:block;min-width:64p
 @media (max-width:900px){.ggrid{grid-template-columns:minmax(0,1fr)}.gpl{max-height:440px}.gtm .sc{font-size:30px}.gtm img{width:32px;height:32px}.gsb{padding:10px 12px}}
 @media (max-width:560px){.gtm .nm{display:none}.gtm{gap:8px}}
 .maplg .lg{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--fg2)}.maplg .lg i{width:10px;height:10px;border-radius:50%}.maplg .lg b{font-family:var(--f-mono);color:var(--fg)}
+
+/* phone tab bar and the "More" sheet */
+.tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:40;background:color-mix(in srgb,var(--bg2) 94%,transparent);backdrop-filter:blur(10px);border-top:1px solid var(--line);padding:6px max(8px,env(safe-area-inset-left,0px)) calc(6px + env(safe-area-inset-bottom,0px))}
+.tabbar a,.tabbar button{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 2px;border:0;background:none;border-radius:9px;color:var(--fg3);font:500 10.5px var(--f-sans,inherit);cursor:pointer}
+.tabbar svg{width:22px;height:22px}.tabbar span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tabbar a.on,.tabbar button.on{color:var(--fg);background:var(--bg4)}.tabbar a.on svg,.tabbar button.on svg{color:var(--acc)}
+.moresheet{position:fixed;left:12px;right:12px;bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:41;background:var(--bg2);border:1px solid var(--line2);border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.28);padding:6px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px}
+.moresheet[hidden]{display:none}.moresheet .mshd{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;padding:6px 10px;color:var(--fg2)}
+.moresheet a{display:flex;align-items:center;gap:10px;padding:12px;border-radius:9px;color:var(--fg);font-weight:500}.moresheet a:hover,.moresheet a:focus-visible,.moresheet a.on{background:var(--bg4)}.moresheet svg{width:20px;height:20px;color:var(--fg2)}
+@media (min-width:701px){.tabbar,.moresheet{display:none!important}}
+table.odds td:first-child,table.odds th:first-child{position:sticky;left:0;z-index:1;background:var(--bg2)}
+@media (max-width:700px){table.odds .opt{display:none}table.odds td:first-child b{max-width:92px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block}}
