@@ -104,7 +104,7 @@ App.pages.sim = async function ({ q, D, el }) {
   const teams = [...D.teams.values()].sort((a, b) => a.name.localeCompare(b.name)); let hid = +q.h || teams[0].id, aid = +q.a || teams[1].id, seed = q.s || randSeed();
   if (hid === aid) aid = teams.find(t => t.id !== hid).id;
   const sel = (val, fn, lab) => h('label', { class: 'fld' }, h('span', { class: 'cap' }, lab), h('select', { class: 'sel', onchange: e => fn(+e.target.value) }, teams.map(t => h('option', { value: t.id, selected: t.id === val }, t.name))));
-  const out = h('div', { class: 'stack' }), stats = h('div', {}); const seedIn = h('input', { class: 'sel', value: seed, 'aria-label': 'Seed', style: { width: '120px' }, oninput: e => { seed = e.target.value || randSeed(); } });
+  const out = h('div', { class: 'stack' }), stats = h('div', {}); const seedIn = h('input', { class: 'sel', value: seed, 'aria-label': 'Seed', style: { width: '120px', backgroundImage: 'none' }, oninput: e => { seed = e.target.value || randSeed(); } });
   const params = () => { navTo('/sim', { h: hid, a: aid, s: seed }); };
   const bar = h('div', { class: 'panel pad row', style: { gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end', margin: '14px 0' } }, sel(aid, v => { aid = v; }, 'Away'), sel(hid, v => { hid = v; }, 'Home'), h('label', { class: 'fld' }, h('span', { class: 'cap' }, 'Seed'), seedIn),
     h('button', { class: 'btn', type: 'button', title: 'New random seed', onclick: () => { seed = randSeed(); seedIn.value = seed; run(); } }, 'Shuffle'), h('button', { class: 'btn pri', type: 'button', onclick: () => run() }, 'Simulate game'), h('button', { class: 'btn', type: 'button', onclick: () => many() }, 'Run 1,000 games'));
