@@ -32,7 +32,10 @@ async function espnAthletes(season, type = 2) {
     const a = x.athlete; if (!a) continue;
     const tm = (a.teams || []).slice(-1)[0];
     if (tm && !teams.has(tm.id)) teams.set(tm.id, { id: tm.id, abbr: tm.abbreviation, name: tm.displayName, short: tm.name, color: tm.color ? '#' + tm.color : '', alt: tm.alternateColor ? '#' + tm.alternateColor : '', logo: espnLogo(tm) });
-    rows.push({ id: a.id, name: a.displayName, pos: a.position?.abbreviation || '', tid: tm ? tm.id : '', abbr: a.teamShortName || tm?.abbreviation || '', age: a.age, nt: (a.teams || []).length, v: espnCats(j.categories, x.categories) });
+    /* the current season lists the team as flat teamId/teamShortName fields instead of a teams array */
+    const tid = tm ? tm.id : a.teamId || '';
+    if (!tm && tid && !teams.has(tid)) teams.set(tid, { id: tid, abbr: a.teamShortName || '', name: a.teamName || a.teamShortName || '', short: a.teamName || '', color: '', alt: '', logo: a.teamLogos?.[0]?.href || '' });
+    rows.push({ id: a.id, name: a.displayName, pos: a.position?.abbreviation || '', tid, abbr: a.teamShortName || tm?.abbreviation || '', age: a.age, nt: (a.teams || []).length || (tid ? 1 : 0), v: espnCats(j.categories, x.categories) });
   }
   return { rows, teams, count: first.pagination?.count || rows.length, season: first.requestedSeason?.displayName };
 }
