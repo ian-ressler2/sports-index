@@ -10,7 +10,7 @@ function nhlTeamSim(D, id, Lg) {
   const svp = t.svp > 1 ? t.svp / 100 : t.svp;
   return { id, sgp: t.sgp || Lg.sgp, sagp: t.sagp || Lg.sgp, shp: (isFinite(t.shp) ? t.shp : Lg.shp) / 100, svp: isFinite(svp) ? svp : Lg.svp, ppopg: t.ppopg || Lg.ppopg, pimgp: t.pimgp || Lg.pimgp, ppp: isFinite(t.ppp) ? t.ppp : Lg.ppp,
     sk: F.map(r => ({ n: nhlShort(r.name), w: Math.max(5, r.s || 30) * (r.pos === 'D' ? .55 : 1), a: Math.max(1, (r.a || 4) / Math.max(1, r.gp || 1) * 10 + (r.pos === 'D' ? 1 : 0)), shp: isFinite(r.shp) && r.s >= 40 ? r.shp / 100 : Lg.shp / 100, pos: r.pos, pim: r.pim || 4 })),
-    gk: gk.length ? gk.slice(0, 2).map((r, i) => ({ n: nhlShort(r.name), w: i ? .12 : 1, svp: r.sa >= 200 && isFinite(r.svp) ? r.svp : svp || Lg.svp })) : [{ n: 'Goalie', w: 1, svp: svp || Lg.svp }] };
+    gk: gk.length ? gk.slice(0, 2).map((r, i) => ({ n: nhlShort(r.name), w: i ? (D.forceGk && D.forceGk[id] ? .001 : .12) : 1, svp: r.sa >= 200 && isFinite(r.svp) ? r.svp : svp || Lg.svp })) : [{ n: 'Goalie', w: 1, svp: svp || Lg.svp }] };
 }
 function nhlSimulate(D, hid, aid, rng) {
   const Lg = nhlLeague(D), th = D.teams.get(hid), ta = D.teams.get(aid), S = { [hid]: nhlTeamSim(D, hid, Lg), [aid]: nhlTeamSim(D, aid, Lg) };
@@ -79,4 +79,22 @@ SPORT.sim = {
   bin: 1, run: (D, h, a, rng) => nhlSimulate(D, h, a, rng),
   blurb: 'Shots, saves, penalties and goals come from the teams’ real season rates.',
   note: 'Each team gets shot attempts at a rate set by its own shots per game and the opponent’s shots allowed, ramped up on the power play and down when shorthanded. Every attempt is blocked, missed or on net; shot distance is drawn at random and closer shots are more dangerous, with the overall chance scaled to the shooter’s shooting percentage and the opposing goalie’s save percentage. Penalties arrive at each team’s season rate, shooters and assists are chosen by shot volume and playmaking, and tied games go to five minutes of 3-on-3 and then a shootout. It is a model: no line matchups, injuries, empty nets or back-to-backs, so treat results as a plausible game, not a prediction.',
+};
+
+/* "what if" changes for the simulator page: skaters out of the lineup, and which goalie starts */
+SPORT.sim.what = {
+  blurb: 'Take scorers out of the lineup or pick the goalie who starts. Without a key forward the team shoots a little less, and the rest of the lineup takes the shots he would have.',
+  startLabel: 'Starting goalie',
+  roster: (D, tid) => (D.skList || []).filter(r => r.tid === tid && r.gp >= 5).sort((a, b) => (b.g + b.a) - (a.g + a.a)).slice(0, 10).map(r => ({ id: r.id, name: nhlShort(r.name), tag: `${r.g}G ${r.a}A` })),
+  starters: (D, tid) => (D.gkList || []).filter(r => r.tid === tid && r.gp >= 3).sort((a, b) => b.toi - a.toi).slice(0, 4).map(r => { const v = r.svp > 1 ? r.svp / 100 : r.svp; return { id: r.id, name: nhlShort(r.name), note: isFinite(v) ? `${(v * 100).toFixed(1)}% saves` : '' }; }),
+  apply(D, adj) {
+    const gone = (D.skList || []).filter(r => adj.out.has(String(r.id))), D2 = { ...D, skList: (D.skList || []).filter(r => !adj.out.has(String(r.id))), tsk: new Map(D.tsk), forceGk: {} };
+    for (const tid of new Set(gone.map(r => r.tid))) {
+      const lost = gone.filter(r => r.tid === tid).reduce((a, r) => a + (r.s || 0), 0), all = D.skList.filter(r => r.tid === tid).reduce((a, r) => a + (r.s || 0), 0), t = D.tsk.get(tid);
+      if (t && all) D2.tsk.set(tid, { ...t, sgp: t.sgp * (1 - .45 * lost / all) });
+    }
+    const pick = Object.entries(adj.start || {}).map(([t, p]) => [+t, String(p)]);
+    if (pick.length) D2.gkList = (D.gkList || []).map(r => { const hit = pick.find(([t, p]) => t === r.tid && p === String(r.id)); if (hit) { D2.forceGk[r.tid] = 1; return { ...r, toi: 1e9 }; } return r; });
+    return D2;
+  },
 };

@@ -127,3 +127,16 @@ SPORT.sim = {
   blurb: 'Every pitch sequence and every ball in play is drawn from the real batters’ and pitchers’ season rates.',
   note: 'Each plate appearance combines the batter’s own strikeout, walk, home-run, double, triple and single rates with the pitcher’s, using the odds-ratio method against the league average, so a great hitter facing a great pitcher lands in between. Lineups are the nine regulars with the most plate appearances ordered by on-base percentage; the starter goes until he reaches his usual workload or about 110 pitches, then relievers take over, with the best one saved for a close ninth. Runners advance on hits, outs and walks by simple rules (with an automatic runner on second from the tenth inning), pitch sequences are generated to match each result, and batted balls are placed on the field by type. It is a model: no defense, ballparks, platoons, injuries or stolen bases, so treat results as a plausible game, not a prediction.',
 };
+
+/* "what if" changes for the simulator page: hitters out of the lineup, and which starting pitcher takes the mound */
+SPORT.sim.what = {
+  blurb: 'Take hitters out of the lineup (a replacement-level bat steps in) or pick the starting pitcher. He pitches as long as his season workload suggests, then the bullpen takes over.',
+  startLabel: 'Starting pitcher',
+  roster: (D, tid) => D.batList.filter(r => r.tid === tid && r.pa >= 25 && r.pos !== 'P').sort((a, b) => b.pa - a.pa).slice(0, 10).map(r => ({ id: r.id, name: mlbShort(r.name), tag: r.pos })),
+  starters: (D, tid) => D.pitList.filter(r => r.tid === tid && r.gs >= 3 && r.bf >= 10).sort((a, b) => b.ipn - a.ipn).slice(0, 6).map(r => ({ id: r.id, name: mlbShort(r.name), note: isFinite(r.era) ? `${r.era.toFixed(2)} ERA` : '' })),
+  apply(D, adj) {
+    const D2 = { ...D, batList: D.batList.filter(r => !adj.out.has(String(r.id))) }, pick = Object.entries(adj.start || {}).map(([t, p]) => [+t, String(p)]);
+    if (pick.length) D2.pitList = D.pitList.map(r => { const want = pick.find(([t]) => t === r.tid); if (!want || !(r.gs >= 3)) return r; return String(r.id) === want[1] ? { ...r, ipn: 1e9 } : { ...r, gs: 0 }; });
+    return D2;
+  },
+};

@@ -135,21 +135,52 @@ App.pages.game = async function ({ path, D, el }) {
 App.pages.sim = async function ({ q, D, el }) {
   const teams = [...D.teams.values()].sort((a, b) => a.name.localeCompare(b.name)); let hid = +q.h || teams[0].id, aid = +q.a || teams[1].id, seed = q.x || (q.s && isNaN(+q.s) ? q.s : '') || randSeed();
   if (hid === aid) aid = teams.find(t => t.id !== hid).id;
-  const sel = (val, fn, lab) => h('label', { class: 'fld' }, h('span', { class: 'cap' }, lab), h('select', { class: 'sel', onchange: e => fn(+e.target.value) }, teams.map(t => h('option', { value: t.id, selected: t.id === val }, t.name))));
-  const out = h('div', { class: 'stack' }), stats = h('div', {}); const seedIn = h('input', { class: 'sel', value: seed, 'aria-label': 'Seed', style: { width: '120px', backgroundImage: 'none' }, oninput: e => { seed = e.target.value || randSeed(); } });
-  const params = () => { navTo('/sim', { h: hid, a: aid, x: seed }); };
+  /* "what if" changes: players who are out, and who starts (goalie, pitcher). Kept in the link so a scenario can be shared. */
+  const W = SPORT.sim.what, adj = { out: new Set(String(q.o || '').split(',').filter(Boolean)), start: Object.fromEntries(String(q.g || '').split(',').filter(Boolean).map(t => t.split(':'))) };
+  const mine = () => { const on = id => id === hid || id === aid, o = [...adj.out].filter(id => W && [hid, aid].some(t => W.roster(D, t).some(r => String(r.id) === id))); return { o, g: Object.entries(adj.start).filter(([t]) => on(+t)) }; };
+  const changed = () => { if (!W) return 0; const m = mine(); return m.o.length + m.g.length; };
+  const Dx = () => changed() ? W.apply(D, { out: new Set(mine().o), start: Object.fromEntries(mine().g) }, hid, aid) : D;
+  const link = () => { const m = mine(); return href('/sim', { h: hid, a: aid, x: seed, o: m.o.join(','), g: m.g.map(([t, p]) => `${t}:${p}`).join(',') }); };
+  const sel = (val, fn, lab) => h('label', { class: 'fld' }, h('span', { class: 'cap' }, lab), h('select', { class: 'sel', onchange: e => { fn(+e.target.value); drawWhat(); } }, teams.map(t => h('option', { value: t.id, selected: t.id === val }, t.name))));
+  const out = h('div', { class: 'stack' }), stats = h('div', {}), whatBox = h('div', {}); const seedIn = h('input', { class: 'sel', value: seed, 'aria-label': 'Seed', style: { width: '120px', backgroundImage: 'none' }, oninput: e => { seed = e.target.value || randSeed(); } });
   const bar = h('div', { class: 'panel pad row', style: { gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end', margin: '14px 0' } }, sel(aid, v => { aid = v; }, 'Away'), sel(hid, v => { hid = v; }, 'Home'), h('label', { class: 'fld' }, h('span', { class: 'cap' }, 'Seed'), seedIn),
     h('button', { class: 'btn', type: 'button', title: 'New random seed', onclick: () => { seed = randSeed(); seedIn.value = seed; run(); } }, 'Shuffle'), h('button', { class: 'btn pri', type: 'button', onclick: () => run() }, 'Simulate game'), h('button', { class: 'btn', type: 'button', onclick: () => many() }, 'Run 1,000 games'));
-  mount(el, pageHead('SIMULATOR', 'Game simulator', `Pick any two ${SPORT.short} teams and play out a full game, play by play. ${SPORT.sim.blurb || ''}`), bar, stats, out, h('details', { class: 'panel pad', style: { marginTop: '14px' } }, h('summary', {}, 'How the simulation works'), h('div', { class: 'cap', style: { marginTop: '8px', lineHeight: 1.6 }, html: SPORT.sim.note || '' })));
-  function run() { stats.replaceChildren(); history.replaceState(null, '', href('/sim', { h: hid, a: aid, x: seed })); const G = SPORT.sim.run(D, hid, aid, rngFrom(`${hid}-${aid}-${seed}`)); G.sim = true; G.date = 'SIMULATED'; mount(out, h('div', { class: 'stack' })); gameViewer(out.firstChild, G, D); }
-  function many() {
-    const N = 1000, rng = rngFrom(`m${hid}-${aid}-${seed}`); let hw = 0, aw = 0, hs = 0, as = 0, ot = 0; const diff = {};
-    for (let n = 0; n < N; n++) { const G = SPORT.sim.run(D, hid, aid, rng, { log: false }); hs += G.home.score; as += G.away.score; if (G.home.score > G.away.score) hw++; else aw++; if (G.ot) ot++; const d = clamp(Math.round((G.home.score - G.away.score) / SPORT.sim.bin), -12, 12); diff[d] = (diff[d] || 0) + 1; }
-    const mxv = Math.max(...Object.values(diff)), bars = []; for (let d = -12; d <= 12; d++) { const v = diff[d] || 0; bars.push(`<rect x="${(d + 12) * 24 + 2}" y="${100 - v / mxv * 92}" width="20" height="${v / mxv * 92}" rx="2" fill="${d > 0 ? gTeamColor(D, hid) : d < 0 ? gTeamColor(D, aid) : 'var(--fg3)'}"><title>${v} games</title></rect>`); }
-    const T = (id) => D.teams.get(id);
-    mount(stats, h('div', { class: 'panel pad' }, h('div', { class: 'row sb', style: { flexWrap: 'wrap', gap: '8px' } }, h('h2', {}, `${N.toLocaleString()} simulated games`), h('span', { class: 'cap' }, `${(ot / N * 100).toFixed(0)}% went to overtime`)),
-      h('div', { class: 'tiles', style: { gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', margin: '10px 0' }, html: [[`${T(aid).abbr} win`, (aw / N * 100).toFixed(1) + '%'], [`${T(hid).abbr} win`, (hw / N * 100).toFixed(1) + '%'], [`${T(aid).abbr} avg`, (as / N).toFixed(1)], [`${T(hid).abbr} avg`, (hs / N).toFixed(1)]].map(([k, v]) => `<div class="tile"><div class="k">${esc(k)}</div><div class="v">${v}</div><div class="p">&nbsp;</div></div>`).join('') }),
+  mount(el, pageHead('SIMULATOR', 'Game simulator', `Pick any two ${SPORT.short} teams and play out a full game, play by play. ${SPORT.sim.blurb || ''}`), bar, whatBox, stats, out, h('details', { class: 'panel pad', style: { marginTop: '14px' } }, h('summary', {}, 'How the simulation works'), h('div', { class: 'cap', style: { marginTop: '8px', lineHeight: 1.6 }, html: SPORT.sim.note || '' })));
+  function drawWhat() {
+    if (!W) { whatBox.replaceChildren(); return; }
+    const side = (tid, lab) => {
+      const t = D.teams.get(tid), roster = W.roster(D, tid), st = W.starters ? W.starters(D, tid) : [];
+      const chips = roster.map(r => { const on = adj.out.has(String(r.id)); return h('button', { class: 'chip' + (on ? ' on' : ''), type: 'button', 'aria-pressed': on ? 'true' : 'false', title: on ? 'Out: click to bring back' : 'Click to take out of the game', onclick: () => { if (on) adj.out.delete(String(r.id)); else adj.out.add(String(r.id)); drawWhat(); } }, r.name, r.tag ? h('small', {}, r.tag) : null, on ? h('small', {}, 'OUT') : null); });
+      const stSel = st.length ? h('label', { class: 'fld', style: { marginBottom: '8px' } }, h('span', { class: 'cap' }, W.startLabel || 'Starter'), h('select', { class: 'sel', onchange: e => { if (e.target.value) adj.start[tid] = e.target.value; else delete adj.start[tid]; drawWhat(); } }, h('option', { value: '' }, 'Usual'), st.map(r => h('option', { value: r.id, selected: String(adj.start[tid]) === String(r.id) }, `${r.name}${r.note ? ' · ' + r.note : ''}`)))) : null;
+      return h('div', { class: 'grow', style: { minWidth: '260px' } }, h('div', { class: 'cap', style: { fontWeight: 600, marginBottom: '6px' } }, `${t.name} (${lab})`), stSel, h('div', { class: 'row', style: { gap: '6px', flexWrap: 'wrap' } }, chips));
+    };
+    const n = changed();
+    whatBox.replaceChildren(h('details', { class: 'panel pad', open: n > 0 ? true : null, style: { marginBottom: '14px' } }, h('summary', {}, 'What if?', n ? h('span', { class: 'pill', style: { marginLeft: '8px' } }, `${n} change${n > 1 ? 's' : ''}`) : null),
+      h('div', { class: 'cap', style: { margin: '8px 0 10px', lineHeight: 1.6 } }, W.blurb || 'Take players out of the game or change who starts, then simulate to see how the odds move.'),
+      h('div', { class: 'row', style: { gap: '18px', flexWrap: 'wrap', alignItems: 'flex-start' } }, side(aid, 'away'), side(hid, 'home')),
+      n ? h('div', { style: { marginTop: '10px' } }, h('button', { class: 'btn sm', type: 'button', onclick: () => { adj.out.clear(); for (const k of Object.keys(adj.start)) delete adj.start[k]; drawWhat(); } }, 'Reset all changes')) : null));
+    const m = mine(); setQ({ o: m.o.join(','), g: m.g.map(([t, p]) => `${t}:${p}`).join(',') });
+  }
+  function run() { stats.replaceChildren(); history.replaceState(null, '', link()); const DD = Dx(), G = SPORT.sim.run(DD, hid, aid, rngFrom(`${hid}-${aid}-${seed}`)); G.sim = true; G.date = changed() ? 'SIMULATED · WHAT IF' : 'SIMULATED'; mount(out, h('div', { class: 'stack' })); gameViewer(out.firstChild, G, DD); }
+  /* play N games and tally the result */
+  async function tally(DD, N, key, prog) {
+    const rng = rngFrom(`m${hid}-${aid}-${key}`); let hw = 0, hs = 0, as = 0, ot = 0; const diff = {};
+    for (let n = 0; n < N; n++) { const G = SPORT.sim.run(DD, hid, aid, rng, { log: false }); hs += G.home.score; as += G.away.score; if (G.home.score > G.away.score) hw++; if (G.ot) ot++; const d = clamp(Math.round((G.home.score - G.away.score) / SPORT.sim.bin), -12, 12); diff[d] = (diff[d] || 0) + 1; if (n % 100 === 99) { prog && prog((n + 1) / N); await new Promise(r => setTimeout(r)); if (!stats.isConnected) return null; } }
+    return { N, hw, aw: N - hw, hs, as, ot, diff };
+  }
+  async function many() {
+    const T = id => D.teams.get(id), alt = changed() > 0, N = alt ? 2000 : 1000, note = h('div', { class: 'cap' }, 'Simulating…');
+    mount(stats, h('div', { class: 'panel pad' }, note));
+    const prog = (lab) => f => { note.textContent = `${lab} ${Math.round(f * 100)}%`; };
+    const base = alt ? await tally(D, N, seed + 'b', prog('Usual lineups')) : null, r = await tally(Dx(), N, seed, prog(alt ? 'With your changes' : 'Simulating')); if (!r || (alt && !base)) return;
+    const mxv = Math.max(...Object.values(r.diff)), bars = []; for (let d = -12; d <= 12; d++) { const v = r.diff[d] || 0; bars.push(`<rect x="${(d + 12) * 24 + 2}" y="${100 - v / mxv * 92}" width="20" height="${v / mxv * 92}" rx="2" fill="${d > 0 ? gTeamColor(D, hid) : d < 0 ? gTeamColor(D, aid) : 'var(--fg3)'}"><title>${v} games</title></rect>`); }
+    const pct = x => (x * 100).toFixed(1) + '%', moe = p => 1.96 * Math.sqrt(p * (1 - p) / N) * 100;
+    const tiles = [[`${T(aid).abbr} win`, pct(r.aw / N)], [`${T(hid).abbr} win`, pct(r.hw / N)], [`${T(aid).abbr} avg`, (r.as / N).toFixed(1)], [`${T(hid).abbr} avg`, (r.hs / N).toFixed(1)]];
+    const cmp = alt ? (() => { const d = (r.hw - base.hw) / N * 100, se = Math.sqrt((base.hw / N) * (1 - base.hw / N) / N + (r.hw / N) * (1 - r.hw / N) / N) * 196, sig = Math.abs(d) > se; return h('div', { class: 'cap', style: { margin: '2px 0 10px', lineHeight: 1.6 }, html: `<b>${esc(T(hid).abbr)} win chance</b>: ${pct(base.hw / N)} usual → <b>${pct(r.hw / N)}</b> with your changes (${d >= 0 ? '+' : '−'}${Math.abs(d).toFixed(1)} points). ${sig ? '' : 'That is within the noise of the simulation, so treat it as no real change. '}Each estimate is good to about ±${moe(.5).toFixed(1)} points.` }); })() : null;
+    mount(stats, h('div', { class: 'panel pad' }, h('div', { class: 'row sb', style: { flexWrap: 'wrap', gap: '8px' } }, h('h2', {}, `${N.toLocaleString()} simulated games${alt ? ' · what if' : ''}`), h('span', { class: 'cap' }, `${(r.ot / N * 100).toFixed(0)}% went to overtime`)),
+      h('div', { class: 'tiles', style: { gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', margin: '10px 0' }, html: tiles.map(([k, v]) => `<div class="tile"><div class="k">${esc(k)}</div><div class="v">${v}</div><div class="p">&nbsp;</div></div>`).join('') }), cmp,
       h('div', { html: `<svg viewBox="0 0 604 120" style="width:100%;max-width:640px"><line x1="302" x2="302" y1="0" y2="100" stroke="var(--line2)"/>${bars.join('')}<text x="4" y="116" font-size="10" fill="var(--fg3)">${esc(T(aid).abbr)} wins by more</text><text x="600" y="116" font-size="10" text-anchor="end" fill="var(--fg3)">${esc(T(hid).abbr)} wins by more</text></svg>` })));
   }
+  drawWhat();
   if (q.x || (q.s && isNaN(+q.s))) run();
 };

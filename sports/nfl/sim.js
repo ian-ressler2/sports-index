@@ -132,3 +132,21 @@ SPORT.sim = {
   blurb: 'Every snap is drawn from the teams’ real season rates.',
   note: 'Each play is chosen from the offense’s own pass rate, then resolved with its completion rate, yards per attempt, yards per carry, sack rate and interception rate, nudged up or down by how many points, sacks and takeaways the defense allows compared with the league. Receivers and runners get the ball in proportion to their targets and carries, and kickers use their season field-goal accuracy by distance. Fourth-down decisions, the clock, turnovers and overtime follow the usual rules. It is a model: it knows nothing about injuries, weather or matchups beyond team season totals, so treat results as a plausible game, not a prediction.',
 };
+
+/* "what if" changes for the simulator page: key offensive players and the kicker out of the game */
+SPORT.sim.what = {
+  blurb: 'Take the quarterback, a back, a receiver or the kicker out of the game. A backup quarterback throws for fewer yards per attempt and completes fewer passes; a missing back or receiver trims the offense in proportion to his share of the carries or targets.',
+  roster: (D, tid) => {
+    const rows = g => (D.lists[g] || []).filter(r => r.tid === tid), out = [], add = (r, tag) => r && out.push({ id: r.id, name: r.ab || nflAbbr(r.name), tag });
+    const qbs = rows('qb').sort((a, b) => b.att - a.att); add(qbs[0], 'QB'); rows('rb').sort((a, b) => b.att - a.att).slice(0, 2).forEach(r => add(r, 'RB')); rows('rec').sort((a, b) => b.tgt - a.tgt).slice(0, 3).forEach(r => add(r, r.pos || 'WR')); add(rows('k').sort((a, b) => (b.fga || 0) - (a.fga || 0))[0], 'K');
+    return out.filter((r, i) => out.findIndex(x => x.id === r.id) === i);
+  },
+  apply(D, adj) {
+    const gone = g => (D.lists[g] || []).filter(r => adj.out.has(String(r.id))), lists = {}; for (const g of Object.keys(D.lists)) lists[g] = (D.lists[g] || []).filter(r => !adj.out.has(String(r.id)));
+    const D2 = { ...D, lists, tof: new Map(D.tof) }, edit = (tid, f) => { const t = D2.tof.get(tid); if (t) D2.tof.set(tid, f({ ...t })); };
+    for (const q of gone('qb')) { const rep = lists.qb.filter(r => r.tid === q.tid && r.att >= 15).sort((a, b) => b.att - a.att)[0], rY = rep && q.ypa ? clamp(rep.ypa / q.ypa, .7, 1.02) : .85, rC = rep && q.cmpp ? clamp(rep.cmpp / q.cmpp, .85, 1.02) : .94; edit(q.tid, t => { t.ypa *= rY; t.cmpp *= rC; return t; }); }
+    for (const r of gone('rec')) { const all = (D.lists.rec || []).filter(x => x.tid === r.tid).reduce((a, x) => a + (x.tgt || 0), 0); if (all) edit(r.tid, t => { t.ypa *= 1 - .12 * (r.tgt || 0) / all; return t; }); }
+    for (const r of gone('rb')) { const all = (D.lists.rb || []).filter(x => x.tid === r.tid).reduce((a, x) => a + (x.att || 0), 0); if (all) edit(r.tid, t => { t.ypc *= 1 - .08 * (r.att || 0) / all; return t; }); }
+    return D2;
+  },
+};
