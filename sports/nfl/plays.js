@@ -67,7 +67,7 @@ async function playExplorer(D, scope, host) {
     const runs = A.filter(e => e.k === 'r' && e.gap), gmax = Math.max(1, ...RUN_GAPS.map(g => runs.filter(e => e.gap === g[1]).length));
     const gapBars = RUN_GAPS.map(([, c, l], i) => { const r = runs.filter(e => e.gap === c), yc = r.length ? sumY(r) / r.length : NaN, hh = r.length / gmax * 80;
       return `<g transform="translate(${i * 56 + 6},0)"><rect x="0" y="${96 - hh}" width="46" height="${hh}" rx="3" fill="var(--acc)" opacity=".8" data-i="${i}"/><text x="23" y="${90 - hh}" text-anchor="middle" font-size="10" fill="var(--fg)" font-family="var(--f-mono)">${r.length}</text><text x="23" y="110" text-anchor="middle" font-size="10" fill="var(--fg2)">${c}</text><text x="23" y="123" text-anchor="middle" font-size="10" fill="var(--fg3)" font-family="var(--f-mono)">${r.length ? yc.toFixed(1) : '–'}</text></g>`; }).join('');
-    const gapSvg = `<svg viewBox="0 0 400 130" style="width:100%;max-width:520px;display:block">${gapBars}</svg>`;
+    const gapSvg = `<svg viewBox="0 0 400 130" style="width:100%;max-width:520px;display:block" role="img" aria-label="Runs by gap: how many carries went through each hole and the average yards">${gapBars}</svg>`;
     /* pass map */
     const passes = A.filter(e => e.k === 'p' && e.dir && e.dep);
     const pcell = (dp, dr) => { const c = passes.filter(e => e.dep === dp && e.dir === dr), cm = c.filter(e => !e.inc && !e.to).length; return c.length ? `<div class="v" style="font-size:20px">${c.length}</div><div class="cap">${Math.round(cm / c.length * 100)}% · ${fmt(sumY(c) / c.length, 'f1')} Y/A</div>` : '<div class="cap">–</div>'; };

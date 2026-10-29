@@ -99,9 +99,9 @@ App.pages.stats = async function ({ path, q, D, el }) {
     });
     lastRows = rows; lastCols = cols;
     const pcf = S.situ ? localPct(S.sitRows.filter(r => r[(meta.sitThr || meta.thr).field] >= (S.min || 40)), cols) : (c, v) => pctile(D, g, c.k, v);
-    let gh = '<tr class="g"><th class="rk"></th><th class="pl"></th>', ch = `<tr class="c"><th class="rk">#</th><th class="pl${S.sort === 'name' ? ' s' : ''}" data-k="name">${meta.singular}</th>`;
+    let gh = '<tr class="g"><th class="rk"></th><th class="pl"></th>', ch = `<tr class="c"><th class="rk">#</th><th class="pl${S.sort === 'name' ? ' s' : ''}" data-k="name" tabindex="0" aria-sort="${S.sort === 'name' ? (S.dir === 'asc' ? 'ascending' : 'descending') : 'none'}">${meta.singular}</th>`;
     if (!S.situ) { let i = 0; while (i < cols.length) { let j = i; while (j < cols.length && cols[j].g === cols[i].g) j++; const gr = groups.find(x => x.id === cols[i].g); gh += `<th colspan="${j - i}" class="sep">${esc((gr?.l || '').toUpperCase())}</th>`; i = j; } } else gh += `<th colspan="${cols.length}" class="sep">${esc((SIT_LABEL[S.situ] || S.situ).toUpperCase())}</th>`;
-    cols.forEach((c, i) => { const first = i === 0 || cols[i - 1].g !== c.g; ch += `<th data-k="${c.k}" tabindex="0" class="${first ? 'sep ' : ''}${S.sort === c.k ? 's' : ''}"${statTip(c)}>${esc(c.l)}${S.sort === c.k ? `<span class="ar">${S.dir === 'asc' ? '↑' : '↓'}</span>` : ''}</th>`; });
+    cols.forEach((c, i) => { const first = i === 0 || cols[i - 1].g !== c.g; ch += `<th data-k="${c.k}" tabindex="0" aria-sort="${S.sort === c.k ? (S.dir === 'asc' ? 'ascending' : 'descending') : 'none'}" class="${first ? 'sep ' : ''}${S.sort === c.k ? 's' : ''}"${statTip(c)}>${esc(c.l)}${S.sort === c.k ? `<span class="ar">${S.dir === 'asc' ? '↑' : '↓'}</span>` : ''}</th>`; });
     gh += '</tr>'; ch += '</tr>';
     const shown = rows.slice(0, S.n); let body = '';
     shown.forEach((r, i) => {

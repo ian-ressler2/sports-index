@@ -28,7 +28,7 @@ function sprayChart(pts, { r = 3.6, label } = {}) {
   s += `<g transform="scale(1,-1)">`;
   pts.forEach((p, i) => { s += `<circle data-i="${i}" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${p.r || r}" fill="${p.color}" fill-opacity="${p.op || .85}" stroke="var(--bg)" stroke-width=".7" style="cursor:pointer"/>`; });
   s += `</g>`;
-  return `<svg class="chart" viewBox="${FIELD_VB}" xmlns="http://www.w3.org/2000/svg" role="img">${s}</svg>`;
+  return `<svg class="chart" viewBox="${FIELD_VB}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Spray chart: where each ball in play landed">${s}</svg>`;
 }
 const RES_COL = { single: '#4fd18b', double: '#f2c14e', triple: '#ff8a4c', home_run: '#ff4d6d', out: '#7f8f9b', error: '#9a66e0' };
 function resCat(ev) {
@@ -56,7 +56,7 @@ function regionField(sel) {
     }
   }
   s += `<g transform="scale(1,-1)">${parts}</g>${labels}`;
-  return `<svg class="chart" viewBox="${FIELD_VB}" xmlns="http://www.w3.org/2000/svg" role="img">${s}</svg>`;
+  return `<svg class="chart" viewBox="${FIELD_VB}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Field zones: how balls in play are spread across the field">${s}</svg>`;
 }
 
 /* ---------- strike zone (catcher view) ---------- */
@@ -100,12 +100,12 @@ function zoneHeat(rows, { numFn, denFn, dom = [0, 1], minDen = 3, szb = 1.6, szt
     rects += `<rect data-i="${i}" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${step * 100 + .6}" height="${step * 100 + .6}" fill="${seq || density ? `rgba(255,138,76,${(0.06 + t * 0.88).toFixed(2)})` : heatColor(t, alpha)}"/>`;
     tips.push(`<b>${density ? Math.round(v) + ' pitches nearby' : fmtv(v)}</b>${density ? '' : tr('Sample', Math.round(raw) + ' in cell · ' + Math.round(sd / 16) + ' smoothed')}`); i++;
   }
-  return { html: `<svg class="chart" viewBox="0 0 480 460" xmlns="http://www.w3.org/2000/svg" role="img">${zoneFrame(szb, szt, rects)}</svg>`, tips };
+  return { html: `<svg class="chart" viewBox="0 0 480 460" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Strike zone heat map from the catcher's view">${zoneFrame(szb, szt, rects)}</svg>`, tips };
 }
 function zoneDots(rows, { colorFn, szb = 1.6, szt = 3.5, r = 4.2, opacity = .7 }) {
   let s = ''; const used = [];
   rows.forEach((p, i) => { if (!isFinite(p.px) || !isFinite(p.pz)) return; s += `<circle data-i="${i}" cx="${zoneX(p.px).toFixed(1)}" cy="${zoneY(p.pz).toFixed(1)}" r="${r}" fill="${colorFn(p)}" fill-opacity="${opacity}" stroke="var(--bg)" stroke-width=".5"/>`; });
-  return `<svg class="chart" viewBox="0 0 480 460" xmlns="http://www.w3.org/2000/svg" role="img">${zoneFrame(szb, szt, s)}</svg>`;
+  return `<svg class="chart" viewBox="0 0 480 460" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Strike zone plot: each pitch as it crossed the plate">${zoneFrame(szb, szt, s)}</svg>`;
 }
 
 /* ---------- pitch movement (catcher view, inches) ---------- */
@@ -117,7 +117,7 @@ function movementChart(rows, types) {
   s += `<text x="${L + pw / 2}" y="${H - 5}" text-anchor="middle" class="t2" font-size="11">Horizontal break (in), catcher's view</text><text transform="translate(11 ${T + ph / 2}) rotate(-90)" text-anchor="middle" class="t2" font-size="11">Induced vertical break (in)</text>`;
   rows.forEach((p, i) => { if (isFinite(p.hb) && isFinite(p.ivb)) s += `<circle data-i="${i}" cx="${X(p.hb).toFixed(1)}" cy="${Y(p.ivb).toFixed(1)}" r="3.2" fill="${PITCH_COLORS[p.pt] || '#888'}" fill-opacity=".38"/>`; });
   for (const t of types) { const rs = rows.filter(p => p.pt === t && isFinite(p.hb) && isFinite(p.ivb)); if (rs.length < 5) continue; const mx = mean(rs.map(p => p.hb)), my = mean(rs.map(p => p.ivb)); s += `<circle cx="${X(mx)}" cy="${Y(my)}" r="9" fill="${PITCH_COLORS[t] || '#888'}" stroke="var(--bg2)" stroke-width="2.5"/><text x="${X(mx)}" y="${Y(my) + 3.4}" text-anchor="middle" font-size="9" style="fill:#fff;font-weight:700">${t}</text>`; }
-  return svg(W, H, s);
+  return svg(W, H, s, 'chart', 'Pitch movement chart: horizontal and vertical break of each pitch');
 }
 
 /* ---------- EV vs LA ---------- */
@@ -132,7 +132,7 @@ function evlaChart(rows) {
   s += `<polygon points="${poly}" fill="var(--acc)" fill-opacity=".16" stroke="var(--acc)" stroke-opacity=".6" stroke-dasharray="4 4"/><text x="${X(109)}" y="${Y(52)}" text-anchor="middle" style="fill:var(--acc)" font-size="10.5">barrel zone</text>`;
   s += `<text x="${L + pw / 2}" y="${H - 5}" text-anchor="middle" class="t2" font-size="11">Exit velocity (mph)</text><text transform="translate(11 ${T + ph / 2}) rotate(-90)" text-anchor="middle" class="t2" font-size="11">Launch angle</text>`;
   rows.forEach((p, i) => { if (isFinite(p.ev) && isFinite(p.la)) s += `<circle data-i="${i}" cx="${X(p.ev).toFixed(1)}" cy="${Y(p.la).toFixed(1)}" r="3.5" fill="${RES_COL[resCat(p.events)]}" fill-opacity=".72" stroke="var(--bg)" stroke-width=".5"/>`; });
-  return svg(W, H, s);
+  return svg(W, H, s, 'chart', 'Exit velocity against launch angle for each ball in play');
 }
 
 /* horizontal bars (html) */

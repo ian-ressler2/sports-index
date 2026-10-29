@@ -27,7 +27,7 @@ function tipBind(root, fn) {
   root.addEventListener('mouseleave', tipHide);
 }
 const tr = (k, v) => `<div class="r"><span>${esc(k)}</span><span>${esc(v)}</span></div>`;
-const svg = (w, hh, inner, cls = 'chart') => `<svg class="${cls}" viewBox="0 0 ${w} ${hh}" xmlns="http://www.w3.org/2000/svg" role="img" preserveAspectRatio="xMidYMid meet">${inner}</svg>`;
+const svg = (w, hh, inner, cls = 'chart', label = 'Chart') => `<svg class="${cls}" viewBox="0 0 ${w} ${hh}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${label}" preserveAspectRatio="xMidYMid meet">${inner}</svg>`;
 const f1 = v => (Math.round(v * 10) / 10).toString();
 
 /* ---------- percentile bar ---------- */
@@ -53,7 +53,7 @@ function radar({ labels, series, size = 360 }) {
     s += `<polygon points="${pts}" fill="${se.color}" fill-opacity=".18" stroke="${se.color}" stroke-width="2" stroke-linejoin="round"/>`;
     se.vals.forEach((v, i) => { if (isFinite(v)) { const [x, y] = pt(i, v); s += `<circle cx="${x}" cy="${y}" r="3.2" fill="${se.color}"/>`; } });
   });
-  return svg(size, size, s);
+  return svg(size, size, s, 'chart', 'Radar chart comparing percentile ranks');
 }
 
 /* ---------- generic scatter ---------- */
@@ -83,7 +83,7 @@ function scatterSVG({ pts, xlab, ylab, xfmt = fmtTick, yfmt = fmtTick, W = 860, 
   }
   pts.forEach((p, i) => { s += `<circle data-i="${i}" cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="${p.r || 5}" fill="${p.color || 'var(--a)'}" fill-opacity=".72" stroke="var(--bg2)" stroke-width="1" style="cursor:pointer"/>`; });
   for (const i of labelIdx) { const p = pts[i]; if (p) s += `<text x="${X(p.x) + (p.r || 5) + 3}" y="${Y(p.y) + 3}" class="t2" font-size="10" style="paint-order:stroke;stroke:var(--bg2);stroke-width:3px;pointer-events:none">${esc(p.label)}</text>`; }
-  return { html: svg(W, H, s), r };
+  return { html: svg(W, H, s, 'chart', 'Scatter plot. Hover or tap a dot for the values.'), r };
 }
 
 /* ---------- line / area chart ---------- */
@@ -107,7 +107,7 @@ function lineSVG({ series, xticks = [], W = 820, H = 280, yfmt = fmtTick, yr, re
     const last = pts[pts.length - 1]; s += `<circle cx="${X(last[0])}" cy="${Y(last[1])}" r="4" fill="${se.color}" stroke="var(--bg2)" stroke-width="2"/>`;
     if (se.dots) pts.forEach((p, i) => { s += `<circle data-i="${si * 10000 + i}" cx="${X(p[0]).toFixed(1)}" cy="${Y(p[1]).toFixed(1)}" r="${hover ? 6 : 2.6}" fill="${hover ? 'transparent' : se.color}" stroke="none" style="cursor:default"/>`; });
   });
-  return svg(W, H, s);
+  return svg(W, H, s, 'chart', 'Line chart. Hover or tap for the values.');
 }
 function spark(vals, { w = 120, hh = 32, color = 'var(--acc)' } = {}) {
   const v = vals.filter(isFinite); if (v.length < 2) return '';

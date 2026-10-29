@@ -57,7 +57,7 @@ function gameViewer(host, G, D) {
   const svgT = `<svg viewBox="0 0 ${W} ${H}" class="gtl" preserveAspectRatio="none"><defs><clipPath id="gcu"><rect x="0" y="0" width="${W}" height="${H / 2}"/></clipPath><clipPath id="gcd"><rect x="0" y="${H / 2}" width="${W}" height="${H / 2}"/></clipPath></defs>${divs}<line x1="0" x2="${W}" y1="${H / 2}" y2="${H / 2}" class="gdv"/>
     <polygon points="${pts} ${X(T)},${Y(0)}" fill="${ch}" opacity=".35" clip-path="url(#gcu)"/><polygon points="${pts} ${X(T)},${Y(0)}" fill="${ca}" opacity=".35" clip-path="url(#gcd)"/><polyline points="${pts}" fill="none" stroke="var(--fg2)" stroke-width="1.4" vector-effect="non-scaling-stroke"/>
     ${ev.map((e, n) => e.k === 'sc' ? `<circle cx="${X(e.t)}" cy="${Y(marg[n])}" r="2.6" fill="${e.tid == G.home.id ? ch : ca}"/>` : '').join('')}<line data-cur x1="0" x2="0" y1="0" y2="${H}" stroke="var(--acc)" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>`;
-  const tl = h('div', { class: 'gtlw', html: svgT });
+  const tl = h('div', { class: 'gtlw', html: svgT, tabindex: '0', role: 'slider', 'aria-label': 'Position in the game: use the arrow keys to step through plays', 'aria-valuemin': '0', 'aria-valuemax': String(Math.max(0, ev.length - 1)) });
   /* win probability chart: the home win chance after every play, with the biggest swings listed under it */
   const WP = winProbSeries(G); let wpPanel = null, wpNow = null;
   if (WP) {
@@ -78,24 +78,24 @@ function gameViewer(host, G, D) {
   const pp = h('button', { class: 'btn pri', type: 'button', onclick: () => toggle() }, 'Play');
   const spd = h('select', { class: 'sel sm', 'aria-label': 'Speed', onchange: e => { speed = +e.target.value; } }, [[1, '1×'], [2, '2×'], [4, '4×'], [10, '10×'], [30, '30×']].map(([v, l]) => h('option', { value: v, selected: v === speed }, l)));
   const nextScore = () => { for (let n = i + 1; n < ev.length; n++) if (ev[n].k === 'sc') return go(n, true); go(ev.length - 1, true); };
-  const ctrl = h('div', { class: 'gct' }, h('button', { class: 'btn sm', type: 'button', title: 'Back to the start', onclick: () => go(0, true) }, '⏮'), h('button', { class: 'btn sm', type: 'button', title: 'Previous play (←)', onclick: () => go(i - 1, true) }, '◀'), pp,
-    h('button', { class: 'btn sm', type: 'button', title: 'Next play (→)', onclick: () => go(i + 1, true) }, '▶'), h('button', { class: 'btn sm', type: 'button', title: 'Jump to the next score', onclick: nextScore }, 'Next score ⏭'), spd, slider);
+  const ctrl = h('div', { class: 'gct' }, h('button', { class: 'btn sm', type: 'button', title: 'Back to the start (Home)', 'aria-label': 'Back to the start', onclick: () => go(0, true) }, '⏮'), h('button', { class: 'btn sm', type: 'button', title: 'Previous play (←)', 'aria-label': 'Previous play', onclick: () => go(i - 1, true) }, '◀'), pp,
+    h('button', { class: 'btn sm', type: 'button', title: 'Next play (→)', 'aria-label': 'Next play', onclick: () => go(i + 1, true) }, '▶'), h('button', { class: 'btn sm', type: 'button', title: 'Jump to the next score', onclick: nextScore }, 'Next score ⏭'), spd, slider);
   const cap = h('div', { class: 'gcap' });
   const filt = segControl([['', 'All plays'], ['sc', 'Scoring'], ['key', 'Key plays']], only, v => { only = v; list.className = 'gl' + (v ? ' only-' + v : ''); }, 'sm');
   function update() {
     const e = ev[i]; setSb(e); stage?.show(i, e, G);
     cap.innerHTML = `<div class="ctx">${esc(e.ctx || '')}</div><div class="tx">${esc(e.tx)}</div>`;
     if (WP) { const pv = WP.p[i], c = wpPanel.querySelector('[data-wcur]'); c.setAttribute('x1', X(e.t)); c.setAttribute('x2', X(e.t)); wpNow.innerHTML = `<b style="color:${ca}">${esc(G.away.abbr)} ${Math.round((1 - pv) * 100)}%</b> · <b style="color:${ch}">${esc(G.home.abbr)} ${Math.round(pv * 100)}%</b>`; }
-    slider.value = i; tl.querySelector('[data-cur]').setAttribute('x1', X(e.t)); tl.querySelector('[data-cur]').setAttribute('x2', X(e.t));
+    slider.value = i; tl.setAttribute('aria-valuenow', String(i)); tl.setAttribute('aria-valuetext', `Play ${i + 1} of ${ev.length}: ${e.tx}`); tl.querySelector('[data-cur]').setAttribute('x1', X(e.t)); tl.querySelector('[data-cur]').setAttribute('x2', X(e.t));
     list.querySelector('.gp.cur')?.classList.remove('cur'); const b = list.children[i]; b.classList.add('cur'); const lt = b.offsetTop - list.clientHeight / 2 + b.clientHeight / 2; list.scrollTop = Math.max(0, lt);
   }
   function go(n, user) { if (user) stop(); i = clamp(n, 0, ev.length - 1); update(); }
   function stop() { playing = false; clearTimeout(timer); pp.textContent = i >= ev.length - 1 ? 'Replay' : 'Play'; }
   function tick() { if (!playing) return; if (!host.isConnected) return stop(); if (i >= ev.length - 1) return stop(); go(i + 1); const e = ev[i], big = e.k === 'sc' ? 1.8 : 1; timer = setTimeout(tick, 1100 * big / speed); }
   function toggle() { if (playing) return stop(); if (i >= ev.length - 1) i = 0; playing = true; pp.textContent = 'Pause'; update(); timer = setTimeout(tick, 900 / speed); }
-  const key = e => { if (!host.isConnected) return removeEventListener('keydown', key); if (/INPUT|SELECT|TEXTAREA/.test(e.target.tagName) && e.target.type !== 'range') return; if (e.key === 'ArrowRight') { go(i + 1, true); e.preventDefault(); } else if (e.key === 'ArrowLeft') { go(i - 1, true); e.preventDefault(); } else if (e.key === ' ' && e.target.tagName !== 'BUTTON') { toggle(); e.preventDefault(); } };
+  const key = e => { if (!host.isConnected) return removeEventListener('keydown', key); if (/INPUT|SELECT|TEXTAREA/.test(e.target.tagName) && e.target.type !== 'range') return; if (e.key === 'ArrowRight') { go(i + 1, true); e.preventDefault(); } else if (e.key === 'ArrowLeft') { go(i - 1, true); e.preventDefault(); } else if (e.key === 'Home') { go(0, true); e.preventDefault(); } else if (e.key === 'End') { go(ev.length - 1, true); e.preventDefault(); } else if (e.key === ' ' && e.target.tagName !== 'BUTTON') { toggle(); e.preventDefault(); } };
   addEventListener('keydown', key);
-  mount(host, sb, h('div', { class: 'ggrid' }, h('div', { class: 'stack' }, h('div', { class: 'panel gst' }, stage ? stage.el : null, cap, ctrl), h('div', { class: 'panel pad' }, h('div', { class: 'row sb', style: { marginBottom: '6px' } }, h('h2', {}, G.sim ? 'Score margin in this simulation' : 'Score margin'), h('span', { class: 'cap' }, `${esc(G.home.abbr)} ahead above the line · click to jump`)), tl), wpPanel),
+  mount(host, sb, h('div', { class: 'ggrid' }, h('div', { class: 'stack' }, h('div', { class: 'panel gst' }, stage ? stage.el : null, cap, ctrl, h('div', { class: 'cap', style: { padding: '0 14px 10px' } }, 'Keyboard: ← → step through plays · space plays or pauses · Home and End jump to the start and end')), h('div', { class: 'panel pad' }, h('div', { class: 'row sb', style: { marginBottom: '6px' } }, h('h2', {}, G.sim ? 'Score margin in this simulation' : 'Score margin'), h('span', { class: 'cap' }, `${esc(G.home.abbr)} ahead above the line · click to jump`)), tl), wpPanel),
     h('div', { class: 'panel gpl' }, h('div', { class: 'hd' }, h('h2', {}, 'Play by play'), filt), list)));
   update();
 }
