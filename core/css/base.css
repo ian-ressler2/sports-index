@@ -57,7 +57,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .brand svg{width:26px;height:26px;flex:none}
 .brand b{font:600 11px var(--f-mono);letter-spacing:.2em;color:var(--acc);margin-left:2px}
 .nav{display:flex;gap:2px;margin-left:6px;padding-left:12px;border-left:1px solid var(--line)}
-.nav a{white-space:nowrap;padding:6px 9px;border-radius:7px;color:var(--fg2);font-weight:500}
+.nav a{white-space:nowrap;padding:6px 7px;border-radius:7px;color:var(--fg2);font-weight:500}
 .nav a:hover{color:var(--fg);background:var(--bg3)}
 .nav a.on{color:var(--fg);background:var(--bg4)}
 .top .sp{flex:1}
@@ -322,7 +322,7 @@ footer{border-top:1px solid var(--line);padding-block:22px calc(30px + env(safe-
   .grid3{grid-template-columns:1fr 1fr}
   .lab2,.fx{grid-template-columns:1fr}
 }
-@media (max-width:1180px){
+@media (max-width:1260px){
   .nav{display:none}
   .navm{display:flex!important}
 }
