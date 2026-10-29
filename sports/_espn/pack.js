@@ -137,6 +137,7 @@ async function gameIdsFor(kind, id, season, postToo = false) {
   if (kind === 'player') { const gl = await ESPN_GL(id, season); return gl.games.filter(g => postToo || !g.post).map(g => g.id); }
   const s = await ESPN_SCHED(id, season); return s.filter(g => g.final).sort((a, b) => a.t.localeCompare(b.t)).map(g => g.id);
 }
+SPORT.dataSrc = 'ESPN';
 /* ---- game center: the scoreboard for a date window and one game's full play by play ---- */
 /* ESPN's scoreboard rejects a start-end range, so ask for one day at a time and merge */
 const ESPN_BOARD = (a, b) => cached(`bd:${a}-${b}`, 300e3, async () => {
