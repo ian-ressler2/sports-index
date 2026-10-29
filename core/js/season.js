@@ -33,6 +33,7 @@ async function seasonSimulate(D, S, data, N, seed, prog, alive) {
   for (const lg of lgs) divsOf.set(lg, [...new Set(team.filter(t => t.lg === lg).map(t => t.div))]);
   const X = {
     lgs, key: i => key[ix.get(i)],
+    all: () => ids.slice().sort((a, b) => key[ix.get(b)] - key[ix.get(a)]),
     sortLg: lg => ids.filter(i => D.teams.get(i).lg === lg).sort((a, b) => key[ix.get(b)] - key[ix.get(a)]),
     sortDiv: dv => ids.filter(i => D.teams.get(i).div === dv).sort((a, b) => key[ix.get(b)] - key[ix.get(a)]),
     divs: lg => divsOf.get(lg).map(dv => X.sortDiv(dv)).sort((a, b) => key[ix.get(b[0])] - key[ix.get(a[0])]),
@@ -86,7 +87,7 @@ App.pages.odds = async function ({ q, D, el }) {
   let res; try { res = await seasonSimulate(D, S, data, N, seed, f => { bar.firstChild.style.width = Math.round(f * 100) + '%'; info.textContent = `Simulating ${N.toLocaleString()} seasons… ${Math.round(f * 100)}%`; }, alive); } catch (e) { mount(out, errorEl(e, () => render(true))); return; }
   if (!res) return;
   const lgs = [...new Set([...D.teams.values()].filter(t => res.rows.has(t.id)).map(t => t.lg))].sort();
-  const cols = [['made', 'Playoffs', 'Chance to make the playoffs' + (S.madeNote || '')], ['div', 'Division', 'Chance to finish first in the division'], ['top', S.topLabel, S.topDesc], ['conf', S.finalLabel, 'Chance to reach the championship round'], ['champ', 'Title', 'Chance to win the championship']];
+  const cols = [['made', 'Playoffs', 'Chance to make the playoffs' + (S.madeNote || '')], ['div', 'Division', 'Chance to finish first in the division'], ['top', S.topLabel, S.topDesc], ['conf', S.finalLabel, 'Chance to reach the championship round'], ['champ', 'Title', 'Chance to win the championship']].filter(c => !(S.noDiv && c[0] === 'div'));
   const cell = (p, k) => `<td${k === 'div' || k === 'top' ? ' class="opt"' : ''}><span class="odd${k === 'champ' ? ' ch' : ''}"><i style="width:${(p * 100).toFixed(1)}%"></i><b>${oddsPct(p)}</b></span></td>`;
   const table = lg => {
     const rows = [...res.rows.values()].filter(r => D.teams.get(r.id).lg === lg).sort((a, b) => b.made - a.made || b.champ - a.champ || b.exp - a.exp);
