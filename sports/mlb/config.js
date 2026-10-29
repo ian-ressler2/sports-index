@@ -15,7 +15,7 @@ Object.assign(SPORT, {
   id: 'mlb', name: 'Diamond Index', first: 'Diamond', word: 'INDEX', short: 'MLB', accent: '#ff8a4c',
   groupOrder: ['bat', 'pit', 'tbat', 'tpit'],
   seasons: { first: FIRST_SEASON, current: CUR_SEASON, label: s => String(s) },
-  nav: [['stats', 'Stats'], ['lab', 'Lab'], ['compare', 'Compare'], ['charts', 'Charts'], ['games', 'Games'], ['sim', 'Simulator'], ['odds', 'Odds'], ['teams', 'Teams']],
+  nav: [['stats', 'Stats'], ['lab', 'Lab'], ['compare', 'Compare'], ['charts', 'Charts'], ['games', 'Games'], ['sim', 'Simulator'], ['odds', 'Odds'], ['watch', 'Watchlist'], ['teams', 'Teams']],
   credit: 'Data: MLB Stats API · Baseball Savant',
   footer: 'Not affiliated with or endorsed by Major League Baseball or any club. Built on MLB Stats API and Baseball Savant Statcast data.<br>Charts are drawn from public tracking data. Player photos are loaded from MLB’s image host.',
   sourceNote: 'Sources: MLB Stats API (box score stats, WAR, wRC+, FIP) · Baseball Savant Statcast (expected stats, exit velocity, bat tracking, plate discipline, sprint speed, outs above average). Shading: percentile among qualified players (red high, blue low; flipped where lower is better, none for style stats).',

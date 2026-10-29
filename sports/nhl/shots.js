@@ -90,3 +90,13 @@ App.pages.charts = async function ({ q, D, el }) {
   const pl = one && pid && D.players.get(pid);
   shotExplorer(D, pl ? { kind: 'player', id: pid, role: pl.pos === 'G' ? 'gk' : 'sk' } : { kind: 'teams', tids: all, n: tids.length === 0 || tids.length > 6 ? 5 : 10 }, out);
 };
+
+/* the player card's map: this skater's recent shots on the attacking zone */
+SPORT.cardMap = async (D, id, role) => {
+  if (role === 'gk') return null;
+  const ids = (await gameIdsFor('player', id, D.season)).slice(-45); if (!ids.length) return null;
+  const ev = (await loadEvents(ids)).flatMap(g => g.ev.filter(e => e.sh === id)); if (ev.length < 15) return null;
+  let inner = '';
+  for (const e of ev) { const [X, Y] = shotXY(e); inner += `<circle cx="${X.toFixed(1)}" cy="${Y.toFixed(1)}" r="${e.k === 'G' ? 1.7 : 1.15}" fill="${SHOT_CLR[e.k]}" fill-opacity="${e.k === 'G' ? 1 : .72}" stroke="${e.k === 'G' ? 'var(--bg)' : 'none'}" stroke-width=".3"/>`; }
+  return { svg: nhlRink(inner), vb: [85, 78], title: 'Shot map', note: `${ev.length} shots, ${ev.filter(e => e.k === 'G').length} goals, last ${ids.length} games` };
+};

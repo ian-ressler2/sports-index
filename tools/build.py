@@ -10,7 +10,7 @@ import json, pathlib, sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 DIST = ROOT / "dist"
-CORE_JS = "sport util charts data ui stats home player team lab compare game season main".split()
+CORE_JS = "sport util charts data ui stats home player team lab compare extras game season main".split()
 FONTS = '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600;700&display=swap">'
 
 SPORTS = json.loads((ROOT / "sports" / "sports.json").read_text())

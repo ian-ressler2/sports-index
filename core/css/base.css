@@ -57,11 +57,11 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .brand svg{width:26px;height:26px;flex:none}
 .brand b{font:600 11px var(--f-mono);letter-spacing:.2em;color:var(--acc);margin-left:2px}
 .nav{display:flex;gap:2px;margin-left:6px;padding-left:12px;border-left:1px solid var(--line)}
-.nav a{padding:6px 11px;border-radius:7px;color:var(--fg2);font-weight:500}
+.nav a{white-space:nowrap;padding:6px 9px;border-radius:7px;color:var(--fg2);font-weight:500}
 .nav a:hover{color:var(--fg);background:var(--bg3)}
 .nav a.on{color:var(--fg);background:var(--bg4)}
 .top .sp{flex:1}
-.sbtn{display:flex;align-items:center;gap:9px;min-width:230px;max-width:340px;flex:1;height:36px;padding:0 10px;border:1px solid var(--line2);background:var(--bg2);border-radius:8px;color:var(--fg3);text-align:left}
+.sbtn{display:flex;align-items:center;gap:9px;min-width:150px;max-width:340px;flex:1;height:36px;padding:0 10px;border:1px solid var(--line2);background:var(--bg2);border-radius:8px;color:var(--fg3);text-align:left}
 .sbtn:hover{border-color:var(--fg3)}
 .sbtn span{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 kbd{font:500 11px var(--f-mono);padding:1px 5px;border-radius:4px;background:var(--bg4);color:var(--fg2);border:1px solid var(--line)}
@@ -321,6 +321,8 @@ footer{border-top:1px solid var(--line);padding-block:22px calc(30px + env(safe-
   .cards4{grid-template-columns:repeat(2,minmax(0,1fr))}
   .grid3{grid-template-columns:1fr 1fr}
   .lab2,.fx{grid-template-columns:1fr}
+}
+@media (max-width:1180px){
   .nav{display:none}
   .navm{display:flex!important}
 }
@@ -439,3 +441,5 @@ table.odds td:first-child,table.odds th:first-child{position:sticky;left:0;z-ind
 .gtlw:focus-visible{outline:2px solid var(--acc);outline-offset:3px;border-radius:6px}
 
 .explain{margin-top:14px}.explain summary{cursor:pointer;font-weight:600;font-size:13px}.explain summary:focus-visible{outline:2px solid var(--fg2);outline-offset:3px}.ex-body{margin-top:10px;font-size:13px;line-height:1.55;color:var(--fg2)}.ex-body p{margin:0 0 8px}.ex-body b{color:var(--fg)}
+.watchbtn svg{margin-right:5px;vertical-align:-2px}.watchbtn.on{color:var(--warn,#e8b04b);border-color:currentColor}.wrow{display:flex;gap:12px;align-items:center}.wrow-p .tiles{border-top:0}
+.cardmodal{position:fixed;inset:0;z-index:80;background:rgba(5,9,13,.78);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:max(16px,env(safe-area-inset-top,0px)) 16px 24px}.cm-box{background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:16px;width:min(560px,100%);margin:auto}.cm-img{display:block;width:100%;height:auto;border-radius:8px}

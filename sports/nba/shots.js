@@ -82,3 +82,13 @@ App.pages.charts = async function ({ q, D, el }) {
   const pl = one && pid && D.players.get(pid);
   shotExplorer(D, pl ? { kind: 'player', id: pid } : { kind: 'teams', tids: all, n: tids.length === 0 || tids.length > 6 ? 5 : 10 }, out);
 };
+
+/* the player card's map: this player's recent shots on a half court */
+SPORT.cardMap = async (D, id) => {
+  const ids = (await gameIdsFor('player', id, D.season)).slice(-40); if (!ids.length) return null;
+  const ev = (await loadEvents(ids)).flatMap(g => g.ev.filter(e => e.sh === id)); if (ev.length < 15) return null;
+  let inner = '';
+  for (const e of ev) { const [X, Y] = courtXY(e); inner += e.m ? `<circle cx="${X.toFixed(1)}" cy="${Y.toFixed(1)}" r=".95" fill="var(--acc)" fill-opacity=".85" stroke="var(--bg)" stroke-width=".2"/>` : `<path d="M${(X - .7).toFixed(1)} ${(Y - .7).toFixed(1)}l1.4 1.4m0-1.4l-1.4 1.4" stroke="var(--fg3)" stroke-width=".35" stroke-linecap="round" opacity=".8"/>`; }
+  const m = ev.filter(e => e.m).length;
+  return { svg: nbaCourt(inner), vb: [53, 49.5], title: 'Shot chart', note: `${ev.length} shots, ${m} made, last ${ids.length} games` };
+};

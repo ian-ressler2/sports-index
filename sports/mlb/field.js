@@ -181,3 +181,11 @@ async function fieldExplorer(D, id, role, { compact = false, initView } = {}) {
   return box;
 }
 const median = a => { const b = a.filter(isFinite).sort((x, y) => x - y); return b.length ? b[b.length >> 1] : NaN; };
+
+/* the player card's map: a hitter's batted balls */
+SPORT.cardMap = async (D, id, role) => {
+  if (role !== 'bat') return null;
+  const rows = await loadPitches(id, 'bat', D.season), bb = rows.filter(p => p.inplay && isFinite(p.hx) && isFinite(p.hy)); if (bb.length < 15) return null;
+  const pts = bb.map(p => { const [x, y] = hcFt(p.hx, p.hy); return { x, y, color: RES_COL[resCat(p.ev)], r: p.ev === 'home_run' ? 4.6 : 3.6 }; });
+  return { svg: sprayChart(pts), vb: [580, 468], title: 'Spray chart', note: `${bb.length} balls in play, ${bb.filter(p => p.ev === 'home_run').length} home runs` };
+};
