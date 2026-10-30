@@ -297,10 +297,19 @@ const JOLPI='https://api.jolpi.ca/ergast/f1/';
 const F1J={};
 function f1j(key,fn){return F1J[key]||(F1J[key]=fn().catch(x=>{delete F1J[key];throw x}))}
 const norm=x=>String(x||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z ]/g,'').trim();
+async function jpages(url){
+  /* Jolpica caps a response at 100 rows, so page through and merge the races by round */
+  const first=await jget(url+'?limit=100&offset=0'),total=+first.MRData.total||0,all=[first];
+  const offs=[];for(let o=100;o<total;o+=100)offs.push(o);
+  const rest=await Promise.all(offs.map(o=>jget(url+'?limit=100&offset='+o)));
+  const by=new Map();
+  [...all,...rest].forEach(j=>(j.MRData.RaceTable.Races||[]).forEach(r=>{const k=r.round,cur=by.get(k);if(!cur)by.set(k,{...r});else for(const f of ['Results','QualifyingResults','PitStops'])if(r[f])cur[f]=(cur[f]||[]).concat(r[f])}));
+  return [...by.values()].sort((a,b)=>+a.round-+b.round);
+}
 function f1season(y){return f1j('res'+y,async()=>{
-  const [r,q]=await Promise.all([jget(`${JOLPI}${y}/results.json?limit=1000`),jget(`${JOLPI}${y}/qualifying.json?limit=1000`)]);
-  const races=(r.MRData.RaceTable.Races||[]).map(x=>({round:+x.round,name:x.raceName.replace(/ Grand Prix$/,' GP'),res:x.Results||[]}));
-  const quals={};(q.MRData.RaceTable.Races||[]).forEach(x=>{quals[x.round]=x.QualifyingResults||[]});
+  const [r,q]=await Promise.all([jpages(`${JOLPI}${y}/results.json`),jpages(`${JOLPI}${y}/qualifying.json`)]);
+  const races=r.map(x=>({round:+x.round,name:x.raceName.replace(/ Grand Prix$/,' GP'),res:x.Results||[]}));
+  const quals={};q.forEach(x=>{quals[x.round]=x.QualifyingResults||[]});
   return {races,quals};
 })}
 function f1pits(y,rounds){return f1j('pit'+y+':'+rounds.length,async()=>{
