@@ -25,8 +25,8 @@ Object.assign(COLS, {
   ],
   wr: [
     C('gp', 'GP', 'vol', 0, 'int', 'ESPN'),
-    C('tgt', 'TGT', 'rec', 0, 'int', 'ESPN', 'Targets'), C('rec', 'REC', 'rec', 1, 'int', 'ESPN'), C('recyds', 'REC YDS', 'rec', 1, 'int', 'ESPN'), C('recpg', 'YDS/G', 'rec', 1, 'f1', 'ESPN', 'Receiving yards per game'), C('recpg2', 'REC/G', 'rec', 1, 'f1', 'DER'), C('rctd', 'REC TD', 'rec', 1, 'int', 'ESPN'), C('lrec', 'LNG', 'rec', 1, 'int', 'ESPN', 'Longest reception'),
-    C('ypr', 'Y/R', 'eff', 1, 'f1', 'ESPN', 'Yards per reception'), C('ypt', 'Y/TGT', 'eff', 1, 'f1', 'DER', 'Yards per target'), C('catchp', 'CATCH%', 'eff', 1, 'f1', 'DER', 'Receptions per target'), C('yac', 'YAC', 'eff', 1, 'int', 'ESPN', 'Yards after the catch'), C('c1d', '1D', 'eff', 1, 'int', 'ESPN', 'Receiving first downs'), C('cbig', '20+', 'eff', 1, 'int', 'ESPN', 'Catches of 20 yards or more'),
+    C('rec', 'REC', 'rec', 1, 'int', 'ESPN'), C('recyds', 'REC YDS', 'rec', 1, 'int', 'ESPN'), C('recpg', 'YDS/G', 'rec', 1, 'f1', 'ESPN', 'Receiving yards per game'), C('recpg2', 'REC/G', 'rec', 1, 'f1', 'DER'), C('rctd', 'REC TD', 'rec', 1, 'int', 'ESPN'), C('lrec', 'LNG', 'rec', 1, 'int', 'ESPN', 'Longest reception'),
+    C('ypr', 'Y/R', 'eff', 1, 'f1', 'ESPN', 'Yards per reception'), C('yac', 'YAC', 'eff', 1, 'int', 'ESPN', 'Yards after the catch'), C('c1d', '1D', 'eff', 1, 'int', 'ESPN', 'Receiving first downs'), C('cbig', '20+', 'eff', 1, 'int', 'ESPN', 'Catches of 20 yards or more'),
     C('cfum', 'FUM', 'ball', -1, 'int', 'ESPN', 'Fumbles'),
   ],
   df: [

@@ -14,7 +14,7 @@ SPORT.groupOrder = ['qb', 'rb', 'wr', 'df', 'tof', 'tdf', 'tsp'];
 const CFB_TAPE = {
   qb: ['gp', 'cmpp', 'pyds', 'pypg', 'ypa', 'ptd', 'pint', 'rtg', 'sckd', 'ryds', 'rtd'],
   rb: ['gp', 'ratt', 'ryds', 'rypg', 'ypc', 'rtd', 'rlng', 'rec', 'recyds', 'scrim', 'tdt'],
-  wr: ['gp', 'tgt', 'rec', 'recyds', 'recpg', 'ypr', 'rctd', 'ypt', 'catchp', 'yac'],
+  wr: ['gp', 'rec', 'recyds', 'recpg', 'ypr', 'rctd', 'lrec', 'yac', 'c1d'],
   df: ['gp', 'tot', 'solo', 'tpg', 'tfl', 'sck', 'qbh', 'pd', 'int'],
   tof: ['w', 'l', 'ppg', 'ypg', 'ypp', 'pyg', 'ryg', 'cmpp', 'ypc', 'thp', 'give', 'sckt'],
   tdf: ['w', 'l', 'pag', 'oypg', 'opyg', 'oryg', 'sck', 'int', 'take', 'tod'],
@@ -23,7 +23,7 @@ const CFB_TAPE = {
 const CFB_RADAR = {
   qb: [['pypg', 'PASS YD/G'], ['cmpp', 'CMP%'], ['ypa', 'Y/A'], ['tdp', 'TD%'], ['rtg', 'RATING'], ['rypg', 'RUSH YD/G']],
   rb: [['rypg', 'RUSH YD/G'], ['ypc', 'Y/C'], ['rtd', 'RUSH TD'], ['rbig', '20+ RUNS'], ['recyds', 'REC YDS'], ['scrimpg', 'SCRIM/G']],
-  wr: [['recpg', 'REC YD/G'], ['ypr', 'Y/R'], ['ypt', 'Y/TGT'], ['catchp', 'CATCH%'], ['rctd', 'REC TD'], ['yac', 'YAC']],
+  wr: [['recpg', 'REC YD/G'], ['ypr', 'Y/R'], ['recpg2', 'REC/G'], ['rctd', 'REC TD'], ['yac', 'YAC'], ['cbig', '20+ CATCHES']],
   df: [['tpg', 'TKL/G'], ['tfl', 'TFL'], ['sck', 'SACKS'], ['qbh', 'QB HITS'], ['pd', 'PD'], ['int', 'INT']],
   tof: [['ppg', 'PPG'], ['ypp', 'Y/PLAY'], ['pyg', 'PASS YD/G'], ['ryg', 'RUSH YD/G'], ['thp', '3RD%'], ['give', 'Giveaways']],
   tdf: [['pag', 'PA/G'], ['opyg', 'PASS YD/G'], ['oryg', 'RUSH YD/G'], ['sckg', 'SACK/G'], ['takeg', 'TAKE/G'], ['othp', '3RD% ALLOWED']],
@@ -32,7 +32,7 @@ const CFB_RADAR = {
 const CFB_RECIPES = {
   qb: [{ name: 'Gunslinger', desc: 'Yards and touchdowns through the air', ing: { pypg: 2, ptd: 1.5, ypa: 1 } }, { name: 'Efficient passer', desc: 'Accurate and careful', ing: { cmpp: 1.5, rtg: 2, intp: -1 } }, { name: 'Dual threat', desc: 'Hurts you with the arm and the legs', ing: { pypg: 1.5, ryds: 1.5, rtd: 1 } }],
   rb: [{ name: 'Workhorse', desc: 'Piles up yards and carries', ing: { rypg: 2, ratt: 1.5, rtd: 1 } }, { name: 'Big-play back', desc: 'Breaks long runs', ing: { ypc: 2, rbig: 1.5, rlng: 1 } }, { name: 'Three-down back', desc: 'Runs and catches', ing: { scrimpg: 2, rec: 1, rctd: .5 } }],
-  wr: [{ name: 'Top target', desc: 'Volume and production', ing: { recpg: 2, rec: 1.5, rctd: 1 } }, { name: 'Deep threat', desc: 'Yards on every catch', ing: { ypr: 2, ypt: 1.5, cbig: 1 } }, { name: 'Reliable hands', desc: 'Catches what comes his way', ing: { catchp: 2, c1d: 1 } }],
+  wr: [{ name: 'Top target', desc: 'Volume and production', ing: { recpg: 2, rec: 1.5, rctd: 1 } }, { name: 'Deep threat', desc: 'Yards on every catch', ing: { ypr: 2, yac: 1, cbig: 1.5 } }, { name: 'Chain mover', desc: 'Catches that keep drives alive', ing: { c1d: 2, recpg2: 1.5 } }],
   df: [{ name: 'Tackling machine', desc: 'Everywhere on the field', ing: { tpg: 2, solo: 1 } }, { name: 'Disruptor', desc: 'Behind the line of scrimmage', ing: { tfl: 2, sck: 1.5, qbh: 1, stf: .5 } }, { name: 'Ball hawk', desc: 'Breaks up and takes passes', ing: { pd: 1.5, int: 2, inttd: 1 } }],
   tof: [{ name: 'Best offense', desc: 'Scores and moves the ball', ing: { ppg: 2, ypp: 1.5, thp: 1, give: -1 } }, { name: 'Air raid', desc: 'Lives on the forward pass', ing: { pyg: 2, ypa: 1.5, ptd: 1 } }, { name: 'Ground and pound', desc: 'Wins with the run', ing: { ryg: 2, ypc: 1.5, rtd: 1 } }],
   tdf: [{ name: 'Best defense', desc: 'Stops points and takes the ball', ing: { pag: -2, takeg: 1, sckg: 1 } }, { name: 'Lockdown secondary', desc: 'Nothing through the air', ing: { opyg: -2, ocmpp: -1, int: 1 } }, { name: 'Run stoppers', desc: 'Nothing on the ground', ing: { oryg: -2, oypc: -1.5 } }],
@@ -108,11 +108,11 @@ SPORT.player = {
   roleName: { qb: 'QUARTERBACK', rb: 'RUSHER', wr: 'RECEIVER', df: 'DEFENDER' },
   roleLine: (role, r) => CFB_POSNAME[r.pos] || r.pos || 'Player',
   bioPills: (bio, r) => [r?.h && r?.wt ? `${r.h} · ${r.wt}` : r?.h, r?.exp, r?.jersey && `#${r.jersey}`].filter(Boolean),
-  tiles: { qb: ['gp', 'cmpp', 'pyds', 'ptd', 'pint', 'rtg', 'ypa', 'ryds'], rb: ['gp', 'ratt', 'ryds', 'ypc', 'rtd', 'rec', 'recyds', 'scrim'], wr: ['gp', 'rec', 'recyds', 'ypr', 'rctd', 'tgt', 'catchp', 'yac'], df: ['gp', 'tot', 'solo', 'tfl', 'sck', 'int', 'pd', 'qbh'] },
-  pct: { qb: ['pypg', 'cmpp', 'ypa', 'tdp', 'intp', 'rtg', 'ryds'], rb: ['rypg', 'ypc', 'rtd', 'rbig', 'rlng', 'recyds', 'scrimpg'], wr: ['recpg', 'ypr', 'ypt', 'catchp', 'rctd', 'yac', 'cbig'], df: ['tpg', 'tfl', 'sck', 'qbh', 'hur', 'pd', 'int'] },
+  tiles: { qb: ['gp', 'cmpp', 'pyds', 'ptd', 'pint', 'rtg', 'ypa', 'ryds'], rb: ['gp', 'ratt', 'ryds', 'ypc', 'rtd', 'rec', 'recyds', 'scrim'], wr: ['gp', 'rec', 'recyds', 'ypr', 'rctd', 'recpg', 'yac', 'c1d'], df: ['gp', 'tot', 'solo', 'tfl', 'sck', 'int', 'pd', 'qbh'] },
+  pct: { qb: ['pypg', 'cmpp', 'ypa', 'tdp', 'intp', 'rtg', 'ryds'], rb: ['rypg', 'ypc', 'rtd', 'rbig', 'rlng', 'recyds', 'scrimpg'], wr: ['recpg', 'recpg2', 'ypr', 'rctd', 'yac', 'cbig', 'c1d'], df: ['tpg', 'tfl', 'sck', 'qbh', 'hur', 'pd', 'int'] },
   radar: { qb: CFB_RADAR.qb, rb: CFB_RADAR.rb, wr: CFB_RADAR.wr, df: CFB_RADAR.df },
   tabs: [['overview', 'Overview'], ['stats', 'Stats']],
   build: {},
 };
 SPORT.compare = { tape: CFB_TAPE, radar: CFB_RADAR };
-SPORT.lab = { recipes: CFB_RECIPES, ref: { qb: 'pypg', rb: 'rypg', wr: 'recpg', df: 'tpg', tof: 'ppg', tdf: 'pag', tsp: 'fgp' }, plotDefaults: { qb: ['ypa', 'cmpp'], rb: ['ratt', 'ypc'], wr: ['tgt', 'ypr'], df: ['tfl', 'sck'], tof: ['ppg', 'ypp'], tdf: ['pag', 'takeg'], tsp: ['fgp', 'pnet'] } };
+SPORT.lab = { recipes: CFB_RECIPES, ref: { qb: 'pypg', rb: 'rypg', wr: 'recpg', df: 'tpg', tof: 'ppg', tdf: 'pag', tsp: 'fgp' }, plotDefaults: { qb: ['ypa', 'cmpp'], rb: ['ratt', 'ypc'], wr: ['recpg2', 'ypr'], df: ['tfl', 'sck'], tof: ['ppg', 'ypp'], tdf: ['pag', 'takeg'], tsp: ['fgp', 'pnet'] } };
