@@ -75,6 +75,11 @@ def build():
     for s, meta in SPORTS.items():
         d = DIST / s
         d.mkdir(exist_ok=True)
+        if meta.get("static"):
+            # a hand-written page that does not use the stats engine; it still gets the shared stylesheet and the theme tokens
+            (d / "index.html").write_text(read(f"sports/{s}/{meta['static']}").replace("<!--THEME-->", theme_css(meta)))
+            print(f"{s}: static page")
+            continue
         sj = sport_js(s)
         (d / "sport.js").write_text(sj)
         theme = theme_css(meta)
