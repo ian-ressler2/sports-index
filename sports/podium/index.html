@@ -194,20 +194,49 @@ function tennisSeason(t,year){
       (g.competitions||[]).forEach(c=>{if(!(c.status&&c.status.type&&c.status.type.completed))return;
         const cp=c.competitors||[];if(cp.length!==2||!cp[0].athlete||!cp[1].athlete||!cp.some(p=>p.winner))return;
         const w=cp.find(p=>p.winner),l=cp.find(p=>p!==w);
-        M.push({ev:ev.name,rnd:(c.round&&(c.round.displayName||c.round))||'',date:String(c.startDate||c.date||'').slice(0,10),w:w.athlete.displayName,l:l.athlete.displayName,sc:(w.linescores||[]).map((x,i)=>`${x.value}${(l.linescores||[])[i]!=null?'-'+l.linescores[i].value:''}`).join(' ')});
+        M.push({ev:ev.name,rnd:(c.round&&(c.round.displayName||c.round))||'',date:String(c.startDate||c.date||'').slice(0,10),surface:'',w:w.athlete.displayName,l:l.athlete.displayName,sc:(w.linescores||[]).map((x,i)=>`${x.value}${(l.linescores||[])[i]!=null?'-'+l.linescores[i].value:''}`).join(' ')});
       })}));
     M.sort((a,b)=>b.date.localeCompare(a.date));return TS[key]={M};
   });
 }
-function h2h(M,a,b){const m=M.filter(x=>(x.w===a&&x.l===b)||(x.w===b&&x.l===a));return {m,aw:m.filter(x=>x.w===a).length,bw:m.filter(x=>x.w===b).length}}
-function tennisH2H(box,t,year,a,b){
-  box.innerHTML='<div class="pd-msg">Loading the season, one large download…</div>';
-  tennisSeason(t,year).then(({M})=>{
-    if(!a||!b||a===b){box.innerHTML='<div class="pd-msg">Pick two different players.</div>';return}
-    const r=h2h(M,a,b);
-    if(!r.m.length){box.innerHTML=`<div class="pd-card"><div class="pd-msg">${esc(a)} and ${esc(b)} have not met in a completed singles match in ${year} (${M.length.toLocaleString()} matches searched).</div></div>`;return}
-    box.innerHTML=`<div class="pd-tiles">${tile(esc(a),r.aw)+tile(esc(b),r.bw)+tile('Meetings in '+year,r.m.length)}</div><div class="pd-res" style="grid-template-columns:1fr">${r.m.map(x=>`<div class="pd-m"><div class="gl">${esc(x.ev)}${x.rnd?' · '+esc(x.rnd):''} · ${esc(x.date)}</div><div class="pl"><span><b>${esc(x.w)}</b> won</span><span class="sc">${esc(x.sc)}</span></div></div>`).join('')}</div><p class="pd-foot">Searched ${M.length.toLocaleString()} completed ${t.toUpperCase()} singles matches from ${year}. Earlier seasons are not included, so this is a season head-to-head, not a career one.</p>`;
-  }).catch(e=>{box.innerHTML=`<div class="pd-msg">Season could not be loaded (${esc(e.message)}).</div>`});
+/* career data: Jeff Sackmann's ATP/WTA match files, via a Hugging Face mirror (CORS-enabled, runs to about spring 2026) */
+const ARCH='https://huggingface.co/datasets/Aneeshers/tennis-sackmann-archive/resolve/main/';
+const ARCHT={};
+function archYear(t,y){return ARCHT[t+y]||(ARCHT[t+y]=fetch(`${ARCH}${t}/${t}_matches_${y}.csv`).then(r=>r.ok?r.text():'').catch(()=>''))}
+const sameP=(csvName,espnName)=>{const a=norm(csvName),b=norm(espnName);if(a===b)return true;const A=a.split(' '),B=b.split(' ');return A[A.length-1]===B[B.length-1]&&A[0][0]===B[0][0]&&(a.includes(b)||b.includes(a)||A[0].slice(0,3)===B[0].slice(0,3))};
+function parseH2H(text,a,b){
+  const L=text.split('\n');if(L.length<2)return {rows:[],max:''};
+  const H=L[0].replace(/\r/g,'').split(','),I=n=>H.indexOf(n),wi=I('winner_name'),li=I('loser_name');
+  if(wi<0||li<0)return {rows:[],max:''};
+  const la=norm(a).split(' ').pop(),lb=norm(b).split(' ').pop(),rows=[];let max='';
+  for(let k=1;k<L.length;k++){const line=L[k];if(!line)continue;const lo=norm(line);
+    const d=(line.split(',')[I('tourney_date')]||'');if(d>max)max=d;
+    if(!lo.includes(la)||!lo.includes(lb))continue;
+    const f=line.replace(/\r/g,'').split(',');const w=f[wi],l=f[li];
+    const aw=sameP(w,a)&&sameP(l,b),bw=sameP(w,b)&&sameP(l,a);if(!aw&&!bw)continue;
+    const d8=f[I('tourney_date')];
+    rows.push({date:`${d8.slice(0,4)}-${d8.slice(4,6)}-${d8.slice(6,8)}`,ev:f[I('tourney_name')],surface:f[I('surface')]||'',level:f[I('tourney_level')],rnd:f[I('round')],sc:f[I('score')],min:f[I('minutes')],aWon:aw});}
+  return {rows,max};
+}
+function tennisH2H(box,t,year,a,b,since,withEspn){
+  if(!a||!b||a===b){box.innerHTML='<div class="pd-msg">Pick two different players.</div>';return}
+  const ys=[];for(let y=year;y>=since;y--)ys.push(y);
+  let done=0;box.innerHTML=`<div class="pd-msg" id="h2prog">Loading match files… 0 of ${ys.length}</div>`;
+  let i=0;const parts=[];
+  const run=async()=>{while(i<ys.length){const y=ys[i++];const txt=await archYear(t,y);parts.push(parseH2H(txt||'',a,b));done++;const pr=box.querySelector('#h2prog');if(pr)pr.textContent=`Loading match files… ${done} of ${ys.length}`}};
+  Promise.all(Array.from({length:5},run)).then(async()=>{
+    let rows=parts.flatMap(p=>p.rows),max=parts.reduce((m,p)=>p.max>m?p.max:m,'');
+    const maxIso=max?`${max.slice(0,4)}-${max.slice(4,6)}-${max.slice(6,8)}`:'';
+    let extra=0;
+    if(withEspn){try{const {M}=await tennisSeason(t,year);M.forEach(x=>{if(maxIso&&x.date<=maxIso)return;const aw=x.w===a&&x.l===b,bw=x.w===b&&x.l===a;if(aw||bw){rows.push({date:x.date,ev:x.ev,surface:'',level:'',rnd:x.rnd,sc:x.sc,min:'',aWon:aw});extra++}})}catch(e){}}
+    rows.sort((x,y)=>y.date.localeCompare(x.date));
+    const note=`Match files from ${since} to ${year}${maxIso?`; the archive's latest tournament starts ${maxIso}`:''}${withEspn?`, plus ${extra} newer match${extra===1?'':'es'} from ESPN's current-season feed`:''}.`;
+    if(!rows.length){box.innerHTML=`<div class="pd-card"><div class="pd-msg">${esc(a)} and ${esc(b)} have no recorded singles meetings in that window. ${esc(note)}</div></div>`;return}
+    const aw=rows.filter(r=>r.aWon).length,bw=rows.length-aw;
+    const surf={};rows.forEach(r=>{const k=r.surface||'Other';(surf[k]=surf[k]||[0,0])[r.aWon?0:1]++});
+    const tiles=tile(a,aw)+tile(b,bw)+tile('Meetings',rows.length)+Object.entries(surf).filter(([k])=>k!=='Other'||Object.keys(surf).length>1).map(([k,v])=>tile(k,`${v[0]}–${v[1]}`)).join('');
+    box.innerHTML=`<div class="pd-tiles">${tiles}</div><div class="pd-card"><div class="pd-scroll" style="max-height:420px"><table class="pd-tbl"><tr><th>Date</th><th>Tournament</th><th>Round</th><th>Surface</th><th>Winner</th><th class="r">Score</th></tr>${rows.map(r=>`<tr><td>${esc(r.date)}</td><td>${esc(r.ev)}</td><td>${esc(r.rnd)}</td><td>${esc(r.surface)}</td><td><b>${esc(r.aWon?a:b)}</b></td><td class="r num">${esc(r.sc)}</td></tr>`).join('')}</table></div></div><p class="pd-foot">${esc(note)} Scores are from the winner's side. Source: Jeff Sackmann's tennis match files (CC BY-NC-SA), read from a public Hugging Face mirror.</p>`;
+  }).catch(e=>{box.innerHTML=`<div class="pd-msg">Match history could not be loaded (${esc(e.message)}).</div>`});
 }
 
 /* ---------- Tennis ---------- */
@@ -232,12 +261,12 @@ async function tennis(){
   return `<div class="pd-bar">${seg([['atp','ATP (men)'],['wta','WTA (women)']],t)}<span class="sp"></span></div>
   <div class="eyebrow">${t.toUpperCase()} singles rankings · top ${Math.min(100,ranks.length)}${(rk.rankings&&rk.rankings[0]&&rk.rankings[0].update)?'':''}</div>
   <div class="pd-card pd-sec"><div class="pd-scroll" style="max-height:520px"><table class="pd-tbl"><tr><th class="rk">#</th><th>Player</th><th class="r">Points</th><th class="r">Move</th></tr>${rows}</table></div></div>
-  <div class="pd-sec"><h2>Head to head</h2><div class="pd-bar"><select id="h1" class="btn sm" aria-label="First player">${ranks.slice(0,100).map((r,i)=>`<option ${i===0?'selected':''}>${esc((r.athlete||{}).displayName)}</option>`).join('')}</select><span class="dim">vs</span><select id="h2" class="btn sm" aria-label="Second player">${ranks.slice(0,100).map((r,i)=>`<option ${i===1?'selected':''}>${esc((r.athlete||{}).displayName)}</option>`).join('')}</select><button class="btn sm" id="h2go" data-y="${d.getUTCFullYear()}" data-t="${t}">Compare ${d.getUTCFullYear()} meetings (about 20 MB download)</button></div><div id="h2out"></div></div>
+  <div class="pd-sec"><h2>Head to head</h2><div class="pd-bar"><select id="h1" class="btn sm" aria-label="First player">${ranks.slice(0,100).map((r,i)=>`<option ${i===0?'selected':''}>${esc((r.athlete||{}).displayName)}</option>`).join('')}</select><span class="dim">vs</span><select id="h2" class="btn sm" aria-label="Second player">${ranks.slice(0,100).map((r,i)=>`<option ${i===1?'selected':''}>${esc((r.athlete||{}).displayName)}</option>`).join('')}</select><select id="h2since" class="btn sm" aria-label="History"><option value="2015">Since 2015</option><option value="2005" selected>Since 2005</option><option value="1990">Since 1990</option><option value="1968">Whole career</option></select><label class="dim" style="font-size:12.5px"><input type="checkbox" id="h2es"> add ESPN's ${d.getUTCFullYear()} matches (about 20 MB)</label><button class="btn sm" id="h2go" data-y="${d.getUTCFullYear()}" data-t="${t}">Compare</button></div><div id="h2out"></div></div>
   <div class="pd-sec"><h2>Singles results</h2><div class="pd-bar"><button class="btn sm" data-o="-1">‹ Previous day</button><span class="mono" style="font-size:12.5px">${day}</span><button class="btn sm" data-o="1">Next day ›</button><button class="btn sm" data-o="0">Today</button></div>
   ${cards?`<div class="pd-res">${cards}</div>`:`<div class="pd-card"><div class="pd-msg">No completed ${t.toUpperCase()} singles matches on ${day}.</div></div>`}</div>
   <p class="pd-foot">Rankings are ESPN's published ${t.toUpperCase()} list. Set scores are shown next to each player, the winner in bold. ESPN carries no serve or return stats in this feed. Click any ranked player for their card and tournament matches.</p>`;
 }
-function tennisbind(){const hg=document.getElementById('h2go');if(hg)hg.onclick=()=>tennisH2H(document.getElementById('h2out'),hg.dataset.t,hg.dataset.y,document.getElementById('h1').value,document.getElementById('h2').value);
+function tennisbind(){const hg=document.getElementById('h2go');if(hg)hg.onclick=()=>tennisH2H(document.getElementById('h2out'),hg.dataset.t,+hg.dataset.y,document.getElementById('h1').value,document.getElementById('h2').value,+document.getElementById('h2since').value,document.getElementById('h2es').checked);
   document.querySelectorAll('.pd-bar > .seg')[0]?.querySelectorAll('button').forEach(b=>b.onclick=()=>{S.tennis.tour=b.dataset.k;S.tennis.off=0;render()});
   document.querySelectorAll('.pd-sec [data-o]').forEach(b=>b.onclick=()=>{const o=+b.dataset.o;S.tennis.off=o===0?0:S.tennis.off+o;render()});
 }
