@@ -16,13 +16,18 @@ async function cfbTeamStats(season) {
 
 /* ---- players: leaderboard members plus each one's own season line from ESPN's core API ---- */
 const CFB_CORE = 'https://sports.core.api.espn.com/v2/sports/football/leagues/college-football';
-const CFB_LEAD = { passingYards: 'qb', rushingYards: 'rb', receivingYards: 'wr', totalTackles: 'df', sacks: 'df', interceptions: 'df' };
+const CFB_LEAD = { passingYards: 'qb', passingTouchdowns: 'qb', rushingYards: 'rb', rushingTouchdowns: 'rb', receivingYards: 'wr', receptions: 'wr', receivingTouchdowns: 'wr', totalTackles: 'df', sacks: 'df', interceptions: 'df' };
+/* the leaders feed has no kicking, punting or return boards, so those pools come from the athlete table's sort order */
+const CFB_SORTS = [['k', 'kicking.fieldGoalsMade', 40], ['p', 'punting.punts', 30], ['kr', 'returning.kickReturnYards', 30], ['kr', 'returning.puntReturnYards', 30]];
 const CFB_KEEP = {
   general: 'gamesPlayed', passing: 'completions passingAttempts completionPct passingYards passingYardsPerGame yardsPerPassAttempt yardsPerCompletion passingTouchdowns interceptions passingTouchdownPct interceptionPct QBRating sacks sackYardsLost longPassing passingFirstDowns passingBigPlays totalYardsFromScrimmage',
   rushing: 'rushingAttempts rushingYards rushingYardsPerGame yardsPerRushAttempt rushingTouchdowns longRushing rushingFirstDowns rushingBigPlays rushingFumbles rushingFumblesLost yardsFromScrimmagePerGame totalYardsFromScrimmage',
   receiving: 'receptions receivingTargets receivingYards receivingYardsPerGame yardsPerReception receivingTouchdowns longReception receivingYardsAfterCatch receivingFirstDowns receivingBigPlays receivingFumbles yardsFromScrimmagePerGame totalYardsFromScrimmage',
   defensive: 'soloTackles assistTackles totalTackles tacklesForLoss stuffs sacks QBHits hurries passesDefended safeties kicksBlocked',
   defensiveInterceptions: 'interceptions interceptionYards interceptionTouchdowns',
+  kicking: 'fieldGoalsMade fieldGoalAttempts fieldGoalPct fieldGoalsMade20_29 fieldGoalsMade30_39 fieldGoalsMade40_49 fieldGoalsMade50 longFieldGoalMade extraPointsMade extraPointAttempts extraPointPct totalKickingPoints avgKickoffYards touchbackPct',
+  punting: 'punts puntYards grossAvgPuntYards netAvgPuntYards longPunt puntsInside20 puntsInside20Pct puntsBlocked',
+  returning: 'kickReturns kickReturnYards yardsPerKickReturn longKickReturn kickReturnTouchdowns puntReturns puntReturnYards yardsPerPuntReturn longPuntReturn puntReturnTouchdowns kickReturnFumbles puntReturnFumbles',
 };
 const CFB_KEEPSET = Object.fromEntries(Object.entries(CFB_KEEP).map(([k, v]) => [k, new Set(v.split(' '))]));
 const cfbRefId = (u, k) => { const m = new RegExp(`/${k}/(\\d+)`).exec(u || ''); return m ? +m[1] : 0; };
@@ -35,6 +40,12 @@ async function cfbPlayers(season) {
     const g = CFB_LEAD[c.name]; if (!g) continue;
     for (const l of c.leaders || []) { const id = cfbRefId(l.athlete?.$ref, 'athletes'); if (!id) continue; if (!want.has(id)) want.set(id, new Set()); want.get(id).add(g); }
   }
+  await Promise.all(CFB_SORTS.map(async ([g, sort, n]) => {
+    try {
+      const j = await getJSON(`${espnWeb()}/statistics/byathlete?${ESPN_Q}&isqualified=false&season=${season}&seasontype=2&page=1&limit=${n}&sort=${sort}:desc`);
+      for (const x of j.athletes || []) { const id = +x.athlete?.id; if (!id) continue; if (!want.has(id)) want.set(id, new Set()); want.get(id).add(g); }
+    } catch (e) { /* that specialist board is skipped */ }
+  }));
   const posCache = new Map(), out = [];
   const posOf = async ref => {
     const pid = cfbRefId(ref, 'positions'); if (!pid) return '';
@@ -53,7 +64,7 @@ async function cfbPlayers(season) {
 }
 /* one flat row per player; stat keys are unique across roles so a player in several lists keeps one row */
 function cfbPlayerRow(r) {
-  const g = r.v.general || {}, p = r.v.passing || {}, ru = r.v.rushing || {}, rc = r.v.receiving || {}, d = r.v.defensive || {}, di = r.v.defensiveInterceptions || {};
+  const g = r.v.general || {}, p = r.v.passing || {}, ru = r.v.rushing || {}, rc = r.v.receiving || {}, d = r.v.defensive || {}, di = r.v.defensiveInterceptions || {}, ki = r.v.kicking || {}, pu = r.v.punting || {}, rt = r.v.returning || {};
   const gp = g.gamesPlayed, att = p.passingAttempts;
   const tdt = (ru.rushingTouchdowns || 0) + (rc.receivingTouchdowns || 0);
   return {
@@ -66,6 +77,11 @@ function cfbPlayerRow(r) {
     scrim: rc.totalYardsFromScrimmage ?? ru.totalYardsFromScrimmage ?? (ru.rushingYards || 0) + (rc.receivingYards || 0), scrimpg: ru.yardsFromScrimmagePerGame ?? rc.yardsFromScrimmagePerGame, tdt,
     solo: d.soloTackles, ast: d.assistTackles, tot: d.totalTackles, tpg: safeDiv(d.totalTackles, gp), tfl: d.tacklesForLoss, stf: d.stuffs, sck: d.sacks, sckpg: safeDiv(d.sacks, gp), qbh: d.QBHits, hur: d.hurries, pd: d.passesDefended, saf: d.safeties, kb: d.kicksBlocked,
     int: di.interceptions, intyd: di.interceptionYards, inttd: di.interceptionTouchdowns,
+    fgm: ki.fieldGoalsMade, fga: ki.fieldGoalAttempts, fgp: ki.fieldGoalPct, fg20: ki.fieldGoalsMade20_29, fg30: ki.fieldGoalsMade30_39, fg40: ki.fieldGoalsMade40_49, f50: ki.fieldGoalsMade50, fgl: ki.longFieldGoalMade,
+    xpm: ki.extraPointsMade, xpa: ki.extraPointAttempts, xpp: ki.extraPointPct, kpts: ki.totalKickingPoints, kavg: ki.avgKickoffYards, tbp: ki.touchbackPct,
+    punts: pu.punts, pyd: pu.puntYards, pavg: pu.grossAvgPuntYards, pnet: pu.netAvgPuntYards, plong: pu.longPunt, in20: pu.puntsInside20, in20p: pu.puntsInside20Pct, pblk: pu.puntsBlocked,
+    krn: rt.kickReturns, kryds: rt.kickReturnYards, krav: rt.yardsPerKickReturn, krlg: rt.longKickReturn, krtd: rt.kickReturnTouchdowns, prn: rt.puntReturns, pryds: rt.puntReturnYards, prav: rt.yardsPerPuntReturn, prlg: rt.longPuntReturn, prtd: rt.puntReturnTouchdowns,
+    retn: (rt.kickReturns || 0) + (rt.puntReturns || 0), retyds: (rt.kickReturnYards || 0) + (rt.puntReturnYards || 0), rettd: (rt.kickReturnTouchdowns || 0) + (rt.puntReturnTouchdowns || 0),
   };
 }
 
@@ -126,12 +142,12 @@ async function loadSeason(season, prog = () => { }) {
   D.tof = D.tdf = D.tsp = tk; D.tofList = D.tdfList = D.tspList = [...tk.values()];
   /* players: the leaderboard pool; a failure leaves the team pages working */
   let raw = [];
-  try { raw = await cached(`${season}:pl`, ttl, () => cfbPlayers(season)); } catch (e) { D.warn.push('Player stats did not load; only team pages are available.'); }
-  const PG = ['qb', 'rb', 'wr', 'df'], pm = Object.fromEntries(PG.map(g => [g, new Map()])), all = new Map();
+  try { raw = await cached(`${season}:pl2`, Math.max(ttl, 6 * 3600e3), () => cfbPlayers(season)); } catch (e) { D.warn.push('Player stats did not load; only team pages are available.'); }
+  const PG = ['qb', 'rb', 'wr', 'df', 'k', 'p', 'kr'], VOL = { k: m => m.fga, p: m => m.punts, kr: m => m.retn }, pm = Object.fromEntries(PG.map(g => [g, new Map()])), all = new Map();
   for (const r of raw) {
     if (!D.teams.has(r.tid)) continue;
     const m = cfbPlayerRow(r); all.set(m.id, m);
-    for (const g of m.grp) pm[g].set(m.id, m);
+    for (const g of m.grp) if (!VOL[g] || VOL[g](m) > 0) pm[g].set(m.id, m);
   }
   D.q = {}; D.pl = all; D.plList = [...all.values()];
   D.players = new Map(); for (const m of all.values()) D.players.set(m.id, { id: m.id, name: m.name, tid: m.tid, pos: m.pos, w: m.pyds || m.ryds || m.recyds || m.tot || 0, key: slugify(m.name) });

@@ -1,6 +1,9 @@
 /* cols.js: college football column catalogue. Teams: offense, defense and special teams, each with the same stats measured for the opponents.
    Players: the top 100 in ESPN's passing, rushing, receiving and defensive leaderboards, each with their own season line. */
 const CFB_G = {
+  k: [{ id: 'vol', l: 'Games', on: 1 }, { id: 'fg', l: 'Field goals', on: 1 }, { id: 'xp', l: 'Extra points & kickoffs', on: 1 }],
+  p: [{ id: 'vol', l: 'Games', on: 1 }, { id: 'pt', l: 'Punting', on: 1 }],
+  kr: [{ id: 'vol', l: 'Games', on: 1 }, { id: 'kick', l: 'Kick returns', on: 1 }, { id: 'punt', l: 'Punt returns', on: 1 }, { id: 'all', l: 'Combined', on: 1 }],
   qb: [{ id: 'vol', l: 'Games', on: 1 }, { id: 'pass', l: 'Passing', on: 1 }, { id: 'eff', l: 'Efficiency', on: 1 }, { id: 'rush', l: 'Rushing', on: 1 }],
   rb: [{ id: 'vol', l: 'Games', on: 1 }, { id: 'rush', l: 'Rushing', on: 1 }, { id: 'rec', l: 'Receiving', on: 1 }, { id: 'tot', l: 'Totals', on: 1 }],
   wr: [{ id: 'vol', l: 'Games', on: 1 }, { id: 'rec', l: 'Receiving', on: 1 }, { id: 'eff', l: 'Efficiency', on: 1 }, { id: 'ball', l: 'Ball security' }],
@@ -11,6 +14,21 @@ const CFB_G = {
 };
 const CFB_REC = [C('gp', 'GP', 'rec', 0, 'int', 'ESPN'), C('w', 'W', 'rec', 1, 'int', 'API'), C('l', 'L', 'rec', -1, 'int', 'API'), C('pct', 'W%', 'rec', 1, 'f3', 'API'), C('diff', 'Pt diff/G', 'rec', 1, 'sg1', 'DER', 'Average scoring margin')];
 Object.assign(COLS, {
+  k: [
+    C('gp', 'GP', 'vol', 0, 'int', 'ESPN'),
+    C('fgm', 'FGM', 'fg', 1, 'int', 'ESPN'), C('fga', 'FGA', 'fg', 0, 'int', 'ESPN'), C('fgp', 'FG%', 'fg', 1, 'f1', 'ESPN'), C('fg20', '20-29', 'fg', 1, 'int', 'ESPN', 'Field goals made from 20 to 29 yards'), C('fg30', '30-39', 'fg', 1, 'int', 'ESPN', 'Field goals made from 30 to 39 yards'), C('fg40', '40-49', 'fg', 1, 'int', 'ESPN', 'Field goals made from 40 to 49 yards'), C('f50', '50+', 'fg', 1, 'int', 'ESPN', 'Field goals made from 50 yards or more'), C('fgl', 'LNG', 'fg', 1, 'int', 'ESPN', 'Longest field goal made'),
+    C('xpm', 'XPM', 'xp', 1, 'int', 'ESPN'), C('xpa', 'XPA', 'xp', 0, 'int', 'ESPN'), C('xpp', 'XP%', 'xp', 1, 'f1', 'ESPN'), C('kpts', 'PTS', 'xp', 1, 'int', 'ESPN', 'Kicking points'), C('kavg', 'KO AVG', 'xp', 1, 'f1', 'ESPN', 'Average kickoff distance'), C('tbp', 'TB%', 'xp', 1, 'f1', 'ESPN', 'Kickoffs that went for touchbacks'),
+  ],
+  p: [
+    C('gp', 'GP', 'vol', 0, 'int', 'ESPN'),
+    C('punts', 'PUNTS', 'pt', 0, 'int', 'ESPN'), C('pyd', 'YDS', 'pt', 1, 'int', 'ESPN', 'Punting yards'), C('pavg', 'AVG', 'pt', 1, 'f1', 'ESPN', 'Gross punt average'), C('pnet', 'NET', 'pt', 1, 'f1', 'ESPN', 'Net punt average'), C('plong', 'LNG', 'pt', 1, 'int', 'ESPN'), C('in20', 'IN 20', 'pt', 1, 'int', 'ESPN', 'Punts downed inside the 20'), C('in20p', 'IN 20%', 'pt', 1, 'f1', 'ESPN'), C('pblk', 'BLK', 'pt', -1, 'int', 'ESPN', 'Punts blocked'),
+  ],
+  kr: [
+    C('gp', 'GP', 'vol', 0, 'int', 'ESPN'),
+    C('krn', 'KR', 'kick', 0, 'int', 'ESPN', 'Kick returns'), C('kryds', 'KR YDS', 'kick', 1, 'int', 'ESPN'), C('krav', 'KR AVG', 'kick', 1, 'f1', 'ESPN'), C('krlg', 'KR LNG', 'kick', 1, 'int', 'ESPN'), C('krtd', 'KR TD', 'kick', 1, 'int', 'ESPN'),
+    C('prn', 'PR', 'punt', 0, 'int', 'ESPN', 'Punt returns'), C('pryds', 'PR YDS', 'punt', 1, 'int', 'ESPN'), C('prav', 'PR AVG', 'punt', 1, 'f1', 'ESPN'), C('prlg', 'PR LNG', 'punt', 1, 'int', 'ESPN'), C('prtd', 'PR TD', 'punt', 1, 'int', 'ESPN'),
+    C('retn', 'RET', 'all', 0, 'int', 'DER', 'Kick and punt returns'), C('retyds', 'RET YDS', 'all', 1, 'int', 'DER'), C('rettd', 'RET TD', 'all', 1, 'int', 'DER'),
+  ],
   qb: [
     C('gp', 'GP', 'vol', 0, 'int', 'ESPN'),
     C('cmp', 'CMP', 'pass', 1, 'int', 'ESPN'), C('att', 'ATT', 'pass', 0, 'int', 'ESPN'), C('cmpp', 'CMP%', 'pass', 1, 'f1', 'ESPN'), C('pyds', 'PASS YDS', 'pass', 1, 'int', 'ESPN'), C('pypg', 'YDS/G', 'pass', 1, 'f1', 'ESPN', 'Passing yards per game'), C('ptd', 'PASS TD', 'pass', 1, 'int', 'ESPN'), C('pint', 'INT', 'pass', -1, 'int', 'ESPN', 'Interceptions thrown'), C('plng', 'LNG', 'pass', 1, 'int', 'ESPN', 'Longest completion'),
@@ -61,6 +79,9 @@ Object.assign(COLS, {
 });
 Object.assign(GROUPS, CFB_G);
 Object.assign(GROUP_META, {
+  k: { label: 'Kickers', singular: 'Kicker', sort: 'fgm', dir: -1 },
+  p: { label: 'Punters', singular: 'Punter', sort: 'pnet', dir: -1 },
+  kr: { label: 'Returners', singular: 'Returner', sort: 'retyds', dir: -1 },
   qb: { label: 'Quarterbacks', singular: 'Quarterback', sort: 'pyds', dir: -1 },
   rb: { label: 'Rushers', singular: 'Rusher', sort: 'ryds', dir: -1 },
   wr: { label: 'Receivers', singular: 'Receiver', sort: 'recyds', dir: -1 },

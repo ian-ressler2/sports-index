@@ -6,12 +6,18 @@ const CFB_ROLE = {
   qb: cfbPlayerRole('qb', 'Quarterbacks', 'Quarterbacks', { field: 'att', label: 'ATT', loose: 1 }, () => [], () => true),
   rb: cfbPlayerRole('rb', 'Rushers', 'Rushers', { field: 'ratt', label: 'ATT', loose: 1 }, () => ['QB', 'RB', 'WR'], (r, o) => r.pos === o),
   wr: cfbPlayerRole('wr', 'Receivers', 'Receivers', { field: 'rec', label: 'REC', loose: 1 }, () => ['WR', 'TE', 'RB'], (r, o) => r.pos === o),
+  k: cfbPlayerRole('k', 'Kickers', 'Kickers', { field: 'fga', label: 'FGA', loose: 1 }, () => [], () => true),
+  p: cfbPlayerRole('p', 'Punters', 'Punters', { field: 'punts', label: 'PUNTS', loose: 1 }, () => [], () => true),
+  kr: cfbPlayerRole('kr', 'Returners', 'Returners', { field: 'retn', label: 'RET', loose: 1 }, () => [], () => true),
   df: cfbPlayerRole('df', 'Defenders', 'Defenders', { field: 'tot', label: 'TKL', loose: 1 }, () => ['DL', 'LB', 'DB'], (r, o) => (CFB_DEFPOS[o] || []).includes(r.pos)),
   tof: { kind: 'team', tab: 'Team offense', plural: 'Teams' }, tdf: { kind: 'team', tab: 'Team defense', plural: 'Teams' }, tsp: { kind: 'team', tab: 'Special teams', plural: 'Teams' },
 };
 for (const g in GROUP_META) SPORT.groups[g] = { ...GROUP_META[g], ...CFB_ROLE[g] };
-SPORT.groupOrder = ['qb', 'rb', 'wr', 'df', 'tof', 'tdf', 'tsp'];
+SPORT.groupOrder = ['qb', 'rb', 'wr', 'df', 'k', 'p', 'kr', 'tof', 'tdf', 'tsp'];
 const CFB_TAPE = {
+  k: ['gp', 'fgm', 'fga', 'fgp', 'fg40', 'f50', 'fgl', 'xpp', 'kpts'],
+  p: ['gp', 'punts', 'pavg', 'pnet', 'plong', 'in20', 'in20p'],
+  kr: ['gp', 'krn', 'krav', 'krtd', 'prn', 'prav', 'prtd', 'retyds'],
   qb: ['gp', 'cmpp', 'pyds', 'pypg', 'ypa', 'ptd', 'pint', 'rtg', 'sckd', 'ryds', 'rtd'],
   rb: ['gp', 'ratt', 'ryds', 'rypg', 'ypc', 'rtd', 'rlng', 'rec', 'recyds', 'scrim', 'tdt'],
   wr: ['gp', 'rec', 'recyds', 'recpg', 'ypr', 'rctd', 'lrec', 'yac', 'c1d'],
@@ -21,6 +27,9 @@ const CFB_TAPE = {
   tsp: ['w', 'l', 'fgp', 'f50', 'xpp', 'pavg', 'pnet', 'krav', 'prav', 'penpg'],
 };
 const CFB_RADAR = {
+  k: [['fgp', 'FG%'], ['fgm', 'FGM'], ['f50', '50+'], ['fgl', 'LNG'], ['xpp', 'XP%'], ['kpts', 'PTS']],
+  p: [['pavg', 'AVG'], ['pnet', 'NET'], ['plong', 'LNG'], ['in20', 'IN 20'], ['in20p', 'IN 20%'], ['punts', 'PUNTS']],
+  kr: [['krav', 'KR AVG'], ['prav', 'PR AVG'], ['retyds', 'RET YDS'], ['krlg', 'KR LNG'], ['prlg', 'PR LNG'], ['rettd', 'RET TD']],
   qb: [['pypg', 'PASS YD/G'], ['cmpp', 'CMP%'], ['ypa', 'Y/A'], ['tdp', 'TD%'], ['rtg', 'RATING'], ['rypg', 'RUSH YD/G']],
   rb: [['rypg', 'RUSH YD/G'], ['ypc', 'Y/C'], ['rtd', 'RUSH TD'], ['rbig', '20+ RUNS'], ['recyds', 'REC YDS'], ['scrimpg', 'SCRIM/G']],
   wr: [['recpg', 'REC YD/G'], ['ypr', 'Y/R'], ['recpg2', 'REC/G'], ['rctd', 'REC TD'], ['yac', 'YAC'], ['cbig', '20+ CATCHES']],
@@ -30,6 +39,9 @@ const CFB_RADAR = {
   tsp: [['fgp', 'FG%'], ['xpp', 'XP%'], ['pnet', 'NET PUNT'], ['krav', 'KR AVG'], ['prav', 'PR AVG'], ['penpg', 'PEN/G']],
 };
 const CFB_RECIPES = {
+  k: [{ name: 'Automatic', desc: 'Makes what he attempts', ing: { fgp: 2, xpp: 1, fgm: 1 } }, { name: 'Long range', desc: 'Makes the long ones', ing: { f50: 2, fg40: 1.5, fgl: 1 } }],
+  p: [{ name: 'Field flipper', desc: 'Distance and placement', ing: { pnet: 2, pavg: 1, in20p: 1.5 } }],
+  kr: [{ name: 'Game breaker', desc: 'Long, explosive returns', ing: { krav: 1.5, prav: 1.5, rettd: 2 } }],
   qb: [{ name: 'Gunslinger', desc: 'Yards and touchdowns through the air', ing: { pypg: 2, ptd: 1.5, ypa: 1 } }, { name: 'Efficient passer', desc: 'Accurate and careful', ing: { cmpp: 1.5, rtg: 2, intp: -1 } }, { name: 'Dual threat', desc: 'Hurts you with the arm and the legs', ing: { pypg: 1.5, ryds: 1.5, rtd: 1 } }],
   rb: [{ name: 'Workhorse', desc: 'Piles up yards and carries', ing: { rypg: 2, ratt: 1.5, rtd: 1 } }, { name: 'Big-play back', desc: 'Breaks long runs', ing: { ypc: 2, rbig: 1.5, rlng: 1 } }, { name: 'Three-down back', desc: 'Runs and catches', ing: { scrimpg: 2, rec: 1, rctd: .5 } }],
   wr: [{ name: 'Top target', desc: 'Volume and production', ing: { recpg: 2, rec: 1.5, rctd: 1 } }, { name: 'Deep threat', desc: 'Yards on every catch', ing: { ypr: 2, yac: 1, cbig: 1.5 } }, { name: 'Chain mover', desc: 'Catches that keep drives alive', ing: { c1d: 2, recpg2: 1.5 } }],
@@ -45,7 +57,7 @@ Object.assign(SPORT, {
   unit: 'GAME',
   credit: 'Data: ESPN',
   footer: 'Not affiliated with or endorsed by the NCAA or any school or conference. Statistics and play-by-play come from ESPN’s public feeds.<br>Team logos are loaded from ESPN’s image host.',
-  sourceNote: 'Sources: ESPN team season totals and play-by-play for FBS football, and ESPN’s passing, rushing, receiving and defensive leaderboards. ESPN’s bulk player table is empty for college football, so the player pool is the 100 leaders in each of passing yards, rushing yards, receiving yards, tackles, sacks and interceptions, each read from the player’s own season line; percentiles compare players within their pool. The same team stats measured for opponents give each defense. Takeaways are the opponents’ interceptions plus the team’s own fumble recoveries; giveaways are the reverse. Points come from the standings.',
+  sourceNote: 'Sources: ESPN team season totals and play-by-play for FBS football, and ESPN’s passing, rushing, receiving and defensive leaderboards. ESPN’s bulk player table is empty for college football, so the player pool is the leaders in passing, rushing and receiving yards and touchdowns, receptions, tackles, sacks and interceptions (100 each), plus the top kickers, punters and returners, each read from the player’s own season line; percentiles compare players within their pool. The same team stats measured for opponents give each defense. Takeaways are the opponents’ interceptions plus the team’s own fumble recoveries; giveaways are the reverse. Points come from the standings.',
   searchHint: 'Type a player or team. Try “Jeremiah Smith”, “Ohio State” or “Oregon”.',
   headshot: id => `https://a.espncdn.com/i/headshots/college-football/players/full/${id}.png`,
   teamLogo: id => App.D?.teams.get(+id)?.logo || '',
@@ -100,19 +112,22 @@ SPORT.team = {
     { g: 'rb', title: 'Rushers', keys: ['gp', 'ratt', 'ryds', 'ypc', 'rtd', 'rec'], sort: 'ryds' },
     { g: 'wr', title: 'Receivers', keys: ['gp', 'rec', 'recyds', 'ypr', 'rctd'], sort: 'recyds' },
     { g: 'df', title: 'Defenders', keys: ['gp', 'tot', 'tfl', 'sck', 'int', 'pd'], sort: 'tot' },
+    { g: 'k', title: 'Kickers', keys: ['gp', 'fgm', 'fga', 'fgp', 'f50', 'xpp', 'kpts'], sort: 'fgm' },
+    { g: 'p', title: 'Punters', keys: ['gp', 'punts', 'pavg', 'pnet', 'in20'], sort: 'punts' },
+    { g: 'kr', title: 'Returners', keys: ['gp', 'krn', 'krav', 'prn', 'prav', 'retyds'], sort: 'retyds' },
   ],
   arc: mkTeamArc('point'),
 };
 SPORT.player = {
-  roles: (D, id) => ['qb', 'rb', 'wr', 'df'].filter(g => D.maps[g]?.has(id)),
-  roleName: { qb: 'QUARTERBACK', rb: 'RUSHER', wr: 'RECEIVER', df: 'DEFENDER' },
+  roles: (D, id) => ['qb', 'rb', 'wr', 'df', 'k', 'p', 'kr'].filter(g => D.maps[g]?.has(id)),
+  roleName: { qb: 'QUARTERBACK', rb: 'RUSHER', wr: 'RECEIVER', df: 'DEFENDER', k: 'KICKER', p: 'PUNTER', kr: 'RETURNER' },
   roleLine: (role, r) => CFB_POSNAME[r.pos] || r.pos || 'Player',
   bioPills: (bio, r) => [r?.h && r?.wt ? `${r.h} · ${r.wt}` : r?.h, r?.exp, r?.jersey && `#${r.jersey}`].filter(Boolean),
-  tiles: { qb: ['gp', 'cmpp', 'pyds', 'ptd', 'pint', 'rtg', 'ypa', 'ryds'], rb: ['gp', 'ratt', 'ryds', 'ypc', 'rtd', 'rec', 'recyds', 'scrim'], wr: ['gp', 'rec', 'recyds', 'ypr', 'rctd', 'recpg', 'yac', 'c1d'], df: ['gp', 'tot', 'solo', 'tfl', 'sck', 'int', 'pd', 'qbh'] },
-  pct: { qb: ['pypg', 'cmpp', 'ypa', 'tdp', 'intp', 'rtg', 'ryds'], rb: ['rypg', 'ypc', 'rtd', 'rbig', 'rlng', 'recyds', 'scrimpg'], wr: ['recpg', 'recpg2', 'ypr', 'rctd', 'yac', 'cbig', 'c1d'], df: ['tpg', 'tfl', 'sck', 'qbh', 'hur', 'pd', 'int'] },
-  radar: { qb: CFB_RADAR.qb, rb: CFB_RADAR.rb, wr: CFB_RADAR.wr, df: CFB_RADAR.df },
+  tiles: { qb: ['gp', 'cmpp', 'pyds', 'ptd', 'pint', 'rtg', 'ypa', 'ryds'], rb: ['gp', 'ratt', 'ryds', 'ypc', 'rtd', 'rec', 'recyds', 'scrim'], wr: ['gp', 'rec', 'recyds', 'ypr', 'rctd', 'recpg', 'yac', 'c1d'], df: ['gp', 'tot', 'solo', 'tfl', 'sck', 'int', 'pd', 'qbh'], k: ['gp', 'fgm', 'fga', 'fgp', 'f50', 'fgl', 'xpp', 'kpts'], p: ['gp', 'punts', 'pavg', 'pnet', 'plong', 'in20', 'in20p', 'pyd'], kr: ['gp', 'krn', 'krav', 'krtd', 'prn', 'prav', 'prtd', 'retyds'] },
+  pct: { qb: ['pypg', 'cmpp', 'ypa', 'tdp', 'intp', 'rtg', 'ryds'], rb: ['rypg', 'ypc', 'rtd', 'rbig', 'rlng', 'recyds', 'scrimpg'], wr: ['recpg', 'recpg2', 'ypr', 'rctd', 'yac', 'cbig', 'c1d'], df: ['tpg', 'tfl', 'sck', 'qbh', 'hur', 'pd', 'int'], k: ['fgp', 'fgm', 'f50', 'fg40', 'fgl', 'xpp', 'kpts'], p: ['pavg', 'pnet', 'plong', 'in20', 'in20p'], kr: ['krav', 'prav', 'retyds', 'krlg', 'prlg', 'rettd'] },
+  radar: { qb: CFB_RADAR.qb, rb: CFB_RADAR.rb, wr: CFB_RADAR.wr, df: CFB_RADAR.df, k: CFB_RADAR.k, p: CFB_RADAR.p, kr: CFB_RADAR.kr },
   tabs: [['overview', 'Overview'], ['stats', 'Stats']],
   build: {},
 };
 SPORT.compare = { tape: CFB_TAPE, radar: CFB_RADAR };
-SPORT.lab = { recipes: CFB_RECIPES, ref: { qb: 'pypg', rb: 'rypg', wr: 'recpg', df: 'tpg', tof: 'ppg', tdf: 'pag', tsp: 'fgp' }, plotDefaults: { qb: ['ypa', 'cmpp'], rb: ['ratt', 'ypc'], wr: ['recpg2', 'ypr'], df: ['tfl', 'sck'], tof: ['ppg', 'ypp'], tdf: ['pag', 'takeg'], tsp: ['fgp', 'pnet'] } };
+SPORT.lab = { recipes: CFB_RECIPES, ref: { k: 'fgp', p: 'pnet', kr: 'retyds', qb: 'pypg', rb: 'rypg', wr: 'recpg', df: 'tpg', tof: 'ppg', tdf: 'pag', tsp: 'fgp' }, plotDefaults: { k: ['fga', 'fgp'], p: ['pavg', 'pnet'], kr: ['krav', 'prav'], qb: ['ypa', 'cmpp'], rb: ['ratt', 'ypc'], wr: ['recpg2', 'ypr'], df: ['tfl', 'sck'], tof: ['ppg', 'ypp'], tdf: ['pag', 'takeg'], tsp: ['fgp', 'pnet'] } };

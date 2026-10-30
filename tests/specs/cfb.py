@@ -43,9 +43,10 @@ SPEC.thead = HEAD; SPEC.flat = True
 
 # core API player feeds: the top of each leaderboard, then each player's own line
 CORE = 'http://sports.core.api.espn.com/v2/sports/football/leagues/college-football'
-POS = {1: 'QB', 2: 'RB', 3: 'WR', 4: 'LB', 5: 'CB'}
-LEADS = {'passingYards': (1000, 8), 'rushingYards': (2000, 24), 'receivingYards': (3000, 40), 'totalTackles': (4000, 56), 'sacks': (4000, 56), 'interceptions': (5000, 8)}
-def _kind(i): return i // 1000  # 1000.. quarterbacks, 2000.. rushers, 3000.. receivers, 4000.. linebackers, 5000.. defensive backs
+POS = {1: 'QB', 2: 'RB', 3: 'WR', 4: 'LB', 5: 'CB', 6: 'PK', 7: 'P', 8: 'WR'}
+LEADS = {'passingTouchdowns': (1000, 6), 'rushingTouchdowns': (2000, 10), 'receptions': (3000, 12), 'passingYards': (1000, 8), 'rushingYards': (2000, 24), 'receivingYards': (3000, 40), 'totalTackles': (4000, 56), 'sacks': (4000, 56), 'interceptions': (5000, 8)}
+def _kind(i): return i // 1000
+SPECIAL = {'kicking.fieldGoalsMade': 6000, 'punting.punts': 7000, 'returning.kickReturnYards': 8000, 'returning.puntReturnYards': 8000}  # 1000.. quarterbacks, 2000.. rushers, 3000.. receivers, 4000.. linebackers, 5000.. defensive backs
 def _leaders():
     return {'categories': [{'name': n, 'leaders': [{'value': 100 - k, 'athlete': {'$ref': f'{CORE}/seasons/2026/athletes/{b + k}?lang=en&region=us'}} for k in range(n_)]} for n, (b, n_) in LEADS.items()]}
 def _athlete(i):
@@ -62,8 +63,14 @@ def _stats(i):
         cat('rushing', {'rushingAttempts': 200 - 4 * j, 'rushingYards': 1100 - 30 * j, 'rushingYardsPerGame': 137 - 3 * j, 'yardsPerRushAttempt': 5.5 - j * .05, 'rushingTouchdowns': 12 - j % 9, 'longRushing': 70 - j, 'rushingFirstDowns': 50, 'rushingBigPlays': 9, 'rushingFumbles': 1, 'rushingFumblesLost': 1, 'totalYardsFromScrimmage': 1300 - 30 * j, 'yardsFromScrimmagePerGame': 160 - 3 * j})
         cat('receiving', {'receptions': 20, 'receivingYards': 180, 'receivingTouchdowns': 1})
     if k == 3: cat('receiving', {'receptions': 70 - j, 'receivingTargets': 100 - j, 'receivingYards': 1000 - 15 * j, 'receivingYardsPerGame': 125 - 2 * j, 'yardsPerReception': 14.2, 'receivingTouchdowns': 9 - j % 7, 'longReception': 80 - j, 'receivingYardsAfterCatch': 300 - j, 'receivingFirstDowns': 45, 'receivingBigPlays': 11, 'receivingFumbles': 0})
+    if k == 6: cat('kicking', {'fieldGoalsMade': 14 - j, 'fieldGoalAttempts': 17 - j, 'fieldGoalPct': 82.0, 'fieldGoalsMade20_29': 3, 'fieldGoalsMade30_39': 4, 'fieldGoalsMade40_49': 5, 'fieldGoalsMade50': 2, 'longFieldGoalMade': 54 - j, 'extraPointsMade': 30, 'extraPointAttempts': 31, 'extraPointPct': 96.7, 'totalKickingPoints': 72 - j, 'avgKickoffYards': 62.0, 'touchbackPct': 70.0})
+    if k == 7: cat('punting', {'punts': 40 - j, 'puntYards': 1800 - 20 * j, 'grossAvgPuntYards': 45.0 - j * .3, 'netAvgPuntYards': 40.0 - j * .3, 'longPunt': 68, 'puntsInside20': 15, 'puntsInside20Pct': 37.5, 'puntsBlocked': 0})
+    if k == 8: cat('returning', {'kickReturns': 14 - j % 5, 'kickReturnYards': 300 - 5 * j, 'yardsPerKickReturn': 21.4, 'longKickReturn': 55, 'kickReturnTouchdowns': j % 2, 'puntReturns': 10, 'puntReturnYards': 120, 'yardsPerPuntReturn': 12.0, 'longPuntReturn': 40, 'puntReturnTouchdowns': 0})
     if k in (4, 5):
         cat('defensive', {'soloTackles': 50 - j, 'assistTackles': 30, 'totalTackles': 80 - j, 'tacklesForLoss': 9.5 - j * .1, 'stuffs': 6, 'sacks': 5 - j % 5, 'QBHits': 8, 'hurries': 11, 'passesDefended': 6, 'safeties': 0, 'kicksBlocked': 0})
         cat('defensiveInterceptions', {'interceptions': 2 if k == 5 else 0, 'interceptionYards': 20, 'interceptionTouchdowns': 0})
     return {'splits': {'categories': c}}
-SPEC.corepl = {'leaders': _leaders, 'athlete': _athlete, 'stats': _stats, 'pos': lambda p: POS.get(p, 'ATH')}
+def _special(sort, n):
+    base = SPECIAL[sort]; ids = [base + i for i in range(int(n))]
+    return ids
+SPEC.corepl = {'special': lambda sort, n: _special(sort, min(n, 8)), 'leaders': _leaders, 'athlete': _athlete, 'stats': _stats, 'pos': lambda p: POS.get(p, 'ATH')}

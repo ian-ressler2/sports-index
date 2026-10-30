@@ -37,6 +37,9 @@ def make_handler(spec, seed=7):
             if m: return J(cp['athlete'](int(m.group(1))))
             m = re.search(r'/positions/(\d+)$', path)
             if m: return J({'id': m.group(1), 'abbreviation': cp['pos'](int(m.group(1)))})
+        if cp and '/statistics/byathlete' in path and q.get('sort', [''])[0].split(':')[0] in getattr(__import__('sys').modules.get('cfb'), 'SPECIAL', {}):
+            ids = cp['special'](q['sort'][0].split(':')[0], int(q.get('limit', ['10'])[0]))
+            return J({'athletes': [{'athlete': {'id': str(i)}} for i in ids], 'pagination': {'count': len(ids)}})
         if '/statistics/byathlete' in path:
             limit = int(q.get('limit', ['25'])[0]); page = int(q.get('page', ['1'])[0])
             if limit > 1000: return 400, 'text/plain', 'bad'
