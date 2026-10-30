@@ -144,5 +144,8 @@
     "/today",
     "/watch"
   ],
-  "cfb": ["/", "/stats/tof", "/stats/tdf", "/stats/tsp", "/lab", "/compare", "/compare/t200/t201", "/teams", "/team/200", "/team/203", "/today", "/games", "/game/9001", "/watch", "/stats/tof?team=Southeastern", "/stats/zzz"]
+  "cfb": ["/", "/stats/tof", "/stats/tdf", "/stats/tsp", "/lab", "/compare", "/compare/t200/t201", "/teams", "/team/200", "/team/203", "/today", "/games", "/game/9001", "/watch", "/stats/tof?team=Southeastern", "/stats/zzz"],
+  "epl": ["/", "/stats/tof", "/stats/tpo", "/stats/tdf", "/lab", "/compare", "/compare/t359/t360", "/teams", "/team/359", "/team/370", "/today", "/games", "/game/9001", "/watch", "/stats/zzz"],
+  "mls": ["/", "/stats/tof", "/stats/tpo", "/stats/tdf", "/lab", "/compare", "/compare/t359/t360", "/teams", "/team/359", "/team/370", "/today", "/games", "/game/9001", "/watch", "/stats/zzz"],
+  "ucl": ["/", "/stats/tof", "/stats/tpo", "/stats/tdf", "/lab", "/compare", "/compare/t359/t360", "/teams", "/team/359", "/team/370", "/today", "/games", "/game/9001", "/watch", "/stats/zzz"]
 }

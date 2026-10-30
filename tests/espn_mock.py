@@ -89,6 +89,10 @@ def make_handler(spec, seed=7):
                     comp['highlights'] = [{'headline': f'Game {k} Highlights', 'duration': 72, 'thumbnail': 'https://example.com/t.jpg', 'links': {'source': {'href': 'https://example.com/v.mp4', 'HD': {'href': 'https://example.com/v.mp4'}}}}]
                 evs.append({'id': str(9000 + k), 'date': f'2026-10-{20 + k % 6:02d}T23:00Z', 'competitions': [comp]})
             return J({'events': evs})
+        if getattr(spec, 'core', None) and re.search(r'/seasons/\d+/types/\d+/teams/\d+/statistics$', path):
+            tid = int(re.search(r'/teams/(\d+)/', path).group(1)); t = next(x for x in teams if x['id'] == tid)
+            return J({'splits': {'categories': [{'name': n, 'stats': [{'name': k, 'value': v, 'displayValue': str(v)} for k, v in d.items()]} for n, d in spec.core(t, rnd).items()]}})
+        if path.endswith('/summary') and getattr(spec, 'summary', None): return J(spec.summary(teams, rnd))
         if path.endswith('/summary'):
             return J({'videos': [{'headline': 'Game Highlights', 'duration': 72, 'thumbnail': 'https://example.com/t.jpg', 'links': {'source': {'href': 'https://example.com/a.mp4'}}}, {'headline': 'Top plays', 'duration': 95, 'links': {'source': {'href': 'https://example.com/b.mp4'}}}], 'header': {'competitions': [{'date': '2025-10-09T02:00Z', 'competitors': [{'team': {'id': '1', 'abbreviation': 'AAA'}, 'homeAway': 'home', 'score': '3'}, {'team': {'id': '2', 'abbreviation': 'BBB'}, 'homeAway': 'away', 'score': '4'}]}]}, 'boxscore': {'players': [{'team': {'id': '1'}, 'statistics': [{'name': 'goalies', 'athletes': [{'athlete': {'id': athletes[45]['id']}}]}]}, {'team': {'id': '2'}, 'statistics': [{'name': 'goalies', 'athletes': [{'athlete': {'id': athletes[46]['id']}}]}]}]}, **({'drives': {'previous': [{'plays': spec.plays(rnd, [a for a in athletes])}]}} if spec.sp == 'football' else {'plays': spec.plays(rnd, [a for a in athletes]) if spec.plays else []})})
         return 404, 'text/plain', 'no ' + path

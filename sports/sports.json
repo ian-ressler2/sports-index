@@ -236,5 +236,107 @@
     "accbg": "rgba(232,185,49,.10)"
    }
   }
+ },
+ "epl": {
+  "name": "Premier Index",
+  "short": "EPL",
+  "accent": "#b98cff",
+  "tagline": "Goals, xG, shot maps, every match replayed",
+  "desc": "Premier League standings, team attack, possession and defense rankings, the weekend scoreboard and a minute-by-minute replay of any match with a shot map.",
+  "files": [
+   "../_espn/espn",
+   "../_espn/pack",
+   "../soccer/league_epl",
+   "../soccer/cols",
+   "../soccer/data",
+   "../soccer/hero",
+   "../soccer/game",
+   "../soccer/gloss",
+   "../soccer/config"
+  ],
+  "theme": {
+   "light": {
+    "acc": "#7a3cff",
+    "acc2": "#b98cff",
+    "a": "#7a3cff",
+    "b": "#c44a00",
+    "accbg": "rgba(120,90,200,.10)"
+   },
+   "dark": {
+    "acc": "#b98cff",
+    "acc2": "#b98cff",
+    "a": "#b98cff",
+    "b": "#ff9c4a",
+    "accbg": "rgba(160,130,255,.10)"
+   }
+  }
+ },
+ "mls": {
+  "name": "Kickoff Index",
+  "short": "MLS",
+  "accent": "#ff6b6b",
+  "tagline": "Conference tables, xG, shot maps, every match replayed",
+  "desc": "MLS standings by conference, team attack, possession and defense rankings, the scoreboard and a minute-by-minute replay of any match with a shot map.",
+  "files": [
+   "../_espn/espn",
+   "../_espn/pack",
+   "../soccer/league_mls",
+   "../soccer/cols",
+   "../soccer/data",
+   "../soccer/hero",
+   "../soccer/game",
+   "../soccer/gloss",
+   "../soccer/config"
+  ],
+  "theme": {
+   "light": {
+    "acc": "#d6303b",
+    "acc2": "#ff6b6b",
+    "a": "#d6303b",
+    "b": "#d98200",
+    "accbg": "rgba(120,90,200,.10)"
+   },
+   "dark": {
+    "acc": "#ff6b6b",
+    "acc2": "#ff6b6b",
+    "a": "#ff6b6b",
+    "b": "#ffb347",
+    "accbg": "rgba(160,130,255,.10)"
+   }
+  }
+ },
+ "ucl": {
+  "name": "Starball Index",
+  "short": "UCL",
+  "accent": "#5aa7ff",
+  "tagline": "League phase table, xG, shot maps, every match replayed",
+  "desc": "Champions League league-phase table, team attack, possession and defense rankings, the scoreboard and a minute-by-minute replay of any match with a shot map.",
+  "files": [
+   "../_espn/espn",
+   "../_espn/pack",
+   "../soccer/league_ucl",
+   "../soccer/cols",
+   "../soccer/data",
+   "../soccer/hero",
+   "../soccer/game",
+   "../soccer/gloss",
+   "../soccer/config"
+  ],
+  "theme": {
+   "light": {
+    "acc": "#1c5fd0",
+    "acc2": "#5aa7ff",
+    "a": "#1c5fd0",
+    "b": "#c28a00",
+    "accbg": "rgba(120,90,200,.10)"
+   },
+   "dark": {
+    "acc": "#5aa7ff",
+    "acc2": "#5aa7ff",
+    "a": "#5aa7ff",
+    "b": "#ffd24a",
+    "accbg": "rgba(160,130,255,.10)"
+   }
+  }
  }
 }

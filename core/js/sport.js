@@ -5,7 +5,7 @@ const SPORT = {
   seasons: { first: 2015, current: new Date().getFullYear(), label: s => String(s) },
   groups: {},        // id -> { kind:'player'|'team', label, singular, plural, sort, dir, qual(D,r), qualText(D), minLabel, ... }
   nav: [['stats', 'Stats'], ['lab', 'Lab'], ['compare', 'Compare'], ['teams', 'Teams']],
-  siblings: [['mlb', 'MLB'], ['nhl', 'NHL'], ['nba', 'NBA'], ['wnba', 'WNBA'], ['nfl', 'NFL'], ['cbb', 'CBB'], ['cfb', 'CFB']],
+  siblings: [['mlb', 'MLB'], ['nhl', 'NHL'], ['nba', 'NBA'], ['wnba', 'WNBA'], ['nfl', 'NFL'], ['cbb', 'CBB'], ['cfb', 'CFB'], ['epl', 'EPL'], ['mls', 'MLS'], ['ucl', 'UCL']],
   teamColor: () => '#667788',
   headshot: () => '',
 };
