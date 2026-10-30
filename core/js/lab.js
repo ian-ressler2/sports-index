@@ -18,7 +18,7 @@ function kitchen(D, q, box) {
   const out = h('div', { id: 'kout' });
   const save = () => setQ({ mode: 'kitchen', g, ing: encIng(ing), ref, all: minPool ? null : '1' });
   const compute = () => {
-    let rows = minPool ? qualRows(D, g) : listOf(D, g).filter(r => r[SPORT.groups[g].thr.field] >= SPORT.groups[g].thr.loose);
+    let rows = minPool ? qualRows(D, g) : listOf(D, g).filter(r => !SPORT.groups[g].thr || r[SPORT.groups[g].thr.field] >= SPORT.groups[g].thr.loose);
     const keys = Object.keys(ing).filter(k => ing[k] !== 0), tot = keys.reduce((a, k) => a + Math.abs(ing[k]), 0) || 1;
     const sc = rows.map(r => { let s = 0, w = 0; for (const k of keys) { const p = pctile(D, g, k, r[k]); if (isFinite(p)) { s += Math.abs(ing[k]) * (ing[k] < 0 ? 100 - p : p); w += Math.abs(ing[k]); } } return { r, score: w >= tot * .6 ? s / w : NaN }; }).filter(x => isFinite(x.score));
     // negative weights: contribution uses inverted percentile, so score stays 0..100
@@ -85,7 +85,8 @@ function plotter(D, q, box) {
   draw();
 }
 
-const playerGroups = () => SPORT.groupOrder.filter(g => SPORT.groups[g].kind === 'player');
+/* the groups the stat builder ranks: players, or the teams themselves in a sport that has no player stats */
+const playerGroups = () => { const p = SPORT.groupOrder.filter(g => SPORT.groups[g].kind === 'player'); return p.length ? p : SPORT.groupOrder.slice(); };
 App.pages.lab = async function ({ D, el, q }) {
   const extra = SPORT.lab.extra || [], all = [['kitchen', 'Stat Kitchen', 'Blend any stats into a new rating and see who wins', kitchen], ...extra.map(x => [x.id, x.title, x.desc, x.run]), ['plot', 'Plot anything', 'Any stat against any other for players or teams', plotter]];
   const mode = all.some(m => m[0] === q.mode) ? q.mode : 'kitchen';
