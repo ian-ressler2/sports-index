@@ -17,7 +17,9 @@ SPORTS = json.loads((ROOT / "sports" / "sports.json").read_text())
 
 
 def read(p):
-    return (ROOT / p).read_text()
+    # normalise "sports/epl/../soccer/x.js" so a site can borrow files from a shared folder that has no directory of its own
+    import os
+    return pathlib.Path(os.path.normpath(ROOT / p)).read_text()
 
 
 def core_js():
