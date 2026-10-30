@@ -113,7 +113,7 @@ function buildShell() {
     <a class="brand" href="#/">${LOGO}<span>${esc(SPORT.first)}</span><b>${esc(SPORT.word)}</b></a>
     <select class="sel sportsel" id="sportsel" aria-label="Switch sport">${SPORT.siblings.map(([id, nm]) => `<option value="${id}"${id === SPORT.id ? ' selected' : ''}>${nm}</option>`).join('')}</select>
     <nav class="nav">${links()}</nav><span class="sp"></span>
-    <button class="sbtn" id="sbtn" aria-label="Search players, teams and pages">${ICON.search}<span>Search players, teams and pages</span><kbd>⌘</kbd><kbd>K</kbd></button>
+    <button class="sbtn" id="sbtn" aria-label="Search ${SPORT.teamOnly ? '' : 'players, '}teams and pages">${ICON.search}<span>Search ${SPORT.teamOnly ? '' : 'players, '}teams and pages</span><kbd>⌘</kbd><kbd>K</kbd></button>
     <select class="sel" id="season" aria-label="Season"></select>
     <button class="ibtn" id="theme" aria-label="Toggle light and dark theme">${ICON.sun}</button></div>
     <nav class="navm">${links()}</nav></header>
@@ -163,7 +163,7 @@ function paletteIndex(D, raw) {
 function openSearch(initial) {
   if ($('.ov')) return;
   const D = App.D; let items = [], idx = 0;
-  const inp = h('input', { placeholder: D ? `Search players, teams and pages, ${SPORT.seasons.label(D.season)}` : 'Loading players…', autocomplete: 'off', spellcheck: 'false', 'aria-label': 'Search', value: typeof initial === 'string' ? initial : '' });
+  const inp = h('input', { placeholder: D ? `Search ${SPORT.teamOnly ? '' : 'players, '}teams and pages, ${SPORT.seasons.label(D.season)}` : SPORT.teamOnly ? 'Loading teams…' : 'Loading players…', autocomplete: 'off', spellcheck: 'false', 'aria-label': 'Search', value: typeof initial === 'string' ? initial : '' });
   const ul = h('ul'), ov = h('div', { class: 'ov', onclick: e => { if (e.target === ov) close(); } }, h('div', { class: 'pal' }, inp, ul, h('div', { class: 'ft' }, h('span', {}, '↑↓ move'), h('span', {}, '↵ open'), h('span', {}, 'esc close'))));
   const close = () => ov.remove();
   const paint = () => {

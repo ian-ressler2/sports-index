@@ -20,8 +20,8 @@ function watchBtn(t, id) {
 
 App.pages.watch = async function ({ D, el }) {
   const P = SPORT.player, items = watch.all();
-  const head = pageHead('YOUR LIST', 'Watchlist', `Players and teams you follow in ${SPORT.name || SPORT.first}, with their ${SPORT.seasons.label(D.season)} numbers. Kept in this browser only; use the Watch button on any player or team page.`, h('button', { class: 'btn sm', type: 'button', onclick: () => openSearch(), html: ICON.search.replace('<svg', '<svg width="14" height="14"') + ' <span>Find someone</span>' }), false);
-  if (!items.length) { mount(el, head, h('div', { class: 'panel empty', style: { marginTop: '14px' } }, 'Nothing here yet. Open a player or team and press Watch to follow them.')); return; }
+  const head = pageHead('YOUR LIST', 'Watchlist', `${SPORT.teamOnly ? 'Teams' : 'Players and teams'} you follow in ${SPORT.name || SPORT.first}, with their ${SPORT.seasons.label(D.season)} numbers. Kept in this browser only; use the Watch button on any player or team page.`, h('button', { class: 'btn sm', type: 'button', onclick: () => openSearch(), html: ICON.search.replace('<svg', '<svg width="14" height="14"') + ' <span>Find someone</span>' }), false);
+  if (!items.length) { mount(el, head, h('div', { class: 'panel empty', style: { marginTop: '14px' } }, `Nothing here yet. Open a ${SPORT.teamOnly ? '' : 'player or '}team and press Watch to follow ${SPORT.teamOnly ? 'it' : 'them'}.`)); return; }
   const rm = (t, id) => { watch.toggle(t, id); render(true); };
   const rowsP = [], rowsT = [];
   for (const w of items) {
