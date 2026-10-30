@@ -66,7 +66,7 @@ const cache=new Map();
 async function jget(u){if(cache.has(u))return cache.get(u);const r=await fetch(u);if(!r.ok)throw new Error(r.status+' '+u);const j=await r.json();cache.set(u,j);return j}
 function seg(items,cur,fn){return `<div class="seg sm">${items.map(([k,l])=>`<button data-k="${k}" class="${k==cur?'on':''}">${esc(l)}</button>`).join('')}</div>`}
 function bind(sel,fn){document.querySelectorAll(sel+' button').forEach(b=>b.onclick=()=>fn(b.dataset.k))}
-function flag(a){const h=a&&a.flag&&a.flag.href;return h?`<img src="${esc(h)}" alt="${esc(a.flag.alt||'')}" loading="lazy">`:''}
+function flag(a){const h=a&&a.flag&&a.flag.href;return h?`<img src="${esc(h)}" alt="${esc(a.flag.alt||'')}">`:''}
 function nav(t){$('#nav').innerHTML=TABS.map(([k,l])=>`<a href="#${k}" class="${k==t?'on':''}">${l}</a>`).join('')}
 function err(e){return `<div class="pd-card"><div class="pd-msg">Could not load this feed (${esc(e.message)}). ESPN may be rate limiting or this season has no data. Try again in a moment.</div></div>`}
 
@@ -91,12 +91,13 @@ async function f1(){
   const top=rows.slice(0,Math.min(8,rows.length));
   // cumulative points chart
   const W=900,H=300,pl=40,pr=14,pt=12,pb=26,n=Math.max(played,1);
-  const cum=top.map(r=>{let c=0;return r.rounds.slice(0,played).map(x=>c+=x.v)});
+  const pi=R.map((r,i)=>r.played?i:-1).filter(i=>i>=0); /* rounds actually run: a cancelled round sits in the calendar but scored nothing */
+  const cum=top.map(r=>{let c=0;return pi.map(i=>c+=r.rounds[i].v)});
   const mx=Math.max(1,...cum.map(a=>a[a.length-1]||0));
   const X=i=>pl+(n===1?0:i*(W-pl-pr)/(n-1)),Y=v=>H-pb-v/mx*(H-pt-pb);
   let g='';
   for(let k=0;k<=4;k++){const v=mx*k/4;g+=`<line x1="${pl}" x2="${W-pr}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="${pl-6}" y="${Y(v)+4}" text-anchor="end" font-size="10" fill="var(--fg3)" font-family="var(--f-mono)">${Math.round(v)}</text>`}
-  R.slice(0,played).forEach((r,i)=>{if(played<=12||i%2===0||i===played-1)g+=`<text x="${X(i)}" y="${H-8}" text-anchor="middle" font-size="9.5" fill="var(--fg3)" font-family="var(--f-mono)">${esc(r.ab)}</text>`});
+  pi.forEach((ri,i)=>{const r=R[ri];if(played<=12||i%2===0||i===played-1)g+=`<text x="${X(i)}" y="${H-8}" text-anchor="middle" font-size="9.5" fill="var(--fg3)" font-family="var(--f-mono)">${esc(r.ab)}</text>`});
   top.forEach((r,i)=>{const pts=cum[i].map((v,k)=>`${X(k)},${Y(v)}`).join(' ');g+=`<polyline points="${pts}" fill="none" stroke="${PAL[i]}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>`;const lv=cum[i][cum[i].length-1]||0;g+=`<circle cx="${X(n-1)}" cy="${Y(lv)}" r="3.2" fill="${PAL[i]}"/>`});
   const chart=`<div class="pd-card pd-sec"><div class="pd-chart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Cumulative championship points by round">${g}</svg></div><div class="pd-leg">${top.map((r,i)=>`<span><i style="background:${PAL[i]}"></i>${esc(r.name)}</span>`).join('')}</div></div>`;
   const maxr=Math.max(1,...rows.flatMap(r=>r.rounds.map(x=>x.v)));
@@ -155,6 +156,7 @@ async function tennis(){
   const ms=[];
   (sb.events||[]).forEach(ev=>(ev.groupings||[]).forEach(g=>(g.competitions||[]).forEach(c=>{
     if(!(c.status&&c.status.type&&c.status.type.completed))return;
+    if(String(c.startDate||c.date||'').slice(0,10)!==d.toISOString().slice(0,10))return; /* the feed returns a whole tournament; keep the chosen day's matches */
     ms.push({ev:ev.name,gr:(g.grouping&&g.grouping.displayName)||'',c});
   })));
   const singles=ms.filter(m=>/singles/i.test(m.gr)).slice(0,40);
