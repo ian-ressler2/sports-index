@@ -52,7 +52,7 @@ async function seasonSimulate(D, S, data, N, seed, prog, alive) {
           let sv = 0, sw = 0, ss = 0, sg = 0; for (let j = 0; j < M; j++) { const w = HH[k * M + j], gm = w + HH[j * M + k]; sv += w * WP[j]; sw += w; ss += gm * WP[j]; sg += gm; }
           const sov = sw ? sv / sw : .5, sos = sg ? ss / sg : .5, x = PD[k] / Math.max(1, GP[k] * S.sigma), pdn = 1 / (1 + Math.exp(-3 * x));
           const s1 = hg ? hw / hg : .5, s2 = CG[k] ? CW[k] / CG[k] : .5, s3 = VG[k] ? VW[k] / VG[k] : .5, s0r = pts && rmax > rmin ? (RW[k] - rmin) / (rmax - rmin) : 0;
-          key[k] = b[k] + (pts ? .3 * s0r + .12 * s1 + .03 * s2 + .006 * s3 + .0012 * pdn : .3 * s1 + .06 * s2 + .012 * s3 + .0024 * sov + .0005 * sos + .0001 * pdn) + rng() * jit;
+          key[k] = b[k] + (S.tb === 'gd' ? .4 / (1 + Math.exp(-PD[k] / 60)) + .08 * s1 + .002 * s2 : pts ? .3 * s0r + .12 * s1 + .03 * s2 + .006 * s3 + .0012 * pdn : .3 * s1 + .06 * s2 + .012 * s3 + .0024 * sov + .0005 * sos + .0001 * pdn) + rng() * jit;
         }
       }
       s0 = e;
@@ -75,6 +75,9 @@ async function seasonSimulate(D, S, data, N, seed, prog, alive) {
       for (let k = 0; k < pat.length && x < need && y < need; k++) { if (rng() < (pat[k] === 'H' ? ph : pa)) x++; else y++; }
       return x > y ? a : b;
     },
+    /* two-legged tie on aggregate margin (a is the seed that hosts the second leg); level aggregate goes to a coin flip */
+    agg: (a, b) => { const d = rr[ix.get(a)] - rr[ix.get(b)], m = (d - S.hfa + S.sigma * rng.norm()) + (d + S.hfa + S.sigma * rng.norm()); return m > 0 || (m === 0 && rng() < .5) ? a : b; },
+    divsAll: allDivs, ptsOf: i => P[ix.get(i)],
     hl: (a, b) => key[ix.get(a)] >= key[ix.get(b)] ? [a, b] : [b, a],
   };
   const step = Math.max(20, Math.round(N / 40));
@@ -83,7 +86,8 @@ async function seasonSimulate(D, S, data, N, seed, prog, alive) {
     HH.set(HH0);
     for (let g = 0; g < RH.length; g++) {
       const h = RH[g], a = RA[g], mg = rr[h] - rr[a] + S.hfa + S.sigma * rng.norm(), hw = mg > 0, wn = hw ? h : a, ls = hw ? a : h; PD[h] += mg; PD[a] -= mg; GP[h]++; GP[a]++;
-      W[wn]++; P[wn] += 2; const ot = S.otl && rng() < S.otl; if (ot) P[ls]++; if (pts && !ot) RW[wn]++; tally1(HH, CW, CG, VW, VG, wn, ls);
+      if (S.draw && Math.abs(mg) <= S.draw) { P[h]++; P[a]++; T[h]++; T[a]++; continue; } /* a draw: one point each (soccer) */
+      W[wn]++; P[wn] += S.ptsWin || 2; const ot = S.otl && rng() < S.otl; if (ot) P[ls]++; if (pts && !ot) RW[wn]++; tally1(HH, CW, CG, VW, VG, wn, ls);
     }
     for (let k = 0; k < M; k++) bv[k] = S.metric === 'pts' ? P[k] : W[k] + T[k] / 2;
     for (let k = 0; k < M; k++) WP[k] = bv[k] / Math.max(1, GP[k] * (pts ? 2 : 1));
@@ -119,18 +123,19 @@ App.pages.odds = async function ({ q, D, el }) {
   mount(out, h('div', { class: 'panel pad' }, info, bar));
   let res; try { res = await seasonSimulate(D, S, data, N, seed, f => { bar.firstChild.style.width = Math.round(f * 100) + '%'; info.textContent = `Simulating ${N.toLocaleString()} seasons… ${Math.round(f * 100)}%`; }, alive); } catch (e) { mount(out, errorEl(e, () => render(true))); return; }
   if (!res) return;
-  const lgs = [...new Set([...D.teams.values()].filter(t => res.rows.has(t.id)).map(t => t.lg))].sort();
+  const gk = t => S.groupBy ? S.groupBy(t) : t.lg, lgs = [...new Set([...D.teams.values()].filter(t => res.rows.has(t.id)).map(gk))].sort();
   const cols = [['made', 'Playoffs', 'Chance to make the playoffs' + (S.madeNote || '')], ['div', 'Division', 'Chance to finish first in the division'], ['top', S.topLabel, S.topDesc], ['conf', S.finalLabel, 'Chance to reach the championship round'], ['champ', 'Title', 'Chance to win the championship']].filter(c => !(S.noDiv && c[0] === 'div'));
+  if (S.cols) { cols.length = 0; cols.push(...S.cols); }
   const cell = (p, k) => `<td${k === 'div' || k === 'top' ? ' class="opt"' : ''}><span class="odd${k === 'champ' ? ' ch' : ''}"><i style="width:${(p * 100).toFixed(1)}%"></i><b>${oddsPct(p)}</b></span></td>`;
   const table = lg => {
-    const rows = [...res.rows.values()].filter(r => D.teams.get(r.id).lg === lg).sort((a, b) => b.made - a.made || b.champ - a.champ || b.exp - a.exp);
+    const rows = [...res.rows.values()].filter(r => gk(D.teams.get(r.id)) === lg).sort((a, b) => S.sortBy ? S.sortBy(b) - S.sortBy(a) : b.made - a.made || b.champ - a.champ || b.exp - a.exp);
     const body = rows.map(r => { const t = D.teams.get(r.id), s = D.stand.get(r.id);
       return `<tr class="clk" onclick="location.hash='${tLink(r.id)}'"><td style="text-align:left"><span class="row" style="gap:8px;flex-wrap:nowrap">${tbadge(D, r.id, 22)}<b>${esc(t.name)}</b></span></td><td>${esc(S.rec(s))}</td><td class="opt" title="${esc(`Rating ${r.rating >= 0 ? '+' : ''}${r.rating.toFixed(2)} ${S.unit} against an average team`)}">${r.rating >= 0 ? '+' : ''}${r.rating.toFixed(S.dec ?? 1)}</td><td class="opt" title="${esc(`Middle 80% of simulated seasons: ${r.lo} to ${r.hi}`)}">${r.exp.toFixed(S.metric === 'pts' ? 0 : 1)}</td>${cols.map(([k]) => cell(r[k], k)).join('')}</tr>`; }).join('');
     return h('div', { class: 'panel' }, h('div', { class: 'hd' }, h('h2', {}, lg)), h('div', { class: 'sc', style: { padding: '4px 4px 6px' }, html: `<table class="dt odds"><thead><tr><th style="text-align:left">Team</th><th title="Record so far">Record</th><th class="opt" title="Estimated strength: average ${esc(S.unit)} against an average team, after adjusting for opponents and home edge">Rating</th><th class="opt" title="Projected final ${S.metric === 'pts' ? 'points' : 'wins'}">${S.metric === 'pts' ? 'Proj. pts' : 'Proj. wins'}</th>${cols.map(([k, l, d]) => `<th${k === 'div' || k === 'top' ? ' class="opt"' : ''} title="${esc(d)}">${esc(l)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>` }));
   };
   const done = D.final || !res.rem;
   mount(out,
-    h('div', { class: 'cap', style: { lineHeight: 1.6 } }, done ? `The regular season is complete, so these odds replay the postseason from the real seeds ${N.toLocaleString()} times.` : `${res.rem.toLocaleString()} regular-season games left, played out ${N.toLocaleString()} times from today’s standings.`),
+    h('div', { class: 'cap', style: { lineHeight: 1.6 } }, done ? (S.doneNote || `The regular season is complete, so these odds replay the postseason from the real seeds ${N.toLocaleString()} times.`) : `${res.rem.toLocaleString()} regular-season games left, played out ${N.toLocaleString()} times from today’s standings.`),
     ...lgs.map(table),
     h('details', { class: 'panel pad' }, h('summary', {}, 'How the odds are made'), h('div', { class: 'cap', style: { marginTop: '8px', lineHeight: 1.6 }, html: S.note })));
 };

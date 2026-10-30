@@ -33,7 +33,7 @@ const SOC_RECIPES = {
 Object.assign(SPORT, {
   id: SOC.id, name: SOC.name, first: SOC.first, word: 'INDEX', short: SOC.short, accent: SOC.accent,
   seasons: { first: SOC.firstSeason, current: socCurrentSeason(), label: s => SOC.cal ? `${s}` : `${s}-${String(s + 1).slice(2)}` },
-  nav: [['stats', 'Stats'], ['lab', 'Lab'], ['compare', 'Compare'], ['games', 'Matches'], ['today', 'Today'], ['watch', 'Watchlist'], ['teams', 'Table']],
+  nav: [['stats', 'Stats'], ['lab', 'Lab'], ['compare', 'Compare'], ['games', 'Matches'], ['today', 'Today'], ['odds', 'Odds'], ['watch', 'Watchlist'], ['teams', 'Table']],
   unit: 'MATCH',
   credit: 'Data: ESPN',
   footer: `Not affiliated with or endorsed by ${SOC.label} or any club. Statistics and match commentary come from ESPN’s public feeds.<br>Club logos are loaded from ESPN’s image host.`,
