@@ -11,7 +11,7 @@ SPORT.season = {
     /* conference tournaments: the top eight in each conference play a single-elimination bracket on neutral courts */
     const autos = [];
     for (const lg of X.lgs) {
-      const t = X.sortLg(lg).slice(0, 8); if (!t.length) continue;
+      const t = X.sortLg(lg).sort((a, b) => X.cw(b) - X.cw(a) || X.key(b) - X.key(a)).slice(0, 8); /* seeded by conference wins */ if (!t.length) continue;
       const slot = [0, 7, 3, 4, 1, 6, 2, 5]; let rd = slot.map(k => t[k]); /* 1v8, 4v5, 2v7, 3v6 */
       while (rd.length > 1) { const nx = []; for (let k = 0; k < rd.length; k += 2) nx.push(rd[k] && rd[k + 1] ? N(rd[k], rd[k + 1]) : rd[k] || rd[k + 1]); rd = nx; }
       autos.push(rd[0]);
@@ -34,5 +34,5 @@ SPORT.season = {
   note: `<p><b>Strength.</b> Each team’s rating is its average scoring margin, adjusted for the opponents it faced and for home court, then pulled toward average. Early in the year the pull is strong, and last season counts for about a third as much as this one. Games against non-Division I teams count toward records but not ratings. Each simulated season draws every team’s true strength from a range, because ratings are uncertain.</p>
   <p><b>Games.</b> Win chance comes from the rating gap plus a home edge of about three points, against a typical game margin spread of about 11 points. Conference tournaments and the NCAA tournament are played on neutral courts.</p>
   <p><b>Tournament.</b> Each conference sends the winner of a tournament among its top eight teams in the simulated standings. The rest of the 68 are the best remaining teams by simulated record. The four weakest automatic bids play for two 16 seeds and the four weakest at-large teams for two 11 seeds. Seeds are dealt out in order of strength, 1 to 16 in four regions, then the bracket is played with 1 against 16, 8 against 9 and so on.</p>
-  <p><b>Limits.</b> The real field is picked by a selection committee using NET and quality wins; here the order is each team’s simulated record, then head-to-head, conference and division record, strength of victory, strength of schedule and point differential, so a strong team from a weak conference may land differently. Conference tournaments seed by overall record rather than conference record, and a few small conferences send fewer than eight teams. Teams that are ineligible, injuries and bracket geography are not modeled.</p>`,
+  <p><b>Limits.</b> The real field is picked by a selection committee using NET and quality wins; here the order is each team’s simulated record, then head-to-head, conference and division record, strength of victory, strength of schedule and point differential, so a strong team from a weak conference may land differently. Conference tournaments are seeded by conference wins (ties go to the better overall ranking), and a few small conferences send fewer than eight teams. Teams that are ineligible, injuries and bracket geography are not modeled.</p>`,
 };

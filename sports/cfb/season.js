@@ -11,7 +11,7 @@ SPORT.season = {
   bracket(X) {
     const T = i => X.team(i), power = ['Southeastern', 'Big Ten', 'Big 12', 'Atlantic Coast'], indep = i => /independ/i.test(T(i).lg), out = { made: [], top: [], conf: [], champ: null };
     const rank = X.all().filter(i => T(i).name !== 'UConn' && T(i).name !== 'Connecticut Huskies');
-    const champs = power.map(c => X.sortLg(c).filter(i => rank.includes(i))[0]).filter(Boolean);
+    const byConf = (a, b) => X.cw(b) - X.cw(a) || X.key(b) - X.key(a), champs = power.map(c => X.sortLg(c).filter(i => rank.includes(i)).sort(byConf)[0]).filter(Boolean); /* most conference wins, then the overall ranking */
     const g6 = rank.find(i => !indep(i) && !power.includes(T(i).lg) && !champs.includes(i));
     const field = new Set([...champs, g6].filter(Boolean));
     for (const i of rank) { if (field.size >= 12) break; field.add(i); }
@@ -25,5 +25,5 @@ SPORT.season = {
   note: `<p><b>Strength.</b> Each team’s rating is its average scoring margin, adjusted for the opponents it faced and for home field, then pulled toward average. College schedules are lopsided, so early in the year the pull toward average is strong, and last season counts for about a third as much as this one. Games against non-FBS teams count toward records but not ratings. Every simulated season draws each team’s true strength from a range, because ratings are uncertain.</p>
   <p><b>Games.</b> Win chance comes from the rating gap plus a home edge of about two and a half points, against a typical game margin spread of about 16 points.</p>
   <p><b>Playoff.</b> The 12-team field is the four Power 4 champions (the best-ranked team in the SEC, Big Ten, Big 12 and ACC), the highest-ranked Group of 6 team, and the best remaining teams, with Notre Dame eligible on merit. Everyone is seeded straight by rank; the top four skip the first round, seeds 5 to 12 play at the higher seed’s campus, and the quarterfinals, semifinals and title game are on neutral fields.</p>
-  <p><b>Limits.</b> The real field is picked by a selection committee that weighs résumé and polls; here the ranking is each team’s simulated record, then head-to-head, conference and division record, strength of victory, strength of schedule and point differential, so it can differ from the committee’s order. The conference champion is the team with the best simulated overall record in the conference, not the winner of the conference title game, and the title games themselves are not played. Injuries, transfers and coaching changes are not modeled.</p>`,
+  <p><b>Limits.</b> The real field is picked by a selection committee that weighs résumé and polls; here the ranking is each team’s simulated record, then head-to-head, conference and division record, strength of victory, strength of schedule and point differential, so it can differ from the committee’s order. A Power 4 champion is the team with the most simulated conference wins (ties go to the better overall ranking), not the winner of the conference title game, and the title games themselves are not played. Injuries, transfers and coaching changes are not modeled.</p>`,
 };
