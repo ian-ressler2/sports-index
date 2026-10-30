@@ -24,6 +24,10 @@ jobs:
           python3 tests/smoke_landing.py
           python3 tests/smoke_mlb.py / /stats/bat /player/1000 /team/108 /teams /compare
           for s in nhl nba nfl; do python3 tests/smoke_espn.py $s; done
+      - name: Real-shape fixture tests
+        run: |
+          node tests/test_real_shapes.js
+          python3 tests/test_podium_real.py
       - uses: actions/upload-pages-artifact@v3
         if: github.ref == 'refs/heads/main'
         with: { path: dist }
