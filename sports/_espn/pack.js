@@ -29,6 +29,8 @@ function mkGameLog(cfg) {
     const f = cfg.form?.[role];
     const cols = [...new Set(cfg.cols?.[role] || gl.names)].map(n => [n, gl.labels[idx(n)] || n]).filter(x => idx(x[0]) >= 0);
     const out = [];
+    let mins = null;
+    if (cfg.minutes) { const r = await pool(games, 6, g => ESPN_MIN(g.id, id).catch(() => undefined)); mins = new Map(games.map((g, i) => [g.id, r[i]])); }
     if (f && idx(f.name) >= 0) {
       const win = f.win || 10, vals = games.map(g => val(g, f.name)); let cum = 0, n = 0;
       const cumPts = [], rollPts = [];
@@ -42,8 +44,8 @@ function mkGameLog(cfg) {
       out.push(box);
     }
     const trs = games.slice().reverse().map(g => { const opp = D.teams.get(+g.oppId); const res = g.res === 'W' ? '<b style="color:#2fa36b">W</b>' : g.res === 'L' ? '<b style="color:#d6455d">L</b>' : esc(g.res || '');
-      return `<tr><td>${g.date}</td><td style="text-align:left">${g.home ? 'vs' : '@'} ${esc(opp?.abbr || g.opp || '')}</td><td>${res} ${esc(g.score || '')}</td>${cols.map(([n]) => `<td>${esc(g.stats[idx(n)] ?? '–')}</td>`).join('')}</tr>`; }).join('');
-    out.push(h('div', { class: 'panel', style: { marginTop: '14px' } }, h('div', { class: 'hd' }, h('h2', {}, 'Game log'), h('small', {}, games.length + ' games')), h('div', { class: 'sc', style: { padding: '8px 4px 4px', maxHeight: '60vh' }, html: `<table class="dt"><thead><tr><th>Date</th><th style="text-align:left">Opp</th><th>Result</th>${cols.map(c => `<th>${esc(c[1])}</th>`).join('')}</tr></thead><tbody>${trs}</tbody></table>` })));
+      return `<tr><td>${g.date}</td><td style="text-align:left">${g.home ? 'vs' : '@'} ${esc(opp?.abbr || g.opp || '')}</td><td>${res} ${esc(g.score || '')}</td>${mins ? `<td>${mins.get(g.id) == null ? '–' : mins.get(g.id)}</td>` : ''}${cols.map(([n]) => `<td>${esc(g.stats[idx(n)] ?? '–')}</td>`).join('')}</tr>`; }).join('');
+    out.push(h('div', { class: 'panel', style: { marginTop: '14px' } }, h('div', { class: 'hd' }, h('h2', {}, 'Game log'), h('small', {}, games.length + ' games')), h('div', { class: 'sc', style: { padding: '8px 4px 4px', maxHeight: '60vh' }, html: `<table class="dt"><thead><tr><th>Date</th><th style="text-align:left">Opp</th><th>Result</th>${mins ? '<th title="Approximate, from lineups and substitutions">Min≈</th>' : ''}${cols.map(c => `<th>${esc(c[1])}</th>`).join('')}</tr></thead><tbody>${trs}</tbody></table>` })));
     return h('div', {}, out);
   };
 }

@@ -126,6 +126,22 @@ const ESPN_SUMMARY = id => cached(`sum:${id}`, 30 * 86400e3, async () => {
   return { id, date: comp?.date, teams, plays };
 });
 
+/* soccer: approximate minutes a player was on the pitch in one match, from lineups + substitution/red-card events */
+const ESPN_MIN = (eventId, pid) => cached(`min:${eventId}:${pid}`, 30 * 86400e3, async () => {
+  const j = await getJSON(`${espnSite()}/summary?event=${eventId}`);
+  const me = (j.rosters || []).flatMap(r => r.roster || []).find(p => String(p.athlete?.id) === String(pid));
+  if (!me || (!me.starter && !me.subbedIn)) return null;
+  const evs = j.keyEvents || [], at = x => Math.min(120, Math.max(0, Math.round((x.clock?.value || 0) / 60)));
+  const has = (x, i) => String(x.participants?.[i]?.athlete?.id) === String(pid);
+  let from = 0, to = 90;
+  if (!me.starter) { const e = evs.find(x => /substitution/i.test(x.type?.text || '') && has(x, 0)); from = e ? at(e) : 45; }
+  const out = evs.find(x => /substitution/i.test(x.type?.text || '') && has(x, 1));
+  if (out) to = at(out);
+  const red = evs.find(x => /red card/i.test(x.type?.text || '') && x.participants?.some(q => String(q.athlete?.id) === String(pid)));
+  if (red) to = Math.min(to, at(red));
+  return Math.max(0, to - from);
+});
+
 /* run async work with limited concurrency */
 async function pool(items, n, fn) {
   const out = new Array(items.length); let i = 0;
