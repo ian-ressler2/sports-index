@@ -61,6 +61,8 @@ async function seasonSimulate(D, S, data, N, seed, prog, alive) {
   const bv = new Float64Array(M);
   const lgs = [...new Set(team.map(t => t.lg))].sort(), divsOf = new Map(), allDivs = [...new Set(team.map(t => t.div))];
   for (const lg of lgs) divsOf.set(lg, [...new Set(team.filter(t => t.lg === lg).map(t => t.div))]);
+  /* postseason games already played, grouped by pair (data.post, oldest first) */
+  const postOf = new Map(); for (const g of data.post || []) { const k = g.h < g.a ? g.h + '|' + g.a : g.a + '|' + g.h; if (!postOf.has(k)) postOf.set(k, []); postOf.get(k).push(g); }
   const X = {
     lgs, key: i => key[ix.get(i)],
     all: () => ids.slice().sort((a, b) => key[ix.get(b)] - key[ix.get(a)]),
@@ -71,8 +73,10 @@ async function seasonSimulate(D, S, data, N, seed, prog, alive) {
     game: (a, b, neutral) => rng() < normCdf((rr[ix.get(a)] - rr[ix.get(b)] + (neutral ? 0 : S.hfa)) / S.sigma) ? a : b,
     /* a is the better seed. pat marks who hosts each game ('H' = a at home); first to ceil(len/2) wins */
     series: (a, b, pat) => {
-      const d = rr[ix.get(a)] - rr[ix.get(b)], ph = normCdf((d + S.hfa) / S.sigma), pa = normCdf((d - S.hfa) / S.sigma), need = Math.ceil(pat.length / 2); let x = 0, y = 0;
-      for (let k = 0; k < pat.length && x < need && y < need; k++) { if (rng() < (pat[k] === 'H' ? ph : pa)) x++; else y++; }
+      const d = rr[ix.get(a)] - rr[ix.get(b)], ph = normCdf((d + S.hfa) / S.sigma), pa = normCdf((d - S.hfa) / S.sigma), need = Math.ceil(pat.length / 2); let x = 0, y = 0, k0 = 0;
+      /* games of this series already played for real count first; only the rest is simulated */
+      for (const g of postOf.get(a < b ? a + '|' + b : b + '|' + a) || []) { if (x >= need || y >= need) break; const aw = g.h === a ? g.hs > g.as : g.as > g.hs; if (aw) x++; else y++; k0++; }
+      for (let k = k0; k < pat.length && x < need && y < need; k++) { if (rng() < (pat[k] === 'H' ? ph : pa)) x++; else y++; }
       return x > y ? a : b;
     },
     /* two-legged tie on aggregate margin (a is the seed that hosts the second leg); level aggregate goes to a coin flip */

@@ -9,7 +9,12 @@ SPORT.season = {
     const cur = await yr(D.season); prog && prog(.5);
     let prev = []; try { prev = (await yr(D.season - 1)).filter(g => g.final); } catch (e) { /* only a prior */ }
     prog && prog(1); const fin = g => g.final && isFinite(g.hs) && isFinite(g.as);
-    return { cur: cur.filter(fin), rem: cur.filter(g => !g.final), prev };
+    /* postseason games already played (wild card through World Series) so the replay starts from the real series scores */
+    let post = []; try {
+      const j = await getJSON(`${API}/schedule?sportId=1&season=${D.season}&gameType=F,D,L,W&fields=dates,games,gamePk,gameDate,status,abstractGameState,teams,home,away,team,id,score`);
+      post = (j.dates || []).flatMap(d => d.games).filter(g => g.status?.abstractGameState === 'Final').sort((a, b) => a.gameDate < b.gameDate ? -1 : 1).map(g => ({ h: g.teams.home.team.id, a: g.teams.away.team.id, hs: g.teams.home.score, as: g.teams.away.score }));
+    } catch (e) { /* replay from the seeds */ }
+    return { cur: cur.filter(fin), rem: cur.filter(g => !g.final), prev, post };
   },
   bracket(X) {
     const o = { made: [], top: [], conf: [], champ: null }, fin = [];
@@ -25,5 +30,5 @@ SPORT.season = {
   },
   note: `<p><b>Strength.</b> Each team’s rating is its average run margin per game, adjusted for the opponents it faced and for home field, then pulled toward average. Last season counts for about a third as much as this one. Ratings are uncertain, so each simulated season draws every team’s true strength from a range. Starting pitchers are not modeled, so a team’s rating is its overall level.</p>
   <p><b>Postseason.</b> The three division winners in each league take seeds 1 to 3 and the three best remaining records take 4 to 6. Seeds 1 and 2 get a bye; 3 plays 6 and 4 plays 5 in a best-of-three, seed 1 meets the 4/5 winner and seed 2 the 3/6 winner in a best-of-five, then best-of-seven league and World Series rounds, with home field to the better record.</p>
-  <p><b>Limits.</b> Ties are broken by head-to-head record among the tied teams, then league and division record, then a coin flip; the later official steps are not modeled. The more a baseball game is a coin flip, the more a short series is too, so even the best team rarely tops 20% to win it all.</p>`,
+  <p><b>Limits.</b> Ties are broken by head-to-head record among the tied teams, then league and division record, then a coin flip; the later official steps are not modeled. Postseason games already played count as played, so a series in progress starts from its real score. The more a baseball game is a coin flip, the more a short series is too, so even the best team rarely tops 20% to win it all.</p>`,
 };
