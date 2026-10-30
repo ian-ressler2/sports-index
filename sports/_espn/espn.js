@@ -1,7 +1,7 @@
 /* espn.js: shared adapter for ESPN's public JSON feeds (NHL, NBA and NFL sites).
    ESPN `season` is the year the season ends for NHL/NBA and the year it starts for NFL.
    Only the lean fields we use are kept, so cached copies stay small. */
-const ESPN = { sp: '', lg: '', sbq: '' };  /* sbq: extra scoreboard parameters, such as the college divisions to include */
+const ESPN = { sp: '', lg: '', sbq: '', st: 2 };  /* sbq: extra scoreboard parameters, such as the college divisions to include; st: season type for team schedules (soccer feeds have no type 2, so soccer sets it to 0 for none) */
 const espnWeb = () => `https://site.web.api.espn.com/apis/common/v3/sports/${ESPN.sp}/${ESPN.lg}`;
 const espnSite = () => `https://site.web.api.espn.com/apis/site/v2/sports/${ESPN.sp}/${ESPN.lg}`;
 const espnApi2 = () => `https://site.api.espn.com/apis/v2/sports/${ESPN.sp}/${ESPN.lg}`;
@@ -111,7 +111,7 @@ const ESPN_BIO = id => cached(`bio:${id}`, 7 * 86400e3, async () => {
 });
 /* a team's season schedule */
 const ESPN_SCHED = (tid, season) => cached(`sch:${tid}:${season}`, 3600e3, async () => {
-  const j = await getJSON(`${espnSite()}/teams/${tid}/schedule?season=${season}&seasontype=2`);
+  const j = await getJSON(`${espnSite()}/teams/${tid}/schedule?season=${season}${ESPN.st ? `&seasontype=${ESPN.st}` : ''}`);
   return (j.events || []).map(e => {
     const c = e.competitions?.[0]; if (!c) return null;
     const me = c.competitors.find(k => k.team.id === String(tid)), op = c.competitors.find(k => k !== me);
