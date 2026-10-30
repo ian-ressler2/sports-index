@@ -216,7 +216,7 @@ async function render(force) {
   }
   const page = App.pages[first] || pageNotFound;
   try { v.className = ''; const out = await page({ path: loc.path, q: loc.q, D: App.D, el: v, rid }); } catch (e) { console.error(e); if (rid === App.rid) mount(v, errorEl(e, () => render(true))); return; }
-  if (App.D.warn.length && !$('.warnb', v) && first !== 'home') v.prepend(h('div', { class: 'warnb', style: { marginBottom: '14px' } }, `Some Statcast sources did not load (${App.D.warn.join(', ')}). The related columns will be blank.`));
+  if (App.D.warn.length && !$('.warnb', v) && first !== 'home') v.prepend(h('div', { class: 'warnb', style: { marginBottom: '14px' } }, `Some data sources did not load (${App.D.warn.join(', ')}). The related columns will be blank.`));
   if (!force && App.lastKey !== first + '/' + (loc.path[1] || '')) window.scrollTo(0, 0);
   App.lastKey = first + '/' + (loc.path[1] || '');
   const base = `${SPORT.name} · ${SPORT.short} stats`, setTitle = () => { const t = $('h1', v)?.textContent.trim(); document.title = t && first !== 'home' ? `${t} · ${base}` : base; };
