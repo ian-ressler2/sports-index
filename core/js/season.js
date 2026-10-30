@@ -24,11 +24,37 @@ async function seasonSimulate(D, S, data, N, seed, prog, alive) {
   const { r, n } = seasonRatings(ids, games, S);
   const R = ids.map(i => r.get(i)), SD = ids.map(i => S.sigma / Math.sqrt(n.get(i) + S.k));
   const rem = data.rem.filter(g => ix.has(g.h) && ix.has(g.a)), RH = Int16Array.from(rem, g => ix.get(g.h)), RA = Int16Array.from(rem, g => ix.get(g.a));
-  const base = ids.map(i => { const s = D.stand.get(i); return { w: s.w || 0, t: s.t || 0, pts: s.pts || 0 }; });
+  const base = ids.map(i => { const s = D.stand.get(i); return { w: s.w || 0, t: s.t || 0, pts: s.pts || 0, rw: s.rw || 0 }; });
   const team = ids.map(i => D.teams.get(i));
   const rng = rngFrom('season:' + seed), W = new Float64Array(M), T = new Float64Array(M), P = new Float64Array(M), rr = new Float64Array(M), key = new Float64Array(M);
   const tally = ids.map(() => ({ made: 0, div: 0, top: 0, conf: 0, champ: 0, sum: 0, hist: new Int32Array(200) }));
-  const jit = S.metric === 'pts' ? .4 : .24;
+  const jit = .001; /* last-resort coin flip; the real tiebreakers below decide almost everything */
+  /* tiebreaker state: head-to-head wins between every pair, conference and division records, regulation wins (NHL) */
+  const HH0 = new Int16Array(M * M), CW0 = new Int16Array(M), CG0 = new Int16Array(M), VW0 = new Int16Array(M), VG0 = new Int16Array(M);
+  const lgOf = team.map(t => t.lg), dvOf = team.map(t => t.div), pts = S.metric === 'pts';
+  const tally1 = (HH, CW, CG, VW, VG, w, l) => { HH[w * M + l]++; if (lgOf[w] === lgOf[l]) { CW[w]++; CG[w]++; CG[l]++; if (dvOf[w] === dvOf[l]) { VW[w]++; VG[w]++; VG[l]++; } } };
+  for (const g of games) if (g.w === 1 && g.hs !== g.as) { const h = ix.get(g.h), a = ix.get(g.a); if (g.hs > g.as) tally1(HH0, CW0, CG0, VW0, VG0, h, a); else tally1(HH0, CW0, CG0, VW0, VG0, a, h); }
+  const HH = new Int16Array(M * M), CW = new Int16Array(M), CG = new Int16Array(M), VW = new Int16Array(M), VG = new Int16Array(M), RW = new Int16Array(M), ord = new Int32Array(M);
+  const tieKeys = b => {
+    /* order by the main metric, then settle each tied group: (NHL) regulation wins, head-to-head among the tied teams, conference record, division record */
+    for (let k = 0; k < M; k++) ord[k] = k;
+    const idx = Array.from(ord).sort((x, y) => b[y] - b[x]);
+    for (let s0 = 0; s0 < M;) {
+      let e = s0 + 1; while (e < M && b[idx[e]] === b[idx[s0]]) e++;
+      if (e - s0 === 1) key[idx[s0]] = b[idx[s0]];
+      else {
+        const grp = idx.slice(s0, e); let rmin = Infinity, rmax = -Infinity;
+        if (pts) for (const k of grp) { rmin = Math.min(rmin, RW[k]); rmax = Math.max(rmax, RW[k]); }
+        for (const k of grp) {
+          let hw = 0, hg = 0; for (const j of grp) if (j !== k) { hw += HH[k * M + j]; hg += HH[k * M + j] + HH[j * M + k]; }
+          const s1 = hg ? hw / hg : .5, s2 = CG[k] ? CW[k] / CG[k] : .5, s3 = VG[k] ? VW[k] / VG[k] : .5, s0r = pts && rmax > rmin ? (RW[k] - rmin) / (rmax - rmin) : 0;
+          key[k] = b[k] + (pts ? .3 * s0r + .12 * s1 + .03 * s2 + .006 * s3 : .3 * s1 + .06 * s2 + .012 * s3) + rng() * jit;
+        }
+      }
+      s0 = e;
+    }
+  };
+  const bv = new Float64Array(M);
   const lgs = [...new Set(team.map(t => t.lg))].sort(), divsOf = new Map(), allDivs = [...new Set(team.map(t => t.div))];
   for (const lg of lgs) divsOf.set(lg, [...new Set(team.filter(t => t.lg === lg).map(t => t.div))]);
   const X = {
@@ -49,12 +75,14 @@ async function seasonSimulate(D, S, data, N, seed, prog, alive) {
   };
   const step = Math.max(20, Math.round(N / 40));
   for (let sim = 0; sim < N; sim++) {
-    for (let k = 0; k < M; k++) { rr[k] = R[k] + rng.norm() * SD[k]; W[k] = base[k].w; T[k] = base[k].t; P[k] = base[k].pts; }
+    for (let k = 0; k < M; k++) { rr[k] = R[k] + rng.norm() * SD[k]; W[k] = base[k].w; T[k] = base[k].t; P[k] = base[k].pts; RW[k] = base[k].rw; CW[k] = CW0[k]; CG[k] = CG0[k]; VW[k] = VW0[k]; VG[k] = VG0[k]; }
+    HH.set(HH0);
     for (let g = 0; g < RH.length; g++) {
       const h = RH[g], a = RA[g], hw = rng() < normCdf((rr[h] - rr[a] + S.hfa) / S.sigma), wn = hw ? h : a, ls = hw ? a : h;
-      W[wn]++; P[wn] += 2; if (S.otl && rng() < S.otl) P[ls]++;
+      W[wn]++; P[wn] += 2; const ot = S.otl && rng() < S.otl; if (ot) P[ls]++; if (pts && !ot) RW[wn]++; tally1(HH, CW, CG, VW, VG, wn, ls);
     }
-    for (let k = 0; k < M; k++) key[k] = (S.metric === 'pts' ? P[k] : W[k] + T[k] / 2) + rng() * jit;
+    for (let k = 0; k < M; k++) bv[k] = S.metric === 'pts' ? P[k] : W[k] + T[k] / 2;
+    tieKeys(bv);
     const out = S.bracket(X);
     for (const i of out.made) tally[ix.get(i)].made++;
     for (const i of out.top) tally[ix.get(i)].top++;

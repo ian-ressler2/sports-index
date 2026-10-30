@@ -25,5 +25,5 @@ SPORT.season = {
   },
   note: `<p><b>Strength.</b> Each team’s rating is its average run margin per game, adjusted for the opponents it faced and for home field, then pulled toward average. Last season counts for about a third as much as this one. Ratings are uncertain, so each simulated season draws every team’s true strength from a range. Starting pitchers are not modeled, so a team’s rating is its overall level.</p>
   <p><b>Postseason.</b> The three division winners in each league take seeds 1 to 3 and the three best remaining records take 4 to 6. Seeds 1 and 2 get a bye; 3 plays 6 and 4 plays 5 in a best-of-three, seed 1 meets the 4/5 winner and seed 2 the 3/6 winner in a best-of-five, then best-of-seven league and World Series rounds, with home field to the better record.</p>
-  <p><b>Limits.</b> Ties in the standings are broken at random, not by head-to-head and the other official tiebreakers. The more a baseball game is a coin flip, the more a short series is too, so even the best team rarely tops 20% to win it all.</p>`,
+  <p><b>Limits.</b> Ties are broken by head-to-head record among the tied teams, then league and division record, then a coin flip; the later official steps are not modeled. The more a baseball game is a coin flip, the more a short series is too, so even the best team rarely tops 20% to win it all.</p>`,
 };

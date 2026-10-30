@@ -17,5 +17,5 @@ SPORT.season = {
   },
   note: `<p><b>Strength.</b> Each team’s rating is its average scoring margin, adjusted for the opponents it faced and for home field, then pulled toward average. With only a handful of games in the books the pull is strong, and last season counts for about a third as much as this one. Ratings are uncertain, so each simulated season draws every team’s true strength from a range.</p>
   <p><b>Games.</b> Win chance comes from the rating gap plus a home edge of about two points, against a typical game spread of 13 points. Seeding follows the real format: four division winners and three wild cards per conference, the No. 1 seed gets a bye, the bracket is reseeded after the wild-card round, and the Super Bowl is played on a neutral field.</p>
-  <p><b>Limits.</b> Ties in the standings are broken at random, not by head-to-head and the other official tiebreakers. Tied games, injuries and quarterback changes are not modeled. Treat the numbers as a fair estimate, not a prediction.</p>`,
+  <p><b>Limits.</b> Ties are broken by head-to-head record among the tied teams, then conference and division record, then a coin flip; strength of victory, strength of schedule and the later official steps are not modeled. Tied games, injuries and quarterback changes are not modeled. Treat the numbers as a fair estimate, not a prediction.</p>`,
 };
