@@ -160,9 +160,59 @@ async function golf(){
     return `<tr class="pd-click" tabindex="0" data-c="g${i}"><td class="rk num">${esc(c.pos)}</td><td><span class="nm">${flag(c.a)}${esc(c.name)}</span></td><td class="r num pt ${c.par<0?'pd-up':c.par>0?'pd-dn':''}">${esc(c.sc)}</td>${rd.map(r=>{const l=c.rds.find(x=>x.period===r);return `<td class="r num ${l&&l.value?'':'dim'}" title="${l?esc(l.displayValue||''):''}">${l&&l.value?l.value:'·'}</td>`}).join('')}<td><span class="pd-bar-to" style="width:${w}px"></span></td></tr>`}).join('');
   return nb+`<div class="eyebrow">${esc(st?st.description:'')}${round?' · round '+round:''} · ${cs.length} players</div><h2 style="margin:6px 0 12px;font-size:24px">${esc(ev.name)}</h2>
   <div class="pd-card"><div class="pd-scroll"><table class="pd-tbl">${head}${body}</table></div></div>
-  <p class="pd-foot">Positions are computed from ESPN's score to par with ties marked T. The bar is each player's distance behind the leader. Round columns show strokes; hover a round for its score to par. ESPN's feed carries no season-long Tour standings, so this page follows one event at a time. Click any player for their round-by-round card.</p>`;
+  <div class="pd-sec"><h2>Season so far</h2><div id="gseason"><button class="btn sm" id="gsb" data-y="${(ev.date||d.toISOString()).slice(0,4)}">Load ${(ev.date||d.toISOString()).slice(0,4)} season table (about 30 MB download)</button></div></div>
+  <p class="pd-foot">Positions are computed from ESPN's score to par with ties marked T. The bar is each player's distance behind the leader. Round columns show strokes; hover a round for its score to par. ESPN has no season-long standings feed, so the season table is summed from every event. Click any player for their round-by-round card.</p>`;
 }
-function golfbind(){document.querySelectorAll('.pd-bar [data-o]').forEach(b=>b.onclick=()=>{const o=+b.dataset.o;S.golf.off=o===0?0:S.golf.off+o;render()})}
+function golfbind(){const gb=document.getElementById('gsb');if(gb)gb.onclick=()=>golfSeason(document.getElementById('gseason'),gb.dataset.y);document.querySelectorAll('.pd-bar [data-o]').forEach(b=>b.onclick=()=>{const o=+b.dataset.o;S.golf.off=o===0?0:S.golf.off+o;render()})}
+
+
+/* ---------- opt-in season loaders (large feeds, fetched on request) ---------- */
+const SEASON={};
+function seasonFeed(key,url){return SEASON[key]||(SEASON[key]=jget(url).catch(e=>{delete SEASON[key];throw e}))}
+function golfSeason(box,year){
+  box.innerHTML='<div class="pd-msg">Loading the season, one large download…</div>';
+  seasonFeed('golf'+year,'https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard?dates='+year).then(j=>{
+    const P=new Map();let events=0;
+    (j.events||[]).forEach(ev=>{
+      if(!(ev.status&&ev.status.type&&ev.status.type.completed))return;
+      const cs=(ev.competitions&&ev.competitions[0]&&ev.competitions[0].competitors)||[];if(!cs.length)return;events++;
+      cs.forEach(c=>{const a=c.athlete||{},n=a.displayName;if(!n)return;
+        const par=c.score==='E'?0:parseInt(c.score,10);const rds=(c.linescores||[]).filter(l=>l.period<=4&&l.value);
+        if(!rds.length)return;
+        const o=P.get(n)||{n,a,st:0,w:0,t5:0,t10:0,cuts:0,par:0,strokes:0,rounds:0,fin:[]};
+        o.st++;if(c.order===1)o.w++;if(c.order<=5)o.t5++;if(c.order<=10)o.t10++;if(rds.length>=4)o.cuts++;
+        if(!isNaN(par))o.par+=par;rds.forEach(l=>{o.strokes+=+l.value;o.rounds++});o.fin.push(c.order||0);P.set(n,o);
+      });
+    });
+    const rows=[...P.values()].filter(o=>o.st>=Math.min(3,events)).sort((x,y)=>y.w-x.w||y.t10-x.t10||x.par/x.st-y.par/y.st).slice(0,80);
+    if(!rows.length){box.innerHTML='<div class="pd-msg">No completed events with scores for '+year+' yet.</div>';return}
+    const body=rows.map((o,i)=>`<tr><td class="rk num">${i+1}</td><td><span class="nm">${flag(o.a)}${esc(o.n)}</span></td><td class="r num">${o.st}</td><td class="r num">${o.w||'·'}</td><td class="r num">${o.t5||'·'}</td><td class="r num">${o.t10||'·'}</td><td class="r num">${o.cuts}/${o.st}</td><td class="r num">${fmtN(o.fin.reduce((a,b)=>a+b,0)/o.fin.length,1)}</td><td class="r num">${fmtN(o.strokes/o.rounds,1)}</td></tr>`).join('');
+    box.innerHTML=`<div class="eyebrow">${year} season · ${events} completed events · players with 3+ starts</div><div class="pd-card"><div class="pd-scroll" style="max-height:520px"><table class="pd-tbl"><tr><th class="rk">#</th><th>Player</th><th class="r">Starts</th><th class="r">Wins</th><th class="r">Top 5</th><th class="r">Top 10</th><th class="r">4 rounds</th><th class="r">Avg finish</th><th class="r">Avg round</th></tr>${body}</table></div></div><p class="pd-foot">Summed from every completed event's leaderboard. Finish is ESPN's leaderboard order, so ties are broken arbitrarily. "4 rounds" counts events where the player played all four rounds, which approximates making the cut. This is not the official FedEx Cup or money list.</p>`;
+  }).catch(e=>{box.innerHTML=`<div class="pd-msg">Season could not be loaded (${esc(e.message)}).</div>`});
+}
+const TS={};
+function tennisSeason(t,year){
+  return seasonFeed('tn'+t+year,`https://site.api.espn.com/apis/site/v2/sports/tennis/${t}/scoreboard?dates=${year}0101-${year}1231`).then(j=>{
+    const key=t+year;if(TS[key])return TS[key];const M=[];
+    (j.events||[]).forEach(ev=>(ev.groupings||[]).forEach(g=>{if(!/singles/i.test((g.grouping&&g.grouping.displayName)||''))return;
+      (g.competitions||[]).forEach(c=>{if(!(c.status&&c.status.type&&c.status.type.completed))return;
+        const cp=c.competitors||[];if(cp.length!==2||!cp[0].athlete||!cp[1].athlete||!cp.some(p=>p.winner))return;
+        const w=cp.find(p=>p.winner),l=cp.find(p=>p!==w);
+        M.push({ev:ev.name,rnd:(c.round&&(c.round.displayName||c.round))||'',date:String(c.startDate||c.date||'').slice(0,10),w:w.athlete.displayName,l:l.athlete.displayName,sc:(w.linescores||[]).map((x,i)=>`${x.value}${(l.linescores||[])[i]!=null?'-'+l.linescores[i].value:''}`).join(' ')});
+      })}));
+    M.sort((a,b)=>b.date.localeCompare(a.date));return TS[key]={M};
+  });
+}
+function h2h(M,a,b){const m=M.filter(x=>(x.w===a&&x.l===b)||(x.w===b&&x.l===a));return {m,aw:m.filter(x=>x.w===a).length,bw:m.filter(x=>x.w===b).length}}
+function tennisH2H(box,t,year,a,b){
+  box.innerHTML='<div class="pd-msg">Loading the season, one large download…</div>';
+  tennisSeason(t,year).then(({M})=>{
+    if(!a||!b||a===b){box.innerHTML='<div class="pd-msg">Pick two different players.</div>';return}
+    const r=h2h(M,a,b);
+    if(!r.m.length){box.innerHTML=`<div class="pd-card"><div class="pd-msg">${esc(a)} and ${esc(b)} have not met in a completed singles match in ${year} (${M.length.toLocaleString()} matches searched).</div></div>`;return}
+    box.innerHTML=`<div class="pd-tiles">${tile(esc(a),r.aw)+tile(esc(b),r.bw)+tile('Meetings in '+year,r.m.length)}</div><div class="pd-res" style="grid-template-columns:1fr">${r.m.map(x=>`<div class="pd-m"><div class="gl">${esc(x.ev)}${x.rnd?' · '+esc(x.rnd):''} · ${esc(x.date)}</div><div class="pl"><span><b>${esc(x.w)}</b> won</span><span class="sc">${esc(x.sc)}</span></div></div>`).join('')}</div><p class="pd-foot">Searched ${M.length.toLocaleString()} completed ${t.toUpperCase()} singles matches from ${year}. Earlier seasons are not included, so this is a season head-to-head, not a career one.</p>`;
+  }).catch(e=>{box.innerHTML=`<div class="pd-msg">Season could not be loaded (${esc(e.message)}).</div>`});
+}
 
 /* ---------- Tennis ---------- */
 async function tennis(){
@@ -186,11 +236,12 @@ async function tennis(){
   return `<div class="pd-bar">${seg([['atp','ATP (men)'],['wta','WTA (women)']],t)}<span class="sp"></span></div>
   <div class="eyebrow">${t.toUpperCase()} singles rankings · top ${Math.min(100,ranks.length)}${(rk.rankings&&rk.rankings[0]&&rk.rankings[0].update)?'':''}</div>
   <div class="pd-card pd-sec"><div class="pd-scroll" style="max-height:520px"><table class="pd-tbl"><tr><th class="rk">#</th><th>Player</th><th class="r">Points</th><th class="r">Move</th></tr>${rows}</table></div></div>
+  <div class="pd-sec"><h2>Head to head</h2><div class="pd-bar"><select id="h1" class="btn sm" aria-label="First player">${ranks.slice(0,100).map((r,i)=>`<option ${i===0?'selected':''}>${esc((r.athlete||{}).displayName)}</option>`).join('')}</select><span class="dim">vs</span><select id="h2" class="btn sm" aria-label="Second player">${ranks.slice(0,100).map((r,i)=>`<option ${i===1?'selected':''}>${esc((r.athlete||{}).displayName)}</option>`).join('')}</select><button class="btn sm" id="h2go" data-y="${d.getUTCFullYear()}" data-t="${t}">Compare ${d.getUTCFullYear()} meetings (about 20 MB download)</button></div><div id="h2out"></div></div>
   <div class="pd-sec"><h2>Singles results</h2><div class="pd-bar"><button class="btn sm" data-o="-1">‹ Previous day</button><span class="mono" style="font-size:12.5px">${day}</span><button class="btn sm" data-o="1">Next day ›</button><button class="btn sm" data-o="0">Today</button></div>
   ${cards?`<div class="pd-res">${cards}</div>`:`<div class="pd-card"><div class="pd-msg">No completed ${t.toUpperCase()} singles matches on ${day}.</div></div>`}</div>
   <p class="pd-foot">Rankings are ESPN's published ${t.toUpperCase()} list. Set scores are shown next to each player, the winner in bold. ESPN carries no serve or return stats in this feed. Click any ranked player for their card and tournament matches.</p>`;
 }
-function tennisbind(){
+function tennisbind(){const hg=document.getElementById('h2go');if(hg)hg.onclick=()=>tennisH2H(document.getElementById('h2out'),hg.dataset.t,hg.dataset.y,document.getElementById('h1').value,document.getElementById('h2').value);
   document.querySelectorAll('.pd-bar > .seg')[0]?.querySelectorAll('button').forEach(b=>b.onclick=()=>{S.tennis.tour=b.dataset.k;S.tennis.off=0;render()});
   document.querySelectorAll('.pd-sec [data-o]').forEach(b=>b.onclick=()=>{const o=+b.dataset.o;S.tennis.off=o===0?0:S.tennis.off+o;render()});
 }
@@ -214,6 +265,25 @@ function openCard(key){
   ov.innerHTML=`<aside class="pd-dr" role="dialog" aria-modal="true">${f()}</aside>`;
   ov.onclick=e=>{if(e.target===ov||e.target.closest('[data-x]'))closeCard()};
   document.body.appendChild(ov);ov.querySelector('[data-x]')?.focus();
+  if(HOOK){const h=HOOK;HOOK=null;h(ov)}
+}
+let HOOK=null;
+const F1S={};
+function f1season(y){return F1S[y]||(F1S[y]=jget('https://site.api.espn.com/apis/site/v2/sports/racing/f1/scoreboard?dates='+y).then(j=>(j.events||[]).filter(e=>e.competitions&&e.competitions.some(c=>c.type&&c.type.abbreviation==='Race'&&c.status&&c.status.type&&c.status.type.completed))).catch(e=>{delete F1S[y];throw e}))}
+function f1results(ov,name,season){
+  const box=ov.querySelector('#f1res');if(!box)return;
+  f1season(season).then(evs=>{
+    const rows=evs.map(e=>{
+      const pick=ab=>{const c=e.competitions.find(c=>c.type&&c.type.abbreviation===ab);const x=c&&(c.competitors||[]).find(p=>p.athlete&&p.athlete.displayName===name);return x?x.order:null};
+      return {gp:(e.shortName||e.name).replace(/ GP$/,''),grid:pick('Qual'),fin:pick('Race'),spr:pick('SR')};
+    }).filter(r=>r.fin!=null);
+    if(!rows.length){box.innerHTML='<div class="pd-card"><div class="pd-msg">No race results found for this driver.</div></div>';return}
+    const fin=rows.map(r=>r.fin),wins=fin.filter(v=>v===1).length,pod=fin.filter(v=>v<=3).length,poles=rows.filter(r=>r.grid===1).length;
+    const both=rows.filter(r=>r.grid!=null),gain=both.reduce((a,r)=>a+(r.grid-r.fin),0);
+    const tiles=tile('Wins',wins)+tile('Podiums',pod)+tile('Poles',poles)+tile('Avg finish',fmtN(fin.reduce((a,b)=>a+b,0)/fin.length,1))+tile('Avg grid',both.length?fmtN(both.reduce((a,r)=>a+r.grid,0)/both.length,1):'–')+tile('Places gained',both.length?(gain>0?'+':'')+gain:'–');
+    const body=rows.slice().reverse().map(r=>{const d=r.grid!=null?r.grid-r.fin:null;return `<tr><td>${esc(r.gp)}</td><td class="r num">${r.grid??'–'}</td><td class="r num">${r.fin}</td><td class="r num ${d>0?'pd-up':d<0?'pd-dn':''}">${d==null?'':d>0?'+'+d:d}</td><td class="r num dim">${r.spr??''}</td></tr>`}).join('');
+    box.innerHTML=`<div class="eyebrow" style="margin-bottom:8px">Qualifying vs race</div><div class="pd-tiles">${tiles}</div><div class="pd-card"><table class="pd-tbl"><tr><th>Grand Prix</th><th class="r">Grid</th><th class="r">Finish</th><th class="r">+/-</th><th class="r">Sprint</th></tr>${body}</table></div><p class="pd-foot" style="margin:0">Grid is the qualifying order and finish is the classified race order. ESPN does not publish lap times, fastest laps or pit stops.</p>`;
+  }).catch(e=>{box.innerHTML=`<div class="pd-card"><div class="pd-msg">Race results could not be loaded (${esc(e.message)}).</div></div>`});
 }
 function closeCard(){document.getElementById('ov')?.remove()}
 addEventListener('keydown',e=>{if(e.key==='Escape')closeCard()});
@@ -228,7 +298,8 @@ function f1card(r,lead,R,season,kind,rank){
   const tiles=tile('Rank',rank)+tile('Points',fmtN(r.pts))+tile('Gap to leader',rank===1?'Leader':'-'+fmtN(lead.pts-r.pts))+tile('Rounds scored',`${scored} of ${played.length}`)+tile('Best round',best?`${best} · ${R[bi].ab}`:'–')+tile('Avg per round',fmtN(avg,1));
   const labels=played.map(i=>R[i].ab);
   const series=rank===1?[{n:r.name,c:PAL[0],v:vals}]:[{n:r.name,c:PAL[0],v:vals},{n:lead.name+' (leader)',c:PAL[1],v:lv}];
-  return cardHead(`${season} ${kind?'constructor':'driver'} standings`,r.name,r.flag,r.ab?r.ab:'')+`<div class="pd-tiles">${tiles}</div>`+(played.length?`<div><div class="eyebrow" style="margin-bottom:8px">Points by round</div>${bars(labels,series,{fmt:v=>v+' pts'})}</div>`:'')+`<p class="pd-foot" style="margin:0">Points per round are as ESPN reports them (sprint and race together). Results beyond points, such as grid slots and lap times, are not in this feed.</p>`;
+  if(!kind)HOOK=ov=>f1results(ov,r.name,season);
+  return cardHead(`${season} ${kind?'constructor':'driver'} standings`,r.name,r.flag,r.ab?r.ab:'')+`<div class="pd-tiles">${tiles}</div>`+(played.length?`<div><div class="eyebrow" style="margin-bottom:8px">Points by round</div>${bars(labels,series,{fmt:v=>v+' pts'})}</div>`:'')+`<p class="pd-foot" style="margin:0">Points per round are as ESPN reports them (sprint and race together).</p>`+(kind?'':'<div id="f1res"><div class="pd-msg">Loading race results…</div></div>');
 }
 function golfcard(c,cs,ev){
   const rds=[1,2,3,4].map(r=>{const l=c.rds.find(x=>x.period===r);return l&&l.value?+l.value:null});
