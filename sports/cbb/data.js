@@ -1,6 +1,6 @@
 /* data.js: men's college basketball season loader (ESPN feeds). Advanced rates are derived from totals.
    ESPN lists ~10,000 players and ~720 teams for a season, and its pages stop at 400 teams, so the loader asks for the busiest players
-   (by minutes, plus the top scorers) and reads the team list from both ends of the games-played ordering. */
+   (about 4,000 by minutes per game, plus the top scorers) and reads the team list from both ends of the games-played ordering. */
 ESPN.sp = 'basketball'; ESPN.lg = 'mens-college-basketball';
 const CBB_POS = { G: 'Guard', F: 'Forward', C: 'Center', PG: 'Point guard', SG: 'Shooting guard', SF: 'Small forward', PF: 'Power forward', 'G-F': 'Guard / forward', 'F-C': 'Forward / center' };
 const safeDiv = (a, b) => b ? a / b : NaN;
@@ -31,10 +31,12 @@ function mapPlayer(r, tm) {
   return row;
 }
 
-/* the busiest players: the top 1000 by total minutes plus the top 400 scorers, merged */
+/* the busiest players: about 4,000 players by minutes per game plus the top 400 scorers, merged */
 async function cbbAthletes(season) {
-  const url = (sort, n) => `${espnWeb()}/statistics/byathlete?${ESPN_Q}&isqualified=false&season=${season}&seasontype=2&limit=${n}&page=1&sort=${sort}`;
-  const lists = await Promise.all([getJSON(url('general.minutes:desc', 1000)), getJSON(url('offensive.points:desc', 400))]);
+  const url = (sort, n, pg) => `${espnWeb()}/statistics/byathlete?${ESPN_Q}&isqualified=false&season=${season}&seasontype=2&limit=${n}&page=${pg}&sort=${sort}`;
+  /* ten pages of 400, busiest first by minutes per game: about 4,000 players, everyone who plays real minutes */
+  const pages = await pool([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 4, pg => getJSON(url('general.minutes:desc', 400, pg)).catch(e => { if (pg === 1) throw e; return { athletes: [], categories: [] }; }));
+  const lists = [...pages.filter(Boolean), await getJSON(url('offensive.points:desc', 400, 1))];
   const rows = [], teams = new Map(), seen = new Set();
   for (const j of lists) for (const x of j.athletes || []) {
     const a = x.athlete; if (!a || seen.has(a.id)) continue; seen.add(a.id);
@@ -108,7 +110,7 @@ async function loadSeason(season, prog = () => { }) {
   }
   D.tof = D.tdf = tk; D.tofList = D.tdfList = [...tk.values()];
 
-  /* players: the busiest 1,000 by minutes plus the top scorers (see cbbAthletes) */
+  /* players: about 4,000 by minutes per game plus the top scorers (see cbbAthletes) */
   const pl = new Map();
   for (const r of res.ath.rows) { const m = mapPlayer(r, ctx.get(+r.tid)); if (m.gp > 0 && D.teams.has(m.tid)) pl.set(m.id, m); }
   D.pl = pl; D.plList = [...pl.values()];

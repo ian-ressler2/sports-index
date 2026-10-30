@@ -42,7 +42,7 @@ Object.assign(SPORT, {
   unit: 'GAME',
   credit: 'Data: ESPN',
   footer: 'Not affiliated with or endorsed by the NCAA or any school or conference. Statistics and play-by-play come from ESPN’s public feeds.<br>Player photos and team logos are loaded from ESPN’s image host.',
-  sourceNote: 'Sources: ESPN season totals and play-by-play for Division I men’s basketball. ESPN lists thousands of players per season, so the player pool is the 1,000 busiest by minutes plus the top 400 scorers; percentiles compare players within that pool. TS%, eFG%, rates and per-36 figures are derived from totals; USG%, AST% and REB% are estimated from team totals. Team ratings are per 100 possessions, with possessions estimated from shots, free throws, turnovers and offensive rebounds. Shading: percentile among qualified players (red high, blue low; flipped where lower is better).',
+  sourceNote: 'Sources: ESPN season totals and play-by-play for Division I men’s basketball. ESPN lists about 10,000 players per season, so the player pool is the 4,000 who play the most minutes per game plus the top 400 scorers, which reaches well down the bench; percentiles compare players within that pool. TS%, eFG%, rates and per-36 figures are derived from totals; USG%, AST% and REB% are estimated from team totals. Team ratings are per 100 possessions, with possessions estimated from shots, free throws, turnovers and offensive rebounds. Shading: percentile among qualified players (red high, blue low; flipped where lower is better).',
   searchHint: 'Type a name. Try “Boozer”, “Duke” or “Houston”.',
   headshot: id => `https://a.espncdn.com/i/headshots/mens-college-basketball/players/full/${id}.png`,
   teamLogo: id => App.D?.teams.get(+id)?.logo || '',
