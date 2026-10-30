@@ -29,7 +29,7 @@ jobs:
         continue-on-error: true
         run: |
           mkdir -p .cache dist/cfb
-          python3 tools/build_cfb_targets.py .cache/cfb_targets.json dist/cfb/targets.json 400
+          python3 tools/build_cfb_targets.py .cache/cfb_targets.json dist/cfb/targets.json 1200
       - name: Lint for undefined identifiers
         run: |
           for s in mlb nhl nba nfl; do node --expose-internals tools/lint_globals.js dist/assets/core.js dist/$s/sport.js; done
