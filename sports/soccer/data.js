@@ -1,5 +1,5 @@
-/* data.js: soccer season loader (ESPN feeds). The table comes from the standings; every other number comes from ESPN's per-club season totals
-   (one request per club). ESPN publishes no bulk player stats for soccer, so these sites are about clubs. */
+/* data.js: soccer season loader (ESPN feeds). The table comes from the standings, club numbers from ESPN's per-club season totals, and player numbers
+   from each club's roster feed, which carries every player's season totals (one request per club). ESPN publishes no bulk player table for soccer. */
 const safeDiv = (a, b) => b ? a / b : NaN;
 const pctOf = (a, b) => b ? a / b * 100 : NaN;
 /* a stable colour per club: ESPN's standings carry none, so spread the ids around the colour wheel */
@@ -15,6 +15,42 @@ async function socTeamStats(season, ids) {
     m.set(String(id), v);
   });
   return m;
+}
+
+
+const SOC_POS = { G: 'Goalkeeper', D: 'Defender', M: 'Midfielder', F: 'Forward' };
+
+/* every player a club lists, with the season totals the roster feed carries (appearances, goals, assists, shots, cards, saves) */
+async function socRoster(season, id) {
+  const j = await getJSON(`${espnSite()}/teams/${id}/roster?season=${season}`).catch(() => null);
+  const out = [];
+  for (const a of j?.athletes || []) {
+    const cats = a.statistics?.splits?.categories; if (!cats) continue;
+    const v = {}; for (const c of cats) { const o = v[c.name] = {}; for (const s of c.stats || []) o[s.name] = s.value; }
+    if (!(v.general?.appearances > 0)) continue;
+    out.push({ id: +a.id, name: a.displayName || a.fullName, tid: +id, pos: a.position?.abbreviation || '', age: a.age, jersey: a.jersey || '', h: a.displayHeight || '', nat: a.citizenship || '', v });
+  }
+  return out;
+}
+async function socPlayers(season, ids) {
+  const by = new Map();
+  await pool(ids, 6, async id => { for (const r of await socRoster(season, id)) { const o = by.get(r.id); if (!o || r.v.general.appearances > o.v.general.appearances) by.set(r.id, r); } });
+  return [...by.values()];
+}
+function socPlayerRow(r) {
+  const g = r.v.general || {}, o = r.v.offensive || {}, k = r.v.goalKeeping || {};
+  const app = g.appearances, subs = g.subIns || 0, st = app - subs, goals = o.totalGoals || 0, ast = o.goalAssists || 0, sh = o.totalShots, sot = o.shotsOnTarget;
+  const row = { id: r.id, name: r.name, tid: r.tid, pos: r.pos, age: r.age, jersey: r.jersey, h: r.h, nat: r.nat, nt: 1, app, st, sub: subs };
+  if (r.pos === 'G') {
+    Object.assign(row, { sv: k.saves, sf: k.shotsFaced, gc: k.goalsConceded, svp: pctOf(k.saves, k.shotsFaced), svpa: safeDiv(k.saves, app), sfpa: safeDiv(k.shotsFaced, app), gcpa: safeDiv(k.goalsConceded, app), yc: g.yellowCards || 0, rc: g.redCards || 0 });
+    return row;
+  }
+  Object.assign(row, {
+    g: goals, a: ast, ga: goals + ast, gpa: safeDiv(goals, app), apa: safeDiv(ast, app), gapa: safeDiv(goals + ast, app),
+    sh, sot, shpa: safeDiv(sh, app), sotpa: safeDiv(sot, app), sotp: pctOf(sot, sh), conv: pctOf(goals, sh),
+    fc: g.foulsCommitted, fs: g.foulsSuffered, fcpa: safeDiv(g.foulsCommitted, app), fspa: safeDiv(g.foulsSuffered, app), yc: g.yellowCards || 0, rc: g.redCards || 0, ofs: o.offsides, og: g.ownGoals || 0,
+  });
+  return row;
 }
 
 async function loadSeason(season, prog = () => { }) {
@@ -63,8 +99,17 @@ async function loadSeason(season, prog = () => { }) {
     });
   }
   D.tof = D.tpo = D.tdf = tk; D.tofList = D.tpoList = D.tdfList = [...tk.values()];
-  D.players = new Map(); D.pl = new Map(); D.plList = [];
-  D.maps = { tof: tk, tpo: tk, tdf: tk }; D.lists = { tof: D.tofList, tpo: D.tpoList, tdf: D.tdfList };
-  for (const g of ['tof', 'tpo', 'tdf']) buildPct(D, g);
+
+  /* players: every club's roster totals; a failure leaves the club pages working */
+  let raw = [];
+  try { raw = await cached(`${season}:pl`, ttl, () => socPlayers(season, stand.map(r => r.id))); } catch (e) { D.warn.push('Player stats did not load; only club pages are available.'); }
+  const pl = new Map(), gk = new Map();
+  for (const r of raw) { if (!D.teams.has(r.tid)) continue; const m = socPlayerRow(r); (r.pos === 'G' ? gk : pl).set(m.id, m); }
+  D.pl = pl; D.plList = [...pl.values()]; D.gk = gk; D.gkList = [...gk.values()];
+  D.q = { pl: Math.max(1, Math.ceil(0.35 * D.maxG)), gk: Math.max(1, Math.ceil(0.35 * D.maxG)) };
+  D.players = new Map();
+  for (const r of [...D.plList, ...D.gkList]) D.players.set(r.id, { id: r.id, name: r.name, tid: r.tid, pos: r.pos, w: r.app || 0, key: slugify(r.name) });
+  D.maps = { pl, gk, tof: tk, tpo: tk, tdf: tk }; D.lists = { pl: D.plList, gk: D.gkList, tof: D.tofList, tpo: D.tpoList, tdf: D.tdfList };
+  for (const g of ['pl', 'gk', 'tof', 'tpo', 'tdf']) buildPct(D, g);
   return D;
 }

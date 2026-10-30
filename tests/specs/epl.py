@@ -36,5 +36,17 @@ def summary(teams, r):
     add(seq, '', f"Match ends, {a['name']} {hs}, {b['name']} {as_}.", '', 0, 2)
     cm.reverse()
     return {'videos': [], 'commentary': cm, 'header': {'competitions': [{'date': '2026-10-24T14:00Z', 'status': {'type': {'detail': 'FT'}}, 'competitors': [{'team': {'id': str(a['id']), 'abbreviation': a['abbr'], 'displayName': a['name']}, 'homeAway': 'home', 'score': str(hs)}, {'team': {'id': str(b['id']), 'abbreviation': b['abbr'], 'displayName': b['name']}, 'homeAway': 'away', 'score': str(as_)}]}]}}
+def roster(t, r):
+    out = []
+    for i in range(12):
+        pos = 'G' if i == 0 else 'DMF'[i % 3]
+        app = 3 + (i * 5 + t['id']) % 6
+        gen = {'appearances': app, 'subIns': i % 3, 'foulsCommitted': i % 7, 'foulsSuffered': i % 5, 'redCards': 0, 'yellowCards': i % 4, 'ownGoals': 0}
+        cats = [{'name': 'general', 'stats': [{'name': k, 'value': v} for k, v in gen.items()]},
+                {'name': 'offensive', 'stats': [{'name': 'totalGoals', 'value': (i * 2) % 5}, {'name': 'goalAssists', 'value': i % 4}, {'name': 'totalShots', 'value': 4 + i}, {'name': 'shotsOnTarget', 'value': 2 + i % 4}, {'name': 'offsides', 'value': i % 3}]},
+                {'name': 'goalKeeping', 'stats': [{'name': 'saves', 'value': 12 if pos == 'G' else 0}, {'name': 'shotsFaced', 'value': 17 if pos == 'G' else 0}, {'name': 'goalsConceded', 'value': 5 if pos == 'G' else 0}]}]
+        out.append({'id': str(300000 + t['id'] * 20 + i), 'displayName': f"Player {t['id']}-{i}", 'age': 20 + i, 'jersey': str(i + 1), 'displayHeight': "6' 0\"", 'citizenship': 'England',
+                    'position': {'abbreviation': pos}, 'statistics': {'splits': {'categories': cats}}})
+    return out
 SPEC = Spec('soccer', 'eng.1', 2026, TEAMS, DIVS, [], ['F'], lambda pos, r: {}, [], lambda *a: [], stand, GP, 0, [], [], lambda r: [], None)
-SPEC.flat = True; SPEC.core = core; SPEC.summary = summary
+SPEC.flat = True; SPEC.core = core; SPEC.summary = summary; SPEC.roster = roster

@@ -241,8 +241,8 @@
   "name": "Premier Index",
   "short": "EPL",
   "accent": "#b98cff",
-  "tagline": "Goals, xG, shot maps, every match replayed",
-  "desc": "Premier League standings, team attack, possession and defense rankings, the weekend scoreboard and a minute-by-minute replay of any match with a shot map.",
+  "tagline": "Player stats, xG, shot maps, every match replayed",
+  "desc": "Premier League standings, player stats, club attack, possession and defense rankings, the weekend scoreboard and a minute-by-minute replay of any match with a shot map.",
   "files": [
    "../_espn/espn",
    "../_espn/pack",
@@ -275,8 +275,8 @@
   "name": "Kickoff Index",
   "short": "MLS",
   "accent": "#ff6b6b",
-  "tagline": "Conference tables, xG, shot maps, every match replayed",
-  "desc": "MLS standings by conference, team attack, possession and defense rankings, the scoreboard and a minute-by-minute replay of any match with a shot map.",
+  "tagline": "Player stats, conference tables, xG, shot maps, matches replayed",
+  "desc": "MLS standings by conference, player stats, club attack, possession and defense rankings, the scoreboard and a minute-by-minute replay of any match with a shot map.",
   "files": [
    "../_espn/espn",
    "../_espn/pack",
@@ -309,8 +309,8 @@
   "name": "Starball Index",
   "short": "UCL",
   "accent": "#5aa7ff",
-  "tagline": "League phase table, xG, shot maps, every match replayed",
-  "desc": "Champions League league-phase table, team attack, possession and defense rankings, the scoreboard and a minute-by-minute replay of any match with a shot map.",
+  "tagline": "Player stats, league phase table, xG, shot maps, matches replayed",
+  "desc": "Champions League league-phase table, player stats, club attack, possession and defense rankings, the scoreboard and a minute-by-minute replay of any match with a shot map.",
   "files": [
    "../_espn/espn",
    "../_espn/pack",

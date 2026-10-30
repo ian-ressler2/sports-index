@@ -92,6 +92,9 @@ def make_handler(spec, seed=7):
         if getattr(spec, 'core', None) and re.search(r'/seasons/\d+/types/\d+/teams/\d+/statistics$', path):
             tid = int(re.search(r'/teams/(\d+)/', path).group(1)); t = next(x for x in teams if x['id'] == tid)
             return J({'splits': {'categories': [{'name': n, 'stats': [{'name': k, 'value': v, 'displayValue': str(v)} for k, v in d.items()]} for n, d in spec.core(t, rnd).items()]}})
+        if getattr(spec, 'roster', None) and re.search(r'/teams/\d+/roster$', path):
+            tid = int(re.search(r'/teams/(\d+)/', path).group(1)); t = next(x for x in teams if x['id'] == tid)
+            return J({'season': {'year': spec.season}, 'athletes': spec.roster(t, rnd)})
         if path.endswith('/summary') and getattr(spec, 'summary', None): return J(spec.summary(teams, rnd))
         if path.endswith('/summary'):
             return J({'videos': [{'headline': 'Game Highlights', 'duration': 72, 'thumbnail': 'https://example.com/t.jpg', 'links': {'source': {'href': 'https://example.com/a.mp4'}}}, {'headline': 'Top plays', 'duration': 95, 'links': {'source': {'href': 'https://example.com/b.mp4'}}}], 'header': {'competitions': [{'date': '2025-10-09T02:00Z', 'competitors': [{'team': {'id': '1', 'abbreviation': 'AAA'}, 'homeAway': 'home', 'score': '3'}, {'team': {'id': '2', 'abbreviation': 'BBB'}, 'homeAway': 'away', 'score': '4'}]}]}, 'boxscore': {'players': [{'team': {'id': '1'}, 'statistics': [{'name': 'goalies', 'athletes': [{'athlete': {'id': athletes[45]['id']}}]}]}, {'team': {'id': '2'}, 'statistics': [{'name': 'goalies', 'athletes': [{'athlete': {'id': athletes[46]['id']}}]}]}]}, **({'drives': {'previous': [{'plays': spec.plays(rnd, [a for a in athletes])}]}} if spec.sp == 'football' else {'plays': spec.plays(rnd, [a for a in athletes]) if spec.plays else []})})
