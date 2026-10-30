@@ -143,5 +143,6 @@
     "/game/9000",
     "/today",
     "/watch"
-  ]
+  ],
+  "cfb": ["/", "/stats/tof", "/stats/tdf", "/stats/tsp", "/lab", "/compare", "/compare/t200/t201", "/teams", "/team/200", "/team/203", "/today", "/games", "/game/9001", "/watch", "/stats/tof?team=Southeastern", "/stats/zzz"]
 }

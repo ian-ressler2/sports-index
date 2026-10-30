@@ -202,5 +202,39 @@
     "accbg": "rgba(155,140,255,.10)"
    }
   }
+ },
+ "cfb": {
+  "name": "Saturday Index",
+  "short": "CFB",
+  "accent": "#e8b931",
+  "tagline": "FBS team ratings, snap-by-snap game replay",
+  "desc": "Every FBS team ranked on offense, defense and special teams, conference standings, the AP-ranked scoreboard and a snap-by-snap replay of any game.",
+  "files": [
+   "../_espn/espn",
+   "../_espn/pack",
+   "cols",
+   "data",
+   "hero",
+   "field",
+   "game",
+   "gloss",
+   "config"
+  ],
+  "theme": {
+   "light": {
+    "acc": "#a87a00",
+    "acc2": "#d9a21b",
+    "a": "#a87a00",
+    "b": "#2f6fd6",
+    "accbg": "rgba(168,122,0,.10)"
+   },
+   "dark": {
+    "acc": "#e8b931",
+    "acc2": "#f3d36f",
+    "a": "#e8b931",
+    "b": "#5aa0ff",
+    "accbg": "rgba(232,185,49,.10)"
+   }
+  }
  }
 }
