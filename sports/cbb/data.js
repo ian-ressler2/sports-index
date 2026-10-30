@@ -31,16 +31,6 @@ function mapPlayer(r, tm) {
   return row;
 }
 
-/* a stat row's categories keyed by name, using the header's names for that name (the college team feed lists its categories in a different order than the header) */
-function cbbCats(head, row) {
-  const named = {}; for (const c of head || []) if (c.names?.length && !named[c.name]) named[c.name] = c.names;
-  const out = {}, seen = {};
-  for (const c of row || []) {
-    const ns = named[c.name] || [], n = seen[c.name] = (seen[c.name] || 0) + 1, o = out[n > 1 ? `${c.name}#${n}` : c.name] = {};
-    (c.values || []).forEach((v, k) => { if (ns[k] != null && (o[ns[k]] == null || v != null)) o[ns[k]] = v; });
-  }
-  return out;
-}
 /* the busiest players: the top 1000 by total minutes plus the top 400 scorers, merged */
 async function cbbAthletes(season) {
   const url = (sort, n) => `${espnWeb()}/statistics/byathlete?${ESPN_Q}&isqualified=false&season=${season}&seasontype=2&limit=${n}&page=1&sort=${sort}`;
@@ -50,7 +40,7 @@ async function cbbAthletes(season) {
     const a = x.athlete; if (!a || seen.has(a.id)) continue; seen.add(a.id);
     const tm = (a.teams || []).slice(-1)[0], tid = tm ? tm.id : a.teamId || '';
     if (tm && !teams.has(tm.id)) teams.set(tm.id, { id: tm.id, abbr: tm.abbreviation, name: tm.displayName, short: tm.name, color: tm.color ? '#' + tm.color : '', alt: tm.alternateColor ? '#' + tm.alternateColor : '', logo: espnLogo(tm) });
-    rows.push({ id: a.id, name: a.displayName, pos: a.position?.abbreviation || '', tid, abbr: a.teamShortName || tm?.abbreviation || '', age: a.age, nt: (a.teams || []).length || (tid ? 1 : 0), v: cbbCats(j.categories, x.categories) });
+    rows.push({ id: a.id, name: a.displayName, pos: a.position?.abbreviation || '', tid, abbr: a.teamShortName || tm?.abbreviation || '', age: a.age, nt: (a.teams || []).length || (tid ? 1 : 0), v: espnNamedCats(j.categories, x.categories) });
   }
   return { rows, teams };
 }
@@ -59,24 +49,14 @@ async function cbbTeamStats(season) {
   const url = sort => `${espnWeb()}/statistics/byteam?${ESPN_Q}&season=${season}&seasontype=2&limit=400&page=1&sort=${sort}`;
   const lists = await Promise.all([getJSON(url('general.gamesPlayed:desc')), getJSON(url('general.gamesPlayed:asc'))]);
   const m = new Map();
-  for (const j of lists) for (const t of j.teams || []) if (!m.has(t.team.id)) m.set(t.team.id, { id: t.team.id, v: cbbCats(j.categories, t.categories) });
+  for (const j of lists) for (const t of j.teams || []) if (!m.has(t.team.id)) m.set(t.team.id, { id: t.team.id, v: espnNamedCats(j.categories, t.categories) });
   return m;
-}
-/* standings by conference. ESPN repeats every stat name for the overall, home, road and conference splits, so values are keyed by their type */
-async function cbbStandings(season) {
-  const j = await getJSON(`${espnApi2()}/standings?${ESPN_Q}&season=${season}&level=3`);
-  const out = [];
-  for (const c of j.children || []) for (const e of c.standings?.entries || []) {
-    const s = {}, d = {}; for (const x of e.stats || []) { s[x.type || x.name] = x.value; d[x.type || x.name] = x.displayValue; }
-    out.push({ conf: String(c.name || '').replace(/ Conference$/, ''), div: '', id: e.team.id, abbr: e.team.abbreviation, name: e.team.displayName, short: e.team.name, loc: e.team.location, logo: espnLogo(e.team), s, d });
-  }
-  return out;
 }
 const cbbRec = x => { const m = /^(\d+)-(\d+)/.exec(x || ''); return m ? [+m[1], +m[2]] : [0, 0]; };
 
 async function loadSeason(season, prog = () => { }) {
   const ttl = ttlFor(season), D = { season, warn: [], pct: {} };
-  const T = { ath: [true, () => cbbAthletes(season)], team: [true, () => cbbTeamStats(season)], stand: [true, () => cbbStandings(season)] };
+  const T = { ath: [true, () => cbbAthletes(season)], team: [true, () => cbbTeamStats(season)], stand: [true, () => espnTypedStandings(season)] };
   const names = Object.keys(T), res = {}; let done = 0;
   await Promise.all(names.map(async n => {
     try { res[n] = await cached(`${season}:${n}`, ttl, T[n][1]); } catch (e) { res[n] = null; res[n + '_err'] = e; }

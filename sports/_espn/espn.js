@@ -48,6 +48,33 @@ async function espnTeamStats(season, type = 2) {
   return m;
 }
 
+/* Some college feeds list a team's categories in a different order than the header and repeat each category for the opponents
+   (team first, then opponents, named "cat#2"), so a row's categories are matched to the header by name, not by position. */
+function espnNamedCats(head, row) {
+  const named = {}; for (const c of head || []) if (c.names?.length && !named[c.name]) named[c.name] = c.names;
+  const out = {}, seen = {};
+  for (const c of row || []) {
+    const ns = named[c.name] || [], n = seen[c.name] = (seen[c.name] || 0) + 1, o = out[n > 1 ? `${c.name}#${n}` : c.name] = {};
+    (c.values || []).forEach((v, k) => { if (ns[k] != null && (o[ns[k]] == null || v != null)) o[ns[k]] = v; });
+  }
+  return out;
+}
+/* standings whose stat names repeat for the overall, home, road and conference splits: values are keyed by ESPN's stat *type*
+   (wins, total, home record...). Conferences may hold their entries directly or inside divisions. */
+async function espnTypedStandings(season) {
+  const j = await getJSON(`${espnApi2()}/standings?${ESPN_Q}&season=${season}&level=3`);
+  const out = [];
+  const walk = (node, conf, div) => {
+    for (const e of node.standings?.entries || []) {
+      const s = {}, d = {}; for (const x of e.stats || []) { s[x.type || x.name] = x.value; d[x.type || x.name] = x.displayValue; }
+      out.push({ conf: String(conf || '').replace(/ Conference$/, ''), div, id: e.team.id, abbr: e.team.abbreviation, name: e.team.displayName, short: e.team.name, loc: e.team.location, logo: espnLogo(e.team), s, d });
+    }
+    for (const c of node.children || []) walk(c, conf, c.name);
+  };
+  for (const c of j.children || []) walk(c, c.name, '');
+  return out;
+}
+
 /* standings: [{ conf, div, id, abbr, name, logo, s:{stat:value}, d:{displayStat} }] */
 async function espnStandings(season) {
   const j = await getJSON(`${espnApi2()}/standings?season=${season}&level=3`);
