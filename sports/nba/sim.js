@@ -91,13 +91,14 @@ SPORT.sim = {
 
 /* "what if" changes for the simulator page: players out of the game */
 SPORT.sim.what = {
-  blurb: 'Take players out of the game. Their minutes and shots go to the rest of the rotation, and the team shoots a bit worse for each key player missing (about one point of effective field-goal percentage for every 7% of the rotation’s minutes).',
+  blurb: 'Take players out of the game. Their minutes and shots go to the rest of the roster, and the team shoots like the players who are left (each teammate’s own season shooting, weighted by his shot attempts). A star leaving costs more than a poor shooter leaving.',
   roster: (D, tid) => (D.plList || []).filter(r => r.tid === tid && r.mpg >= 6).sort((a, b) => b.mpg - a.mpg).slice(0, 10).map(r => ({ id: r.id, name: nbaShort(r.name), tag: `${Math.round(r.mpg)} min` })),
   apply(D, adj) {
     const gone = (D.plList || []).filter(r => adj.out.has(String(r.id))), D2 = { ...D, plList: (D.plList || []).filter(r => !adj.out.has(String(r.id))), tof: new Map(D.tof) };
     for (const tid of new Set(gone.map(r => r.tid))) {
-      const top = D.plList.filter(r => r.tid === tid && r.mpg >= 6).sort((a, b) => b.mpg - a.mpg).slice(0, 10), tot = top.reduce((a, r) => a + r.mpg, 0), lost = gone.filter(r => r.tid === tid).reduce((a, r) => a + r.mpg, 0), t = D.tof.get(tid);
-      if (t && tot) D2.tof.set(tid, { ...t, efg: t.efg - 15 * lost / tot });
+      /* the missing players' shots go to the teammates who are left, at those teammates' own shooting; no fudge factor */
+      const rest = D.plList.filter(r => r.tid === tid && !adj.out.has(String(r.id)) && r.fga > 0), fga = rest.reduce((a, r) => a + r.fga, 0), pts = rest.reduce((a, r) => a + r.fgm + .5 * r.tpm, 0), t = D.tof.get(tid);
+      if (t && fga > 50) D2.tof.set(tid, { ...t, efg: 100 * pts / fga });
     }
     return D2;
   },
