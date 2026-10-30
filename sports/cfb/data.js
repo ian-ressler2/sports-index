@@ -143,10 +143,16 @@ async function loadSeason(season, prog = () => { }) {
   /* players: the leaderboard pool; a failure leaves the team pages working */
   let raw = [];
   try { raw = await cached(`${season}:pl2`, Math.max(ttl, 6 * 3600e3), () => cfbPlayers(season)); } catch (e) { D.warn.push('Player stats did not load; only team pages are available.'); }
+  /* pass targets: counted offline from play-by-play text (ESPN's own stats report zero) and published beside the site; current season only */
+  let tg = null;
+  if (season === SPORT.seasons.current) { try { tg = await cached('cfb:targets', 3600e3, async () => { const r = await fetch('targets.json', { cache: 'no-cache' }); if (!r.ok) throw 0; return r.json(); }); } catch (e) { tg = null; } }
+  const tgKey = n => { const p = String(n || '').replace(/\b(Jr|Sr|II|III|IV|V)\.?$/i, '').trim().split(/\s+/); return p.length < 2 ? '' : (p[0][0] + p.slice(1).join('')).toLowerCase().replace(/[^a-z]/g, ''); };
   const PG = ['qb', 'rb', 'wr', 'df', 'k', 'p', 'kr'], VOL = { k: m => m.fga, p: m => m.punts, kr: m => m.retn }, pm = Object.fromEntries(PG.map(g => [g, new Map()])), all = new Map();
   for (const r of raw) {
     if (!D.teams.has(r.tid)) continue;
     const m = cfbPlayerRow(r); all.set(m.id, m);
+    const tt = tg && tg.season === season ? tg.teams?.[r.tid]?.[tgKey(r.name)] : null;
+    if (tt && tt[0] >= 1) { m.tgt = tt[0]; m.catchp = tt[1] / tt[0] * 100; m.ypt = m.recyds != null ? m.recyds / tt[0] : NaN; } else { m.tgt = m.catchp = m.ypt = NaN; }
     for (const g of m.grp) if (!VOL[g] || VOL[g](m) > 0) pm[g].set(m.id, m);
   }
   D.q = {}; D.pl = all; D.plList = [...all.values()];

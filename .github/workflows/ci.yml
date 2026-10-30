@@ -2,6 +2,9 @@ name: CI
 on:
   push: { branches: [main] }
   pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 10 * * *'   # daily rebuild so the CFB target counts stay current
 permissions: { contents: read }
 jobs:
   build-test:
@@ -16,6 +19,17 @@ jobs:
       - run: pip install playwright && playwright install --with-deps chromium
       - name: Build
         run: python3 tools/build.py
+      - name: Restore CFB targets cache
+        uses: actions/cache@v4
+        with:
+          path: .cache/cfb_targets.json
+          key: cfb-targets-${{ github.run_id }}
+          restore-keys: cfb-targets-
+      - name: Count CFB pass targets from play-by-play
+        continue-on-error: true
+        run: |
+          mkdir -p .cache dist/cfb
+          python3 tools/build_cfb_targets.py .cache/cfb_targets.json dist/cfb/targets.json 400
       - name: Lint for undefined identifiers
         run: |
           for s in mlb nhl nba nfl; do node --expose-internals tools/lint_globals.js dist/assets/core.js dist/$s/sport.js; done
@@ -27,6 +41,7 @@ jobs:
       - name: Real-shape fixture tests
         run: |
           node tests/test_real_shapes.js
+          python3 tests/test_targets.py
           python3 tests/test_podium_real.py
       - uses: actions/upload-pages-artifact@v3
         if: github.ref == 'refs/heads/main'

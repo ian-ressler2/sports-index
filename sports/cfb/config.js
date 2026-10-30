@@ -20,7 +20,7 @@ const CFB_TAPE = {
   kr: ['gp', 'krn', 'krav', 'krtd', 'prn', 'prav', 'prtd', 'retyds'],
   qb: ['gp', 'cmpp', 'pyds', 'pypg', 'ypa', 'ptd', 'pint', 'rtg', 'sckd', 'ryds', 'rtd'],
   rb: ['gp', 'ratt', 'ryds', 'rypg', 'ypc', 'rtd', 'rlng', 'rec', 'recyds', 'scrim', 'tdt'],
-  wr: ['gp', 'rec', 'recyds', 'recpg', 'ypr', 'rctd', 'lrec', 'yac', 'c1d'],
+  wr: ['gp', 'rec', 'tgt', 'recyds', 'recpg', 'ypr', 'rctd', 'lrec', 'yac', 'c1d'],
   df: ['gp', 'tot', 'solo', 'tpg', 'tfl', 'sck', 'qbh', 'pd', 'int'],
   tof: ['w', 'l', 'ppg', 'ypg', 'ypp', 'pyg', 'ryg', 'cmpp', 'ypc', 'thp', 'give', 'sckt'],
   tdf: ['w', 'l', 'pag', 'oypg', 'opyg', 'oryg', 'sck', 'int', 'take', 'tod'],
