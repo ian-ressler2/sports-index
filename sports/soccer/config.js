@@ -100,7 +100,7 @@ SPORT.player = {
   radar: { pl: SOC_RADAR.pl, gk: SOC_RADAR.gk },
   tabs: [['overview', 'Overview'], ['stats', 'Stats'], ['log', 'Game log']],
   build: {
-    log: mkGameLog({ minutes: true, form: { pl: { name: 'totalGoals', label: 'goals', mode: 'sum', win: 5 }, gk: { name: 'saves', label: 'saves', mode: 'mean', win: 5, fmt: 'f1' } } }),
+    log: mkGameLog({ cols: { pl: ['minutes', 'starts', 'totalGoals', 'goalAssists', 'totalShots', 'shotsOnTarget', 'foulsCommitted', 'foulsSuffered', 'offsides', 'yellowCards', 'redCards'], gk: ['minutes', 'starts', 'saves', 'goalsConceded', 'cleanSheet', 'yellowCards', 'redCards'] }, form: { pl: { name: 'totalGoals', label: 'goals', mode: 'sum', win: 5 }, gk: { name: 'saves', label: 'saves', mode: 'mean', win: 5, fmt: 'f1' } } }),
   },
 };
 SPORT.compare = { tape: SOC_TAPE, radar: SOC_RADAR };

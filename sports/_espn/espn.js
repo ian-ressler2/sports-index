@@ -91,7 +91,23 @@ async function espnStandings(season) {
   return out;
 }
 
-const ESPN_GL = (id, season) => cached(`gl:${id}:${season}`, 3600e3, async () => {
+/* soccer: ESPN's player gamelog feed only lists one competition, so build the log from the team's schedule plus each match's own player statistics (which include exact minutes) */
+const SOC_GL = ['minutes', 'starts', 'totalGoals', 'goalAssists', 'totalShots', 'shotsOnTarget', 'saves', 'goalsConceded', 'cleanSheet', 'foulsCommitted', 'foulsSuffered', 'offsides', 'yellowCards', 'redCards'];
+const SOC_GL_LABEL = { minutes: 'MIN', starts: 'GS', totalGoals: 'G', goalAssists: 'A', totalShots: 'SH', shotsOnTarget: 'ST', saves: 'SV', goalsConceded: 'GC', cleanSheet: 'CS', foulsCommitted: 'FC', foulsSuffered: 'FA', offsides: 'OF', yellowCards: 'YC', redCards: 'RC' };
+function socStatMap(j) { const m = {}; for (const c of j?.splits?.categories || []) for (const s of c.stats || []) if (!(s.name in m)) m[s.name] = s.displayValue ?? String(s.value); return m; }
+const ESPN_SOCGL = (id, season, tid) => cached(`sgl:${tid}:${id}:${season}`, 3600e3, async () => {
+  const sched = (await ESPN_SCHED(tid, season)).filter(g => g.final).sort((a, b) => (a.t || '').localeCompare(b.t || ''));
+  const base = `https://sports.core.api.espn.com/v2/sports/soccer/leagues/${ESPN.lg}`;
+  const rows = await pool(sched, 6, async g => { try { return socStatMap(await getJSON(`${base}/events/${g.id}/competitions/${g.id}/competitors/${tid}/roster/${id}/statistics/0`)); } catch (e) { return null; } });
+  const games = [];
+  sched.forEach((g, i) => {
+    const m = rows[i]; if (!m || !Object.keys(m).length) return; /* not in the squad that day */
+    const played = +m.appearances > 0 || +m.minutes > 0;
+    games.push({ id: g.id, date: g.date, t: g.t, atVs: g.home ? 'vs' : '@', score: `${g.me}-${g.op}`, res: g.me > g.op ? 'W' : g.me < g.op ? 'L' : 'D', opp: g.opp, oppId: g.oppId, oppName: g.oppName, hs: g.home ? g.me : g.op, as: g.home ? g.op : g.me, home: g.home, post: false, month: new Date(g.t || g.date).toLocaleString('en', { month: 'long', timeZone: 'UTC' }), stats: SOC_GL.map(n => played ? (m[n] ?? '0') : '–'), played });
+  });
+  return { names: SOC_GL.slice(), labels: SOC_GL.map(n => SOC_GL_LABEL[n]), games };
+});
+const ESPN_GL = (id, season, tid) => ESPN.sp === 'soccer' && tid ? ESPN_SOCGL(id, season, tid) : cached(`gl:${id}:${season}`, 3600e3, async () => {
   const j = await getJSON(`${espnWeb()}/athletes/${id}/gamelog?${ESPN_Q}&season=${season}`);
   const evs = j.events || {}, out = { names: j.names || [], labels: j.labels || [], games: [] };
   for (const st of j.seasonTypes || []) for (const cat of st.categories || []) for (const e of cat.events || []) {
@@ -124,22 +140,6 @@ const ESPN_SUMMARY = id => cached(`sum:${id}`, 30 * 86400e3, async () => {
   const teams = (comp?.competitors || []).map(c => ({ id: c.team.id, abbr: c.team.abbreviation, home: c.homeAway === 'home', score: +c.score }));
   const plays = (j.plays || []).map(p => ({ id: p.id, ty: p.type?.text, ab: p.type?.abbreviation, tx: p.text, per: p.period?.number, clk: p.clock?.displayValue, tid: p.team?.id, sp: !!p.shootingPlay, sc: !!p.scoringPlay, val: p.scoreValue, co: p.coordinate, as: p.awayScore, hs: p.homeScore, pp: (p.participants || []).map(q => ({ id: q.athlete?.id, ty: q.type })), st: p.start, en: p.end })).filter(p => p.ty);
   return { id, date: comp?.date, teams, plays };
-});
-
-/* soccer: approximate minutes a player was on the pitch in one match, from lineups + substitution/red-card events */
-const ESPN_MIN = (eventId, pid) => cached(`min:${eventId}:${pid}`, 30 * 86400e3, async () => {
-  const j = await getJSON(`${espnSite()}/summary?event=${eventId}`);
-  const me = (j.rosters || []).flatMap(r => r.roster || []).find(p => String(p.athlete?.id) === String(pid));
-  if (!me || (!me.starter && !me.subbedIn)) return null;
-  const evs = j.keyEvents || [], at = x => Math.min(120, Math.max(0, Math.round((x.clock?.value || 0) / 60)));
-  const has = (x, i) => String(x.participants?.[i]?.athlete?.id) === String(pid);
-  let from = 0, to = 90;
-  if (!me.starter) { const e = evs.find(x => /substitution/i.test(x.type?.text || '') && has(x, 0)); from = e ? at(e) : 45; }
-  const out = evs.find(x => /substitution/i.test(x.type?.text || '') && has(x, 1));
-  if (out) to = at(out);
-  const red = evs.find(x => /red card/i.test(x.type?.text || '') && x.participants?.some(q => String(q.athlete?.id) === String(pid)));
-  if (red) to = Math.min(to, at(red));
-  return Math.max(0, to - from);
 });
 
 /* run async work with limited concurrency */

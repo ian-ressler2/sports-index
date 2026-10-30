@@ -28,6 +28,10 @@ def make_handler(spec, seed=7):
                 'categories': [{'name': n, 'values': a['vals'].get(n, [0] * len(names)), 'totals': []} for n, names in spec.cats]}
     def handle(url):
         u = urllib.parse.urlparse(url); q = urllib.parse.parse_qs(u.query); path = u.path
+        if spec.sp == 'soccer' and re.search(r'/roster/\d+/statistics/0$', path):
+            rnd2 = random.Random(hash(path) & 0xffff)
+            nm = ['appearances', 'minutes', 'starts', 'totalGoals', 'goalAssists', 'totalShots', 'shotsOnTarget', 'saves', 'goalsConceded', 'cleanSheet', 'foulsCommitted', 'foulsSuffered', 'offsides', 'yellowCards', 'redCards']
+            return J({'splits': {'categories': [{'name': 'general', 'stats': [{'name': k, 'value': v, 'displayValue': str(v)} for k, v in zip(nm, [1, rnd2.choice([90, 90, 63, 27]), 1] + [rnd2.randint(0, 2) for _ in nm[3:]])]}]}})
         cp = getattr(spec, 'corepl', None)  # core API player feeds: leaders, athlete, season line, position
         if cp:
             if re.search(r'/seasons/\d+/types/\d+/leaders$', path): return J(cp['leaders']())

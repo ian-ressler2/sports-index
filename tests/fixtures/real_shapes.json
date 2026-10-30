@@ -1,122 +1,5 @@
 {
- "_note": "Trimmed from live ESPN responses on 2026-10-30 (Chelsea v Man City, eng.1, event 401879256-era summary; tennis ATP Brussels qualifying). Shapes are real; list lengths are cut.",
- "soccer_summary": {
-  "rosters": [
-   {
-    "roster": [
-     {
-      "starter": true,
-      "subbedIn": false,
-      "subbedOut": false,
-      "athlete": {
-       "id": "251100",
-       "displayName": "Pau Torres"
-      }
-     },
-     {
-      "starter": true,
-      "subbedIn": false,
-      "subbedOut": true,
-      "athlete": {
-       "id": "162843",
-       "displayName": "John McGinn"
-      }
-     },
-     {
-      "starter": false,
-      "subbedIn": true,
-      "subbedOut": false,
-      "athlete": {
-       "id": "152469",
-       "displayName": "Ross Barkley"
-      }
-     }
-    ]
-   },
-   {
-    "roster": [
-     {
-      "starter": true,
-      "subbedIn": false,
-      "subbedOut": true,
-      "athlete": {
-       "id": "265907",
-       "displayName": "Marc Guéhi"
-      }
-     },
-     {
-      "starter": false,
-      "subbedIn": true,
-      "subbedOut": false,
-      "athlete": {
-       "id": "325564",
-       "displayName": "Rico Lewis"
-      }
-     },
-     {
-      "starter": true,
-      "subbedIn": false,
-      "subbedOut": false,
-      "athlete": {
-       "id": "253989",
-       "displayName": "Erling Haaland"
-      }
-     }
-    ]
-   }
-  ],
-  "keyEvents": [
-   {
-    "type": {
-     "text": "Substitution"
-    },
-    "clock": {
-     "value": 2700
-    },
-    "participants": [
-     {
-      "athlete": {
-       "id": "325564"
-      }
-     },
-     {
-      "athlete": {
-       "id": "265907"
-      }
-     }
-    ]
-   },
-   {
-    "type": {
-     "text": "Substitution"
-    },
-    "clock": {
-     "value": 3958
-    },
-    "participants": [
-     {
-      "athlete": {
-       "id": "152469"
-      }
-     },
-     {
-      "athlete": {
-       "id": "162843"
-      }
-     }
-    ]
-   }
-  ]
- },
- "soccer_expect": {
-  "251100": 90,
-  "162843": 66,
-  "152469": 24,
-  "265907": 45,
-  "325564": 45,
-  "253989": 90,
-  "999": null
- },
+ "_note": "Trimmed from live ESPN responses on 2026-10-30 (core API roster statistics for Haaland, Man City; ATP Brussels qualifying scoreboard). Shapes are real; lists are cut.",
  "tennis": {
   "events": [
    {
@@ -176,5 +59,76 @@
     ]
    }
   ]
+ },
+ "soccer_core_stats": {
+  "splits": {
+   "categories": [
+    {
+     "name": "general",
+     "stats": [
+      {
+       "name": "appearances",
+       "value": 1,
+       "displayValue": "1"
+      },
+      {
+       "name": "minutes",
+       "value": 90,
+       "displayValue": "90"
+      },
+      {
+       "name": "redCards",
+       "value": 0,
+       "displayValue": "0"
+      },
+      {
+       "name": "starts",
+       "value": 1,
+       "displayValue": "1"
+      },
+      {
+       "name": "yellowCards",
+       "value": 0,
+       "displayValue": "0"
+      }
+     ]
+    },
+    {
+     "name": "goalKeeping",
+     "stats": [
+      {
+       "name": "saves",
+       "value": 0,
+       "displayValue": "0"
+      }
+     ]
+    },
+    {
+     "name": "offensive",
+     "stats": [
+      {
+       "name": "goalAssists",
+       "value": 0,
+       "displayValue": "0"
+      },
+      {
+       "name": "shotsOnTarget",
+       "value": 2,
+       "displayValue": "2"
+      },
+      {
+       "name": "totalGoals",
+       "value": 0,
+       "displayValue": "0"
+      },
+      {
+       "name": "totalShots",
+       "value": 5,
+       "displayValue": "5"
+      }
+     ]
+    }
+   ]
+  }
  }
 }
