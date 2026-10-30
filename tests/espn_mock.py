@@ -28,6 +28,15 @@ def make_handler(spec, seed=7):
                 'categories': [{'name': n, 'values': a['vals'].get(n, [0] * len(names)), 'totals': []} for n, names in spec.cats]}
     def handle(url):
         u = urllib.parse.urlparse(url); q = urllib.parse.parse_qs(u.query); path = u.path
+        cp = getattr(spec, 'corepl', None)  # core API player feeds: leaders, athlete, season line, position
+        if cp:
+            if re.search(r'/seasons/\d+/types/\d+/leaders$', path): return J(cp['leaders']())
+            m = re.search(r'/types/\d+/athletes/(\d+)/statistics/0$', path)
+            if m: return J(cp['stats'](int(m.group(1))))
+            m = re.search(r'/seasons/\d+/athletes/(\d+)$', path)
+            if m: return J(cp['athlete'](int(m.group(1))))
+            m = re.search(r'/positions/(\d+)$', path)
+            if m: return J({'id': m.group(1), 'abbreviation': cp['pos'](int(m.group(1)))})
         if '/statistics/byathlete' in path:
             limit = int(q.get('limit', ['25'])[0]); page = int(q.get('page', ['1'])[0])
             if limit > 1000: return 400, 'text/plain', 'bad'

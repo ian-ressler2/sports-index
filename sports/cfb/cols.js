@@ -1,12 +1,40 @@
-/* cols.js: college football column catalogue. ESPN publishes no bulk player stats for college football, so the site is built on teams:
-   offense, defense and special teams, each with the same stats measured for the opponents. */
+/* cols.js: college football column catalogue. Teams: offense, defense and special teams, each with the same stats measured for the opponents.
+   Players: the top 100 in ESPN's passing, rushing, receiving and defensive leaderboards, each with their own season line. */
 const CFB_G = {
+  qb: [{ id: 'vol', l: 'Games', on: 1 }, { id: 'pass', l: 'Passing', on: 1 }, { id: 'eff', l: 'Efficiency', on: 1 }, { id: 'rush', l: 'Rushing', on: 1 }],
+  rb: [{ id: 'vol', l: 'Games', on: 1 }, { id: 'rush', l: 'Rushing', on: 1 }, { id: 'rec', l: 'Receiving', on: 1 }, { id: 'tot', l: 'Totals', on: 1 }],
+  wr: [{ id: 'vol', l: 'Games', on: 1 }, { id: 'rec', l: 'Receiving', on: 1 }, { id: 'eff', l: 'Efficiency', on: 1 }, { id: 'ball', l: 'Ball security' }],
+  df: [{ id: 'vol', l: 'Games', on: 1 }, { id: 'tack', l: 'Tackling', on: 1 }, { id: 'pr', l: 'Pass rush', on: 1 }, { id: 'cov', l: 'Coverage', on: 1 }],
   tof: [{ id: 'rec', l: 'Record', on: 1 }, { id: 'sco', l: 'Scoring & yardage', on: 1 }, { id: 'pass', l: 'Passing', on: 1 }, { id: 'rush', l: 'Rushing', on: 1 }, { id: 'sit', l: 'Situational', on: 1 }, { id: 'ball', l: 'Ball security' }],
   tdf: [{ id: 'rec', l: 'Record', on: 1 }, { id: 'prev', l: 'Points & yards allowed', on: 1 }, { id: 'pass', l: 'Against the pass', on: 1 }, { id: 'rush', l: 'Against the run', on: 1 }, { id: 'pr', l: 'Pass rush', on: 1 }, { id: 'ball', l: 'Takeaways', on: 1 }],
   tsp: [{ id: 'rec', l: 'Record', on: 1 }, { id: 'kick', l: 'Kicking', on: 1 }, { id: 'punt', l: 'Punting', on: 1 }, { id: 'ret', l: 'Returns', on: 1 }, { id: 'pen', l: 'Discipline', on: 1 }],
 };
 const CFB_REC = [C('gp', 'GP', 'rec', 0, 'int', 'ESPN'), C('w', 'W', 'rec', 1, 'int', 'API'), C('l', 'L', 'rec', -1, 'int', 'API'), C('pct', 'W%', 'rec', 1, 'f3', 'API'), C('diff', 'Pt diff/G', 'rec', 1, 'sg1', 'DER', 'Average scoring margin')];
 Object.assign(COLS, {
+  qb: [
+    C('gp', 'GP', 'vol', 0, 'int', 'ESPN'),
+    C('cmp', 'CMP', 'pass', 1, 'int', 'ESPN'), C('att', 'ATT', 'pass', 0, 'int', 'ESPN'), C('cmpp', 'CMP%', 'pass', 1, 'f1', 'ESPN'), C('pyds', 'PASS YDS', 'pass', 1, 'int', 'ESPN'), C('pypg', 'YDS/G', 'pass', 1, 'f1', 'ESPN', 'Passing yards per game'), C('ptd', 'PASS TD', 'pass', 1, 'int', 'ESPN'), C('pint', 'INT', 'pass', -1, 'int', 'ESPN', 'Interceptions thrown'), C('plng', 'LNG', 'pass', 1, 'int', 'ESPN', 'Longest completion'),
+    C('ypa', 'Y/A', 'eff', 1, 'f2', 'ESPN', 'Yards per attempt'), C('ypcm', 'Y/C', 'eff', 1, 'f1', 'ESPN', 'Yards per completion'), C('tdp', 'TD%', 'eff', 1, 'f1', 'ESPN', 'Touchdowns per attempt'), C('intp', 'INT%', 'eff', -1, 'f1', 'ESPN', 'Interceptions per attempt'), C('rtg', 'RTG', 'eff', 1, 'f1', 'ESPN', 'Passer rating'), C('sckd', 'SACKED', 'eff', -1, 'int', 'ESPN'), C('p1d', '1D', 'eff', 1, 'int', 'ESPN', 'Passing first downs'),
+    C('ratt', 'RUSH ATT', 'rush', 0, 'int', 'ESPN'), C('ryds', 'RUSH YDS', 'rush', 1, 'int', 'ESPN'), C('ypc', 'Y/C', 'rush', 1, 'f2', 'ESPN', 'Yards per carry'), C('rtd', 'RUSH TD', 'rush', 1, 'int', 'ESPN'),
+  ],
+  rb: [
+    C('gp', 'GP', 'vol', 0, 'int', 'ESPN'),
+    C('ratt', 'ATT', 'rush', 0, 'int', 'ESPN', 'Carries'), C('ryds', 'RUSH YDS', 'rush', 1, 'int', 'ESPN'), C('rypg', 'YDS/G', 'rush', 1, 'f1', 'ESPN', 'Rushing yards per game'), C('ypc', 'Y/C', 'rush', 1, 'f2', 'ESPN', 'Yards per carry'), C('rtd', 'RUSH TD', 'rush', 1, 'int', 'ESPN'), C('rlng', 'LNG', 'rush', 1, 'int', 'ESPN', 'Longest run'), C('r1d', '1D', 'rush', 1, 'int', 'ESPN', 'Rushing first downs'), C('rbig', '20+', 'rush', 1, 'int', 'ESPN', 'Rushes of 20 yards or more'), C('rfum', 'FUM', 'rush', -1, 'int', 'ESPN', 'Fumbles'),
+    C('rec', 'REC', 'rec', 1, 'int', 'ESPN'), C('recyds', 'REC YDS', 'rec', 1, 'int', 'ESPN'), C('rctd', 'REC TD', 'rec', 1, 'int', 'ESPN'),
+    C('scrim', 'SCRIM YDS', 'tot', 1, 'int', 'ESPN', 'Yards from scrimmage'), C('scrimpg', 'SCRIM/G', 'tot', 1, 'f1', 'ESPN', 'Yards from scrimmage per game'), C('tdt', 'TOTAL TD', 'tot', 1, 'int', 'DER', 'Rushing plus receiving touchdowns'),
+  ],
+  wr: [
+    C('gp', 'GP', 'vol', 0, 'int', 'ESPN'),
+    C('tgt', 'TGT', 'rec', 0, 'int', 'ESPN', 'Targets'), C('rec', 'REC', 'rec', 1, 'int', 'ESPN'), C('recyds', 'REC YDS', 'rec', 1, 'int', 'ESPN'), C('recpg', 'YDS/G', 'rec', 1, 'f1', 'ESPN', 'Receiving yards per game'), C('recpg2', 'REC/G', 'rec', 1, 'f1', 'DER'), C('rctd', 'REC TD', 'rec', 1, 'int', 'ESPN'), C('lrec', 'LNG', 'rec', 1, 'int', 'ESPN', 'Longest reception'),
+    C('ypr', 'Y/R', 'eff', 1, 'f1', 'ESPN', 'Yards per reception'), C('ypt', 'Y/TGT', 'eff', 1, 'f1', 'DER', 'Yards per target'), C('catchp', 'CATCH%', 'eff', 1, 'f1', 'DER', 'Receptions per target'), C('yac', 'YAC', 'eff', 1, 'int', 'ESPN', 'Yards after the catch'), C('c1d', '1D', 'eff', 1, 'int', 'ESPN', 'Receiving first downs'), C('cbig', '20+', 'eff', 1, 'int', 'ESPN', 'Catches of 20 yards or more'),
+    C('cfum', 'FUM', 'ball', -1, 'int', 'ESPN', 'Fumbles'),
+  ],
+  df: [
+    C('gp', 'GP', 'vol', 0, 'int', 'ESPN'),
+    C('tot', 'TACKLES', 'tack', 1, 'int', 'ESPN', 'Total tackles'), C('solo', 'SOLO', 'tack', 1, 'int', 'ESPN'), C('ast', 'AST', 'tack', 1, 'int', 'ESPN', 'Assisted tackles'), C('tpg', 'TKL/G', 'tack', 1, 'f1', 'DER', 'Tackles per game'), C('tfl', 'TFL', 'tack', 1, 'f1', 'ESPN', 'Tackles for loss'), C('stf', 'STUFFS', 'tack', 1, 'int', 'ESPN', 'Runs stopped at or behind the line'),
+    C('sck', 'SACKS', 'pr', 1, 'f1', 'ESPN'), C('sckpg', 'SACKS/G', 'pr', 1, 'f2', 'DER'), C('qbh', 'QB HITS', 'pr', 1, 'int', 'ESPN'), C('hur', 'HURRIES', 'pr', 1, 'int', 'ESPN'),
+    C('pd', 'PD', 'cov', 1, 'int', 'ESPN', 'Passes defended'), C('int', 'INT', 'cov', 1, 'int', 'ESPN'), C('intyd', 'INT YDS', 'cov', 1, 'int', 'ESPN'), C('inttd', 'INT TD', 'cov', 1, 'int', 'ESPN'), C('kb', 'BLOCKS', 'cov', 1, 'int', 'ESPN', 'Kicks blocked'),
+  ],
   tof: [
     ...CFB_REC,
     C('ppg', 'PPG', 'sco', 1, 'f1', 'API', 'Points per game'), C('ypg', 'YDS/G', 'sco', 1, 'f1', 'ESPN', 'Total yards per game'), C('ypp', 'Y/PLAY', 'sco', 1, 'f2', 'DER', 'Yards per play (pass attempts plus rushes)'), C('plg', 'PLAYS/G', 'sco', 0, 'f1', 'DER', 'Offensive plays per game'),
@@ -33,6 +61,10 @@ Object.assign(COLS, {
 });
 Object.assign(GROUPS, CFB_G);
 Object.assign(GROUP_META, {
+  qb: { label: 'Quarterbacks', singular: 'Quarterback', sort: 'pyds', dir: -1 },
+  rb: { label: 'Rushers', singular: 'Rusher', sort: 'ryds', dir: -1 },
+  wr: { label: 'Receivers', singular: 'Receiver', sort: 'recyds', dir: -1 },
+  df: { label: 'Defenders', singular: 'Defender', sort: 'tot', dir: -1 },
   tof: { label: 'Team offense', singular: 'Team', sort: 'ppg', dir: -1 },
   tdf: { label: 'Team defense', singular: 'Team', sort: 'pag', dir: 1 },
   tsp: { label: 'Special teams', singular: 'Team', sort: 'fgp', dir: -1 },
