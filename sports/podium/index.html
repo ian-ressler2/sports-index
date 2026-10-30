@@ -315,7 +315,8 @@ function f1results(ov,name,season){
   f1season(season).then(({races,quals})=>{
     const rows=[];
     races.forEach(r=>{
-      const x=r.res.find(z=>dname(z.Driver)===me)||r.res.find(z=>norm(z.Driver.familyName)===last&&norm(z.Driver.givenName)[0]===me[0]);
+      const cand=r.res.filter(z=>me.endsWith(norm(z.Driver.familyName)));
+      const x=cand.length>1?(cand.find(z=>norm(z.Driver.givenName).split(' ').includes(me.split(' ')[0]))||cand.find(z=>norm(z.Driver.givenName)[0]===me[0])):cand[0];
       if(!x)return;
       const qd=(quals[r.round]||[]).find(z=>z.Driver.driverId===x.Driver.driverId);
       const fl=x.FastestLap;
