@@ -126,8 +126,14 @@ SPORT.player = {
   tiles: { qb: ['gp', 'cmpp', 'pyds', 'ptd', 'pint', 'rtg', 'ypa', 'ryds'], rb: ['gp', 'ratt', 'ryds', 'ypc', 'rtd', 'rec', 'recyds', 'scrim'], wr: ['gp', 'rec', 'recyds', 'ypr', 'rctd', 'recpg', 'yac', 'c1d'], df: ['gp', 'tot', 'solo', 'tfl', 'sck', 'int', 'pd', 'qbh'], k: ['gp', 'fgm', 'fga', 'fgp', 'f50', 'fgl', 'xpp', 'kpts'], p: ['gp', 'punts', 'pavg', 'pnet', 'plong', 'in20', 'in20p', 'pyd'], kr: ['gp', 'krn', 'krav', 'krtd', 'prn', 'prav', 'prtd', 'retyds'] },
   pct: { qb: ['pypg', 'cmpp', 'ypa', 'tdp', 'intp', 'rtg', 'ryds'], rb: ['rypg', 'ypc', 'rtd', 'rbig', 'rlng', 'recyds', 'scrimpg'], wr: ['recpg', 'recpg2', 'ypr', 'rctd', 'yac', 'cbig', 'c1d'], df: ['tpg', 'tfl', 'sck', 'qbh', 'hur', 'pd', 'int'], k: ['fgp', 'fgm', 'f50', 'fg40', 'fgl', 'xpp', 'kpts'], p: ['pavg', 'pnet', 'plong', 'in20', 'in20p'], kr: ['krav', 'prav', 'retyds', 'krlg', 'prlg', 'rettd'] },
   radar: { qb: CFB_RADAR.qb, rb: CFB_RADAR.rb, wr: CFB_RADAR.wr, df: CFB_RADAR.df, k: CFB_RADAR.k, p: CFB_RADAR.p, kr: CFB_RADAR.kr },
-  tabs: [['overview', 'Overview'], ['stats', 'Stats']],
-  build: {},
+  tabs: [['overview', 'Overview'], ['stats', 'Stats'], ['log', 'Game log']],
+  build: {
+    log: mkGameLog({ form: {
+      qb: { name: 'passingYards', label: 'passing yards', mode: 'mean', win: 3, fmt: 'f1' }, rb: { name: 'rushingYards', label: 'rushing yards', mode: 'mean', win: 3, fmt: 'f1' },
+      wr: { name: 'receivingYards', label: 'receiving yards', mode: 'mean', win: 3, fmt: 'f1' }, df: { name: 'totalTackles', label: 'tackles', mode: 'mean', win: 3, fmt: 'f1' },
+      k: { name: 'totalKickingPoints', label: 'kicking points', mode: 'mean', win: 3, fmt: 'f1' }, p: { name: 'grossAvgPuntYards', label: 'punt average', mode: 'mean', win: 3, fmt: 'f1' },
+    } }),
+  },
 };
 SPORT.compare = { tape: CFB_TAPE, radar: CFB_RADAR };
 SPORT.lab = { recipes: CFB_RECIPES, ref: { k: 'fgp', p: 'pnet', kr: 'retyds', qb: 'pypg', rb: 'rypg', wr: 'recpg', df: 'tpg', tof: 'ppg', tdf: 'pag', tsp: 'fgp' }, plotDefaults: { k: ['fga', 'fgp'], p: ['pavg', 'pnet'], kr: ['krav', 'prav'], qb: ['ypa', 'cmpp'], rb: ['ratt', 'ypc'], wr: ['recpg2', 'ypr'], df: ['tfl', 'sck'], tof: ['ppg', 'ypp'], tdf: ['pag', 'takeg'], tsp: ['fgp', 'pnet'] } };

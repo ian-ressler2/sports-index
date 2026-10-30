@@ -48,5 +48,6 @@ def roster(t, r):
         out.append({'id': str(300000 + t['id'] * 20 + i), 'displayName': f"Player {t['id']}-{i}", 'age': 20 + i, 'jersey': str(i + 1), 'displayHeight': "6' 0\"", 'citizenship': 'England',
                     'position': {'abbreviation': pos}, 'statistics': {'splits': {'categories': cats}}})
     return out
-SPEC = Spec('soccer', 'eng.1', 2026, TEAMS, DIVS, [], ['F'], lambda pos, r: {}, [], lambda *a: [], stand, GP, 0, [], [], lambda r: [], None)
+SPEC = Spec('soccer', 'eng.1', 2026, TEAMS, DIVS, [], ['F'], lambda pos, r: {}, [], lambda *a: [], stand, GP, 0, ['totalGoals', 'goalAssists', 'totalShots', 'shotsOnTarget', 'foulsCommitted', 'foulsSuffered', 'offsides', 'yellowCards', 'redCards'], ['G', 'A', 'SH', 'ST', 'FC', 'FA', 'OF', 'YC', 'RC'], lambda r: [str(r.randint(0, 2)) for _ in range(9)], None)
+SPEC.glst = 'League Phase Stats'
 SPEC.flat = True; SPEC.core = core; SPEC.summary = summary; SPEC.roster = roster

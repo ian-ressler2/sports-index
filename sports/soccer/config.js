@@ -98,8 +98,10 @@ SPORT.player = {
   tiles: { pl: ['app', 'st', 'g', 'a', 'ga', 'sh', 'sotp', 'yc'], gk: ['app', 'st', 'sv', 'gc', 'svp', 'svpa'] },
   pct: { pl: ['gpa', 'apa', 'gapa', 'shpa', 'sotpa', 'sotp', 'conv', 'fspa', 'fcpa'], gk: ['svp', 'svpa', 'gcpa', 'sfpa'] },
   radar: { pl: SOC_RADAR.pl, gk: SOC_RADAR.gk },
-  tabs: [['overview', 'Overview'], ['stats', 'Stats']],
-  build: {},
+  tabs: [['overview', 'Overview'], ['stats', 'Stats'], ['log', 'Game log']],
+  build: {
+    log: mkGameLog({ form: { pl: { name: 'totalGoals', label: 'goals', mode: 'sum', win: 5 }, gk: { name: 'saves', label: 'saves', mode: 'mean', win: 5, fmt: 'f1' } } }),
+  },
 };
 SPORT.compare = { tape: SOC_TAPE, radar: SOC_RADAR };
 SPORT.lab = { recipes: SOC_RECIPES, ref: { pl: 'gapa', gk: 'svp', tof: 'gfg', tpo: 'poss', tdf: 'gag' }, plotDefaults: { pl: ['shpa', 'gpa'], gk: ['sfpa', 'svp'], tof: ['xg', 'gfg'], tpo: ['poss', 'passp'], tdf: ['xga', 'gag'] } };

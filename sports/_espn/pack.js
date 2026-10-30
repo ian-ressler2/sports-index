@@ -27,7 +27,7 @@ function mkGameLog(cfg) {
     const games = gl.games.filter(g => !g.post); if (!games.length) return h('div', { class: 'panel empty' }, 'No games found for this season.');
     const idx = n => gl.names.indexOf(n), val = (g, n) => numOf(g.stats[idx(n)]);
     const f = cfg.form?.[role];
-    const cols = (cfg.cols?.[role] || gl.names).map(n => [n, gl.labels[idx(n)] || n]).filter(x => idx(x[0]) >= 0);
+    const cols = [...new Set(cfg.cols?.[role] || gl.names)].map(n => [n, gl.labels[idx(n)] || n]).filter(x => idx(x[0]) >= 0);
     const out = [];
     if (f && idx(f.name) >= 0) {
       const win = f.win || 10, vals = games.map(g => val(g, f.name)); let cum = 0, n = 0;

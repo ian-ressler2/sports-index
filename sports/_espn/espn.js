@@ -96,7 +96,7 @@ const ESPN_GL = (id, season) => cached(`gl:${id}:${season}`, 3600e3, async () =>
   const evs = j.events || {}, out = { names: j.names || [], labels: j.labels || [], games: [] };
   for (const st of j.seasonTypes || []) for (const cat of st.categories || []) for (const e of cat.events || []) {
     const m = evs[e.eventId]; if (!m) continue;
-    out.games.push({ id: e.eventId, date: (m.gameDate || '').slice(0, 10), t: m.gameDate, atVs: m.atVs, score: m.score, res: m.gameResult, opp: m.opponent?.abbreviation, oppId: m.opponent?.id, oppName: m.opponent?.displayName, hs: +m.homeTeamScore, as: +m.awayTeamScore, home: m.atVs === 'vs', post: !/regular/i.test(st.displayName || ''), month: cat.displayName, stats: e.stats || [] });
+    out.games.push({ id: e.eventId, date: (m.gameDate || '').slice(0, 10), t: m.gameDate, atVs: m.atVs, score: m.score, res: m.gameResult, opp: m.opponent?.abbreviation, oppId: m.opponent?.id, oppName: m.opponent?.displayName, hs: +m.homeTeamScore, as: +m.awayTeamScore, home: m.atVs === 'vs', post: !ESPN.glAll && !/regular/i.test(st.displayName || ''), month: cat.displayName, stats: e.stats || [] });
   }
   out.games.sort((a, b) => (a.t || '').localeCompare(b.t || ''));
   return out;

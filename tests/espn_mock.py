@@ -71,7 +71,7 @@ def make_handler(spec, seed=7):
                     evs[eid] = {'id': eid, 'atVs': 'vs' if k % 2 else '@', 'gameDate': f'2025-{(9 + mi) % 12 + 1:02d}-{k + 1:02d}T00:00:00Z', 'score': '4-3', 'homeTeamId': '1', 'awayTeamId': '2', 'homeTeamScore': '3', 'awayTeamScore': '4', 'gameResult': 'W' if k % 3 else 'L', 'opponent': {'id': str(teams[k % len(teams)]['id']), 'abbreviation': teams[k % len(teams)]['abbr'], 'displayName': 'Opp'}}
                     lst.append({'eventId': eid, 'stats': spec.glgen(rnd)})
                 cats.append({'displayName': mo, 'type': 'event', 'events': lst})
-            return J({'names': names, 'labels': labels, 'events': evs, 'seasonTypes': [{'displayName': 'Regular Season', 'categories': cats}, {'displayName': 'Postseason', 'categories': []}]})
+            return J({'names': names, 'labels': labels, 'events': evs, 'seasonTypes': [{'displayName': getattr(spec, 'glst', 'Regular Season'), 'categories': cats}, {'displayName': 'Postseason', 'categories': []}]})
         if re.search(r'/athletes/\d+/splits', path):
             return J({'labels': spec.gllabels, 'names': spec.glnames, 'splitCategories': [{'displayName': 'split', 'splits': [{'displayName': n, 'stats': spec.glgen(rnd)} for n in ['All Splits', 'Home', 'Away']]}, {'displayName': 'Month', 'splits': [{'displayName': 'October', 'stats': spec.glgen(rnd)}]}]})
         if re.search(r'/athletes/\d+/stats', path):
