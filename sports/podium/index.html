@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en" data-sport="podium">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Podium Index · F1, golf and tennis</title>
+<meta name="description" content="Formula 1 championship standings with a points race, the live PGA Tour leaderboard and ATP and WTA rankings with recent results.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1318'/%3E%3Cpath d='M6 24h6v-8h8v-6h6v14z' fill='none' stroke='%23e8553d' stroke-width='2.4' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../assets/core.css">
+<style>
+<!--THEME-->
+.pd-hero{padding-block:8px 18px}
+.pd-hero h1 em{font-style:normal;color:var(--acc)}
+.pd-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:16px 0}
+.pd-bar .sp{flex:1}
+.pd-card{border:1px solid var(--line);background:var(--bg2);border-radius:var(--r);overflow:hidden}
+.pd-scroll{overflow-x:auto}
+.pd-tbl{border-collapse:collapse;width:100%;font-size:13px}
+.pd-tbl th{position:sticky;top:0;text-align:left;font:500 10.5px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--fg3);padding:9px 10px;border-bottom:1px solid var(--line);background:var(--bg2);white-space:nowrap}
+.pd-tbl td{padding:7px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+.pd-tbl tr:last-child td{border-bottom:0}
+.pd-tbl .r{text-align:right}
+.pd-tbl .nm{display:flex;align-items:center;gap:8px;font-weight:550}
+.pd-tbl img{width:18px;height:12px;object-fit:cover;border-radius:2px;flex:none}
+.pd-tbl .rk{color:var(--fg3);width:34px}
+.pd-tbl .pt{font-weight:650}
+.pd-cell{display:inline-block;min-width:26px;text-align:center;padding:2px 4px;border-radius:4px;font:500 11.5px var(--f-mono)}
+.pd-up{color:var(--good)} .pd-dn{color:var(--bad)}
+.pd-chart{padding:14px 14px 8px}
+.pd-chart svg{width:100%;height:auto;display:block}
+.pd-leg{display:flex;flex-wrap:wrap;gap:6px 14px;padding:4px 14px 14px;font-size:12px;color:var(--fg2)}
+.pd-leg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.pd-sec{margin-top:18px}
+.pd-sec h2{margin-bottom:10px}
+.pd-msg{padding:28px 18px;color:var(--fg2)}
+.pd-bar-to{display:inline-block;height:8px;border-radius:2px;vertical-align:middle;background:var(--acc)}
+.pd-res{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.pd-m{border:1px solid var(--line);background:var(--bg2);border-radius:var(--r2);padding:10px 12px;display:flex;flex-direction:column;gap:3px;min-width:0}
+.pd-m .gl{font:500 10.5px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--fg3)}
+.pd-m .pl{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.pd-m .pl b{font-weight:600}
+.pd-m .pl.lose{color:var(--fg3)}
+.pd-m .pl .sc{font:500 12px var(--f-mono);letter-spacing:.04em}
+.pd-foot{margin-top:28px;color:var(--fg3);font-size:12px;max-width:80ch}
+.pd-nav{display:flex;gap:2px;margin-left:6px;padding-left:12px;border-left:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+.pd-nav a{white-space:nowrap;padding:6px 9px;border-radius:7px;color:var(--fg2);font-weight:500}
+.pd-nav a:hover{color:var(--fg);background:var(--bg3)}
+.pd-nav a.on{color:var(--fg);background:var(--bg4)}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+<a class="brand" href="../"><svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="7" fill="#0d1318"/><path d="M6 24h6v-8h8v-6h6v14z" stroke="var(--acc)" stroke-width="2.4" stroke-linejoin="round"/></svg>Podium<b>INDEX</b></a>
+<nav class="pd-nav" id="nav"></nav>
+</div></header>
+<main class="wrap" id="app"></main>
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const TABS=[['f1','Formula 1'],['golf','Golf'],['tennis','Tennis']];
+const PAL=['#e8553d','#4aa3ff','#f2c14e','#4fd18b','#b78bff','#ff8fc0','#3dd6d0','#c9d36a','#ff9f43','#9aa7b3'];
+const S={f1:{season:null,kind:0},golf:{off:0},tennis:{tour:'atp',off:0}};
+const cache=new Map();
+async function jget(u){if(cache.has(u))return cache.get(u);const r=await fetch(u);if(!r.ok)throw new Error(r.status+' '+u);const j=await r.json();cache.set(u,j);return j}
+function seg(items,cur,fn){return `<div class="seg sm">${items.map(([k,l])=>`<button data-k="${k}" class="${k==cur?'on':''}">${esc(l)}</button>`).join('')}</div>`}
+function bind(sel,fn){document.querySelectorAll(sel+' button').forEach(b=>b.onclick=()=>fn(b.dataset.k))}
+function flag(a){const h=a&&a.flag&&a.flag.href;return h?`<img src="${esc(h)}" alt="${esc(a.flag.alt||'')}" loading="lazy">`:''}
+function nav(t){$('#nav').innerHTML=TABS.map(([k,l])=>`<a href="#${k}" class="${k==t?'on':''}">${l}</a>`).join('')}
+function err(e){return `<div class="pd-card"><div class="pd-msg">Could not load this feed (${esc(e.message)}). ESPN may be rate limiting or this season has no data. Try again in a moment.</div></div>`}
+
+/* ---------- Formula 1 ---------- */
+async function f1(){
+  const q=S.f1.season?`?season=${S.f1.season}`:'';
+  let j;try{j=await jget('https://site.api.espn.com/apis/v2/sports/racing/f1/standings'+q)}catch(e){return err(e)}
+  const years=(j.seasons||[]).map(s=>s.year);
+  const season=S.f1.season||(j.children[0].standings&&j.children[0].standings.season)||years[0];
+  const grp=j.children[S.f1.kind];
+  const ents=(grp&&grp.standings&&grp.standings.entries)||[];
+  if(!ents.length)return `<div class="pd-card"><div class="pd-msg">No ${esc(grp?grp.name:'standings')} for ${season} yet.</div></div>`;
+  const rows=ents.map(e=>{
+    const who=e.athlete||e.team||{};
+    const st=e.stats||[];
+    const pts=(st.find(s=>s.name==='championshipPts')||{}).value||0;
+    const rk=(st.find(s=>s.name==='rank')||{}).value;
+    const rounds=st.filter(s=>s.id&&s.abbreviation).map(s=>({ab:s.abbreviation,name:s.displayName,played:s.played!==false&&s.value!=null,v:s.value||0}));
+    return {name:who.displayName||who.name||'?',ab:who.abbreviation,flag:who.flag?who:null,logo:who.logo,pts,rk:rk??0,rounds};
+  }).sort((a,b)=>(a.rk||99)-(b.rk||99)||b.pts-a.pts);
+  const R=rows[0].rounds,played=R.filter(r=>r.played).length;
+  const top=rows.slice(0,Math.min(8,rows.length));
+  // cumulative points chart
+  const W=900,H=300,pl=40,pr=14,pt=12,pb=26,n=Math.max(played,1);
+  const cum=top.map(r=>{let c=0;return r.rounds.slice(0,played).map(x=>c+=x.v)});
+  const mx=Math.max(1,...cum.map(a=>a[a.length-1]||0));
+  const X=i=>pl+(n===1?0:i*(W-pl-pr)/(n-1)),Y=v=>H-pb-v/mx*(H-pt-pb);
+  let g='';
+  for(let k=0;k<=4;k++){const v=mx*k/4;g+=`<line x1="${pl}" x2="${W-pr}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="${pl-6}" y="${Y(v)+4}" text-anchor="end" font-size="10" fill="var(--fg3)" font-family="var(--f-mono)">${Math.round(v)}</text>`}
+  R.slice(0,played).forEach((r,i)=>{if(played<=12||i%2===0||i===played-1)g+=`<text x="${X(i)}" y="${H-8}" text-anchor="middle" font-size="9.5" fill="var(--fg3)" font-family="var(--f-mono)">${esc(r.ab)}</text>`});
+  top.forEach((r,i)=>{const pts=cum[i].map((v,k)=>`${X(k)},${Y(v)}`).join(' ');g+=`<polyline points="${pts}" fill="none" stroke="${PAL[i]}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>`;const lv=cum[i][cum[i].length-1]||0;g+=`<circle cx="${X(n-1)}" cy="${Y(lv)}" r="3.2" fill="${PAL[i]}"/>`});
+  const chart=`<div class="pd-card pd-sec"><div class="pd-chart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Cumulative championship points by round">${g}</svg></div><div class="pd-leg">${top.map((r,i)=>`<span><i style="background:${PAL[i]}"></i>${esc(r.name)}</span>`).join('')}</div></div>`;
+  const maxr=Math.max(1,...rows.flatMap(r=>r.rounds.map(x=>x.v)));
+  const head=`<tr><th class="rk">#</th><th>${S.f1.kind?'Constructor':'Driver'}</th><th class="r">Pts</th><th class="r">Gap</th>${R.map(r=>`<th class="r" title="${esc(r.name)}">${esc(r.ab)}</th>`).join('')}</tr>`;
+  const lead=rows[0].pts;
+  const body=rows.map((r,i)=>`<tr><td class="rk num">${r.rk||i+1}</td><td><span class="nm">${r.flag?flag(r.flag):''}${esc(r.name)}</span></td><td class="r num pt">${r.pts}</td><td class="r num dim">${i?'-'+(lead-r.pts):''}</td>${r.rounds.map(x=>{if(!x.played)return '<td class="r dim">·</td>';const a=x.v/maxr;return `<td class="r"><span class="pd-cell" style="background:color-mix(in srgb,var(--acc) ${Math.round(a*60)}%,transparent)">${x.v}</span></td>`}).join('')}</tr>`).join('');
+  return `<div class="pd-bar">${seg([[0,'Drivers'],[1,'Constructors']],S.f1.kind)}<span class="sp"></span><span class="dim mono" style="font-size:12px">${years.length?`<span class="seg sm" id="yr">${years.slice(0,6).map(y=>`<button data-k="${y}" class="${y==season?'on':''}">${y}</button>`).join('')}</span>`:season}</span></div>
+  <div class="eyebrow">${season} championship${R.length?` · through round ${played} of ${R.length}`:''}</div>
+  ${played?chart:''}
+  <div class="pd-card pd-sec"><div class="pd-scroll"><table class="pd-tbl">${head}${body}</table></div></div>
+  <p class="pd-foot">Cells show championship points scored in each round (sprint and race together, as ESPN reports them). Shading is relative to the biggest single haul that season.</p>`;
+}
+function f1bind(){
+  document.querySelectorAll('.pd-bar > .seg')[0]?.querySelectorAll('button').forEach(b=>b.onclick=()=>{S.f1.kind=+b.dataset.k;render()});
+  document.querySelectorAll('#yr button').forEach(b=>b.onclick=()=>{S.f1.season=+b.dataset.k;render()});
+}
+
+/* ---------- Golf ---------- */
+function ymd(d){return d.getUTCFullYear()+String(d.getUTCMonth()+1).padStart(2,'0')+String(d.getUTCDate()).padStart(2,'0')}
+async function golf(){
+  const d=new Date();d.setUTCDate(d.getUTCDate()+S.golf.off*7);
+  let j;try{j=await jget('https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard?dates='+ymd(d))}catch(e){return err(e)}
+  const nb=`<div class="pd-bar"><button class="btn sm" data-o="-1">‹ Earlier week</button><button class="btn sm" data-o="0">This week</button><button class="btn sm" data-o="1">Later week ›</button></div>`;
+  const ev=(j.events||[])[0];
+  if(!ev)return nb+`<div class="pd-card"><div class="pd-msg">No PGA Tour event in the week of ${d.toISOString().slice(0,10)}.</div></div>`;
+  const comp=ev.competitions[0];
+  let cs=(comp.competitors||[]).map(c=>{
+    const sc=c.score;const par=sc==='E'?0:parseInt(sc,10);
+    const rds=(c.linescores||[]).filter(l=>l.period<=4).sort((a,b)=>a.period-b.period);
+    return {name:(c.athlete||{}).displayName||'?',a:c.athlete,par:isNaN(par)?null:par,sc:sc||'-',order:c.order||999,rds}
+  });
+  cs.sort((a,b)=>a.order-b.order);
+  // ties
+  const cnt={};cs.forEach(c=>{if(c.par!=null)cnt[c.par]=(cnt[c.par]||0)+1});
+  let place=0;cs.forEach((c,i)=>{if(c.par==null){c.pos='-';return}if(i===0||c.par!==cs[i-1].par)place=i+1;c.pos=(cnt[c.par]>1?'T':'')+place});
+  const st=ev.status&&ev.status.type;const round=(comp.status&&comp.status.period)||'';
+  const best=Math.min(...cs.filter(c=>c.par!=null).map(c=>c.par)),worst=Math.max(...cs.filter(c=>c.par!=null).map(c=>c.par));
+  const rd=[1,2,3,4];
+  const head=`<tr><th class="rk">Pos</th><th>Player</th><th class="r">To par</th>${rd.map(r=>`<th class="r">R${r}</th>`).join('')}<th></th></tr>`;
+  const body=cs.slice(0,150).map(c=>{
+    const w=c.par==null?0:Math.round((worst-c.par)/Math.max(1,worst-best)*70);
+    return `<tr><td class="rk num">${esc(c.pos)}</td><td><span class="nm">${flag(c.a)}${esc(c.name)}</span></td><td class="r num pt ${c.par<0?'pd-up':c.par>0?'pd-dn':''}">${esc(c.sc)}</td>${rd.map(r=>{const l=c.rds.find(x=>x.period===r);return `<td class="r num ${l&&l.value?'':'dim'}" title="${l?esc(l.displayValue||''):''}">${l&&l.value?l.value:'·'}</td>`}).join('')}<td><span class="pd-bar-to" style="width:${w}px"></span></td></tr>`}).join('');
+  return nb+`<div class="eyebrow">${esc(st?st.description:'')}${round?' · round '+round:''} · ${cs.length} players</div><h2 style="margin:6px 0 12px;font-size:24px">${esc(ev.name)}</h2>
+  <div class="pd-card"><div class="pd-scroll"><table class="pd-tbl">${head}${body}</table></div></div>
+  <p class="pd-foot">Positions are computed from ESPN's score to par with ties marked T. The bar is each player's distance behind the leader. Round columns show strokes; hover a round for its score to par. ESPN's feed carries no season-long Tour standings, so this page follows one event at a time.</p>`;
+}
+function golfbind(){document.querySelectorAll('.pd-bar [data-o]').forEach(b=>b.onclick=()=>{const o=+b.dataset.o;S.golf.off=o===0?0:S.golf.off+o;render()})}
+
+/* ---------- Tennis ---------- */
+async function tennis(){
+  const t=S.tennis.tour;const d=new Date();d.setUTCDate(d.getUTCDate()+S.tennis.off);
+  let rk,sb;
+  try{[rk,sb]=await Promise.all([jget(`https://site.api.espn.com/apis/site/v2/sports/tennis/${t}/rankings`),jget(`https://site.api.espn.com/apis/site/v2/sports/tennis/${t}/scoreboard?dates=${ymd(d)}`)])}catch(e){return err(e)}
+  const ranks=((rk.rankings||[])[0]||{}).ranks||[];
+  const rows=ranks.slice(0,100).map(r=>{const a=r.athlete||{};const mv=(r.previous||r.current)-r.current;return `<tr><td class="rk num">${r.current}</td><td><span class="nm">${flag(a)}${esc(a.displayName)}</span></td><td class="r num pt">${(r.points||0).toLocaleString()}</td><td class="r num ${mv>0?'pd-up':mv<0?'pd-dn':'dim'}">${mv>0?'▲'+mv:mv<0?'▼'+(-mv):'–'}</td></tr>`}).join('');
+  const ms=[];
+  (sb.events||[]).forEach(ev=>(ev.groupings||[]).forEach(g=>(g.competitions||[]).forEach(c=>{
+    if(!(c.status&&c.status.type&&c.status.type.completed))return;
+    ms.push({ev:ev.name,gr:(g.grouping&&g.grouping.displayName)||'',c});
+  })));
+  const singles=ms.filter(m=>/singles/i.test(m.gr)).slice(0,40);
+  const cards=singles.map(({ev,gr,c})=>{
+    const cp=(c.competitors||[]).slice().sort((a,b)=>(a.order||0)-(b.order||0));
+    return `<div class="pd-m"><div class="gl">${esc(ev)} · ${esc(gr)}</div>${cp.map(p=>{const n=(p.athlete||{}).displayName||'?';return `<div class="pl ${p.winner?'':'lose'}"><span class="nm" style="display:flex;gap:8px;align-items:center;min-width:0">${flag(p.athlete)}<b>${esc(n)}</b></span><span class="sc">${(p.linescores||[]).map(l=>l.value).join(' ')}</span></div>`}).join('')}</div>`}).join('');
+  const day=d.toISOString().slice(0,10);
+  return `<div class="pd-bar">${seg([['atp','ATP (men)'],['wta','WTA (women)']],t)}<span class="sp"></span></div>
+  <div class="eyebrow">${t.toUpperCase()} singles rankings · top ${Math.min(100,ranks.length)}${(rk.rankings&&rk.rankings[0]&&rk.rankings[0].update)?'':''}</div>
+  <div class="pd-card pd-sec"><div class="pd-scroll" style="max-height:520px"><table class="pd-tbl"><tr><th class="rk">#</th><th>Player</th><th class="r">Points</th><th class="r">Move</th></tr>${rows}</table></div></div>
+  <div class="pd-sec"><h2>Singles results</h2><div class="pd-bar"><button class="btn sm" data-o="-1">‹ Previous day</button><span class="mono" style="font-size:12.5px">${day}</span><button class="btn sm" data-o="1">Next day ›</button><button class="btn sm" data-o="0">Today</button></div>
+  ${cards?`<div class="pd-res">${cards}</div>`:`<div class="pd-card"><div class="pd-msg">No completed ${t.toUpperCase()} singles matches on ${day}.</div></div>`}</div>
+  <p class="pd-foot">Rankings are ESPN's published ${t.toUpperCase()} list. Set scores are shown next to each player, the winner in bold. ESPN carries no serve or return stats in this feed.</p>`;
+}
+function tennisbind(){
+  document.querySelectorAll('.pd-bar > .seg')[0]?.querySelectorAll('button').forEach(b=>b.onclick=()=>{S.tennis.tour=b.dataset.k;S.tennis.off=0;render()});
+  document.querySelectorAll('.pd-sec [data-o]').forEach(b=>b.onclick=()=>{const o=+b.dataset.o;S.tennis.off=o===0?0:S.tennis.off+o;render()});
+}
+
+const V={f1:[f1,f1bind,'Formula 1','Championship points race','Every round of the season, driver by driver and team by team.'],golf:[golf,golfbind,'Golf','PGA Tour leaderboard','The week\'s event, ranked by score to par with every round.'],tennis:[tennis,tennisbind,'Tennis','Rankings and results','ATP and WTA rankings plus singles results by day.']};
+let tok=0;
+async function render(){
+  const t=(location.hash||'#f1').slice(1);const v=V[t]||V.f1;const key=V[t]?t:'f1';
+  const my=++tok;nav(key);
+  document.title=`${v[2]} · Podium Index`;
+  $('#app').innerHTML=`<section class="pd-hero"><div class="eyebrow">${v[2]}</div><h1>${esc(v[3])}</h1><p class="sub">${esc(v[4])}</p></section><div id="body"><div class="pd-card"><div class="pd-msg">Loading…</div></div></div>`;
+  const html=await v[0]();
+  if(my!==tok)return;
+  $('#body').innerHTML=html;
+  v[1]();
+}
+addEventListener('hashchange',render);
+render();
+</script>
+</body>
+</html>

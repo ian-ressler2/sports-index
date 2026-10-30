@@ -338,5 +338,29 @@
     "accbg": "rgba(160,130,255,.10)"
    }
   }
+ },
+ "podium": {
+  "name": "Podium Index",
+  "short": "F1 · GOLF · TENNIS",
+  "accent": "#e8553d",
+  "tagline": "F1 points race, PGA leaderboard, ATP and WTA rankings",
+  "desc": "Formula 1 championship standings with a points-race chart, the PGA Tour event leaderboard, and ATP and WTA rankings with singles results.",
+  "static": "index.html",
+  "theme": {
+   "light": {
+    "acc": "#c23a24",
+    "acc2": "#e8553d",
+    "a": "#c23a24",
+    "b": "#2f6fd6",
+    "accbg": "rgba(194,58,36,.10)"
+   },
+   "dark": {
+    "acc": "#ff6f55",
+    "acc2": "#ff9a86",
+    "a": "#ff6f55",
+    "b": "#5aa0ff",
+    "accbg": "rgba(255,111,85,.10)"
+   }
+  }
  }
 }
