@@ -38,7 +38,7 @@ ESPN.sbq = '&groups=50';  /* Division I only */
 Object.assign(SPORT, {
   id: 'cbb', name: 'March Index', first: 'March', word: 'INDEX', short: 'CBB', accent: '#9b8cff',
   seasons: { first: 2008, current: cbbCurrentSeason(), label: s => `${s - 1}-${String(s).slice(2)}` },
-  nav: [['stats', 'Stats'], ['lab', 'Lab'], ['compare', 'Compare'], ['charts', 'Shot charts'], ['games', 'Games'], ['today', 'Today'], ['watch', 'Watchlist'], ['teams', 'Teams']],
+  nav: [['stats', 'Stats'], ['lab', 'Lab'], ['compare', 'Compare'], ['charts', 'Shot charts'], ['games', 'Games'], ['today', 'Today'], ['odds', 'Odds'], ['watch', 'Watchlist'], ['teams', 'Teams']],
   unit: 'GAME',
   credit: 'Data: ESPN',
   footer: 'Not affiliated with or endorsed by the NCAA or any school or conference. Statistics and play-by-play come from ESPN’s public feeds.<br>Player photos and team logos are loaded from ESPN’s image host.',
