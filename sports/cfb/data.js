@@ -145,7 +145,7 @@ async function loadSeason(season, prog = () => { }) {
   try { raw = await cached(`${season}:pl2`, Math.max(ttl, 6 * 3600e3), () => cfbPlayers(season)); } catch (e) { D.warn.push('Player stats did not load; only team pages are available.'); }
   /* pass targets: counted offline from play-by-play text (ESPN's own stats report zero) and published beside the site; current season only */
   let tg = null;
-  if (season === SPORT.seasons.current) { try { tg = await cached('cfb:targets', 3600e3, async () => { const r = await fetch('targets.json', { cache: 'no-cache' }); if (!r.ok) throw 0; return r.json(); }); } catch (e) { tg = null; } }
+  if (season === SPORT.seasons.current) { try { tg = await cached('cfb:targets2', 3600e3, async () => { const r = await fetch('targets.json', { cache: 'no-cache' }); if (!r.ok) throw 0; return r.json(); }); } catch (e) { tg = null; } }
   const tgKey = n => { const p = String(n || '').replace(/\b(Jr|Sr|II|III|IV|V)\.?$/i, '').trim().split(/\s+/); return p.length < 2 ? '' : (p[0][0] + p.slice(1).join('')).toLowerCase().replace(/[^a-z]/g, ''); };
   const PG = ['qb', 'rb', 'wr', 'df', 'k', 'p', 'kr'], VOL = { k: m => m.fga, p: m => m.punts, kr: m => m.retn }, pm = Object.fromEntries(PG.map(g => [g, new Map()])), all = new Map();
   for (const r of raw) {
