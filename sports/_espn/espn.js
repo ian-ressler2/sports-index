@@ -140,8 +140,10 @@ const ESPN_BIO = id => cached(`bio:${id}`, 7 * 86400e3, async () => {
   return { h: a.displayHeight, w: a.displayWeight, dob: a.displayDOB, born: a.displayBirthPlace, exp: a.displayExperience, jersey: a.displayJersey, draft: a.displayDraft, hand: a.hand?.displayValue || a.hand?.abbreviation, pos: a.position?.displayName, team: a.team?.displayName, status: a.status?.name, debut: a.debutYear };
 });
 /* a team's season schedule */
-const ESPN_SCHED = (tid, season) => cached(`sch:${tid}:${season}`, 3600e3, async () => {
-  const j = await getJSON(`${espnSite()}/teams/${tid}/schedule?season=${season}${ESPN.st ? `&seasontype=${ESPN.st}` : ''}`);
+const ESPN_SCHED = (tid, season) => cached(`sch2:${tid}:${season}`, 3600e3, async () => {
+  const base = `${espnSite()}/teams/${tid}/schedule?season=${season}${ESPN.st ? `&seasontype=${ESPN.st}` : ''}`, j = await getJSON(base);
+  /* soccer's schedule lists only matches already played; the fixture=true view holds the ones still to come */
+  if (ESPN.sp === 'soccer') { try { const f = await getJSON(base + '&fixture=true'), seen = new Set((j.events || []).map(e => e.id)); j.events = [...(j.events || []), ...(f.events || []).filter(e => !seen.has(e.id))]; } catch (e) { /* played matches only */ } }
   return (j.events || []).map(e => {
     const c = e.competitions?.[0]; if (!c) return null;
     const me = c.competitors.find(k => k.team.id === String(tid)), op = c.competitors.find(k => k !== me);
