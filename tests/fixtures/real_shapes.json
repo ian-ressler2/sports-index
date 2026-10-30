@@ -147,13 +147,13 @@
        "type": {
         "text": "Pass Reception"
        },
-       "text": "(12:10) #15 H.Geriner pass complete short middle to #7 M.Knight for 12 yds to the PIT25"
+       "text": "(13:05) Shotgun #10 D.Mensah pass complete short right to #7 M.Knight caught at PIT37, for 9 yards to the PIT34 (#10 A.Sanford)"
       },
       {
        "type": {
-        "text": "Pass Reception"
+        "text": "Passing Touchdown"
        },
-       "text": "(11:00) #15 H.Geriner pass complete short middle to #9 B.Other for 8 yds"
+       "text": "(02:04) Shotgun #10 D.Mensah pass complete short left to #1 B.Other caught at PIT21, for 19 yards to the PIT00 TOUCHDOWN, clock 02:00, 1ST DOWN #22 J.Weinberg kick attempt good (H: #94 D.Joyce, LS: #46 A.Booker)"
       },
       {
        "type": {
@@ -166,5 +166,5 @@
    ]
   }
  },
- "_note2": "cfb_summary: first play is verbatim from a live ESPN CFB summary; the other plays follow ESPN's phrasing."
+ "_note2": "cfb_summary: the incompletion is verbatim from a live ESPN CFB summary; the reception and touchdown texts are verbatim from the same game (names changed to match the test)."
 }

@@ -9,7 +9,7 @@ import json, re, sys, time, datetime, urllib.request, concurrent.futures as cf
 
 SITE = 'https://site.api.espn.com/apis/site/v2/sports/football/college-football'
 UA = {'User-Agent': 'sports-index-targets/1.0'}
-STOP = r"(?:\s+(?:for|thrown|broken|at|ran|pushed|tackled|out|to|intended|incomplete|complete|-|,)\b|\s*[,(]|\s*$)"
+STOP = r"(?:\s+(?:caught|for|thrown|broken|at|ran|pushed|tackled|out|to|intended|incomplete|complete|-|,)\b|\s*[,(]|\s*$)"
 RX = re.compile(r"\bto\s+(?:#\d+\s+)?([A-Z])\.\s?([A-Za-z][A-Za-z'’\-\. ]*?)" + STOP)
 
 def key(initial, last):
@@ -61,7 +61,7 @@ def main():
     season = today.year if today.month >= 8 else today.year - 1
     try: cache = json.load(open(cache_path))
     except Exception: cache = {}
-    if cache.get('season') != season: cache = {'season': season, 'games': {}}
+    if cache.get('season') != season or cache.get('v') != 2: cache = {'season': season, 'v': 2, 'games': {}}
     games = cache['games']
     start = datetime.date(season, 8, 20); end = min(today, datetime.date(season + 1, 1, 15))
     todo = [g for g in finished_games(start, end) if g not in games][:cap]
