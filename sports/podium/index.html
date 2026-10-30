@@ -160,35 +160,31 @@ async function golf(){
     return `<tr class="pd-click" tabindex="0" data-c="g${i}"><td class="rk num">${esc(c.pos)}</td><td><span class="nm">${flag(c.a)}${esc(c.name)}</span></td><td class="r num pt ${c.par<0?'pd-up':c.par>0?'pd-dn':''}">${esc(c.sc)}</td>${rd.map(r=>{const l=c.rds.find(x=>x.period===r);return `<td class="r num ${l&&l.value?'':'dim'}" title="${l?esc(l.displayValue||''):''}">${l&&l.value?l.value:'·'}</td>`}).join('')}<td><span class="pd-bar-to" style="width:${w}px"></span></td></tr>`}).join('');
   return nb+`<div class="eyebrow">${esc(st?st.description:'')}${round?' · round '+round:''} · ${cs.length} players</div><h2 style="margin:6px 0 12px;font-size:24px">${esc(ev.name)}</h2>
   <div class="pd-card"><div class="pd-scroll"><table class="pd-tbl">${head}${body}</table></div></div>
-  <div class="pd-sec"><h2>Season so far</h2><div id="gseason"><button class="btn sm" id="gsb" data-y="${(ev.date||d.toISOString()).slice(0,4)}">Load ${(ev.date||d.toISOString()).slice(0,4)} season table (about 30 MB download)</button></div></div>
-  <p class="pd-foot">Positions are computed from ESPN's score to par with ties marked T. The bar is each player's distance behind the leader. Round columns show strokes; hover a round for its score to par. ESPN has no season-long standings feed, so the season table is summed from every event. Click any player for their round-by-round card.</p>`;
+  <div class="pd-sec"><h2>Season so far</h2><div id="gseason" data-y="${(ev.date||d.toISOString()).slice(0,4)}"></div></div>
+  <p class="pd-foot">Positions are computed from ESPN's score to par with ties marked T. The bar is each player's distance behind the leader. Round columns show strokes; hover a round for its score to par. Click any player for their round-by-round card.</p>`;
 }
-function golfbind(){const gb=document.getElementById('gsb');if(gb)gb.onclick=()=>golfSeason(document.getElementById('gseason'),gb.dataset.y);document.querySelectorAll('.pd-bar [data-o]').forEach(b=>b.onclick=()=>{const o=+b.dataset.o;S.golf.off=o===0?0:S.golf.off+o;render()})}
+function golfbind(){const gb=document.getElementById('gseason');if(gb)golfSeason(gb,gb.dataset.y);document.querySelectorAll('.pd-bar [data-o]').forEach(b=>b.onclick=()=>{const o=+b.dataset.o;S.golf.off=o===0?0:S.golf.off+o;render()})}
 
 
 /* ---------- opt-in season loaders (large feeds, fetched on request) ---------- */
 const SEASON={};
 function seasonFeed(key,url){return SEASON[key]||(SEASON[key]=jget(url).catch(e=>{delete SEASON[key];throw e}))}
 function golfSeason(box,year){
-  box.innerHTML='<div class="pd-msg">Loading the season, one large download…</div>';
-  seasonFeed('golf'+year,'https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard?dates='+year).then(j=>{
-    const P=new Map();let events=0;
-    (j.events||[]).forEach(ev=>{
-      if(!(ev.status&&ev.status.type&&ev.status.type.completed))return;
-      const cs=(ev.competitions&&ev.competitions[0]&&ev.competitions[0].competitors)||[];if(!cs.length)return;events++;
-      cs.forEach(c=>{const a=c.athlete||{},n=a.displayName;if(!n)return;
-        const par=c.score==='E'?0:parseInt(c.score,10);const rds=(c.linescores||[]).filter(l=>l.period<=4&&l.value);
-        if(!rds.length)return;
-        const o=P.get(n)||{n,a,st:0,w:0,t5:0,t10:0,cuts:0,par:0,strokes:0,rounds:0,fin:[]};
-        o.st++;if(c.order===1)o.w++;if(c.order<=5)o.t5++;if(c.order<=10)o.t10++;if(rds.length>=4)o.cuts++;
-        if(!isNaN(par))o.par+=par;rds.forEach(l=>{o.strokes+=+l.value;o.rounds++});o.fin.push(c.order||0);P.set(n,o);
-      });
-    });
-    const rows=[...P.values()].filter(o=>o.st>=Math.min(3,events)).sort((x,y)=>y.w-x.w||y.t10-x.t10||x.par/x.st-y.par/y.st).slice(0,80);
-    if(!rows.length){box.innerHTML='<div class="pd-msg">No completed events with scores for '+year+' yet.</div>';return}
-    const body=rows.map((o,i)=>`<tr><td class="rk num">${i+1}</td><td><span class="nm">${flag(o.a)}${esc(o.n)}</span></td><td class="r num">${o.st}</td><td class="r num">${o.w||'·'}</td><td class="r num">${o.t5||'·'}</td><td class="r num">${o.t10||'·'}</td><td class="r num">${o.cuts}/${o.st}</td><td class="r num">${fmtN(o.fin.reduce((a,b)=>a+b,0)/o.fin.length,1)}</td><td class="r num">${fmtN(o.strokes/o.rounds,1)}</td></tr>`).join('');
-    box.innerHTML=`<div class="eyebrow">${year} season · ${events} completed events · players with 3+ starts</div><div class="pd-card"><div class="pd-scroll" style="max-height:520px"><table class="pd-tbl"><tr><th class="rk">#</th><th>Player</th><th class="r">Starts</th><th class="r">Wins</th><th class="r">Top 5</th><th class="r">Top 10</th><th class="r">4 rounds</th><th class="r">Avg finish</th><th class="r">Avg round</th></tr>${body}</table></div></div><p class="pd-foot">Summed from every completed event's leaderboard. Finish is ESPN's leaderboard order, so ties are broken arbitrarily. "4 rounds" counts events where the player played all four rounds, which approximates making the cut. This is not the official FedEx Cup or money list.</p>`;
-  }).catch(e=>{box.innerHTML=`<div class="pd-msg">Season could not be loaded (${esc(e.message)}).</div>`});
+  box.innerHTML='<div class="pd-msg">Loading the season…</div>';
+  seasonFeed('golf'+year,`https://site.web.api.espn.com/apis/common/v3/sports/golf/pga/statistics/byathlete?region=us&lang=en&contentorigin=espn&limit=150&sort=general.cupPoints:desc&season=${year}`).then(j=>{
+    const cat=(j.categories||[])[0];if(!cat||!(j.athletes||[]).length){box.innerHTML='<div class="pd-msg">No season statistics for '+year+' yet.</div>';return}
+    const ix=n=>cat.names.indexOf(n);
+    const rows=j.athletes.map(x=>{const v=(x.athlete&&x.categories&&x.categories[0]&&x.categories[0].values)||[];return {a:x.athlete,v}}).filter(r=>r.v.length&&r.v[ix('tournamentsPlayed')]>0);
+    const COLS=[['cupPoints','FedEx pts',v=>Math.round(v).toLocaleString(),1],['amount','Earnings',v=>'$'+Math.round(v).toLocaleString(),1],['tournamentsPlayed','Events',v=>v,1],['cutsMade','Cuts',v=>v,1],['topTenFinishes','Top 10',v=>v,1],['wins','Wins',v=>v,1],['scoringAverage','Avg score',v=>fmtN(v,2),0],['yardsPerDrive','Drive yds',v=>fmtN(v,1),1],['driveAccuracyPct','Drv acc %',v=>fmtN(v,1),1],['greensInRegPct','GIR %',v=>fmtN(v,1),1],['strokesPerHole','Putts/hole',v=>fmtN(v,3),0],['birdiesPerRound','Birdies/rd',v=>fmtN(v,2),1]].filter(c=>ix(c[0])>=0);
+    let key=COLS[0][0],dir=-1;
+    const draw=()=>{
+      const c=COLS.find(z=>z[0]===key),i=ix(key);
+      const srt=rows.slice().sort((p,q)=>{const a=p.v[i],b=q.v[i];return (a==null)-(b==null)||dir*((a||0)-(b||0))});
+      box.innerHTML=`<div class="eyebrow">${year} PGA Tour season · ${rows.length} players · click a column to sort</div><div class="pd-card"><div class="pd-scroll" style="max-height:540px"><table class="pd-tbl"><tr><th class="rk">#</th><th>Player</th>${COLS.map(z=>`<th class="r" data-s="${z[0]}" style="cursor:pointer${z[0]===key?';color:var(--acc)':''}">${esc(z[1])}${z[0]===key?(dir<0?' ▼':' ▲'):''}</th>`).join('')}</tr>${srt.slice(0,100).map((r,k)=>`<tr><td class="rk num">${k+1}</td><td><span class="nm">${flag(r.a)}${esc(r.a.displayName)}</span></td>${COLS.map(z=>{const v=r.v[ix(z[0])];return `<td class="r num${z[0]===key?' pt':''}">${v==null?'·':z[2](v)}</td>`}).join('')}</tr>`).join('')}</table></div></div><p class="pd-foot">Official PGA Tour season statistics as ESPN publishes them: FedEx Cup points, money list, cuts, top 10s, wins, scoring average and driving, green and putting numbers. The table lists players with at least one start.</p>`;
+      box.querySelectorAll('[data-s]').forEach(th=>th.onclick=()=>{const k=th.dataset.s;if(k===key)dir=-dir;else{key=k;dir=COLS.find(z=>z[0]===k)[3]?-1:1}draw()});
+    };
+    draw();
+  }).catch(e=>{box.innerHTML=`<div class="pd-msg">Season statistics could not be loaded (${esc(e.message)}).</div>`});
 }
 const TS={};
 function tennisSeason(t,year){
@@ -268,21 +264,49 @@ function openCard(key){
   if(HOOK){const h=HOOK;HOOK=null;h(ov)}
 }
 let HOOK=null;
-const F1S={};
-function f1season(y){return F1S[y]||(F1S[y]=jget('https://site.api.espn.com/apis/site/v2/sports/racing/f1/scoreboard?dates='+y).then(j=>(j.events||[]).filter(e=>e.competitions&&e.competitions.some(c=>c.type&&c.type.abbreviation==='Race'&&c.status&&c.status.type&&c.status.type.completed))).catch(e=>{delete F1S[y];throw e}))}
+const JOLPI='https://api.jolpi.ca/ergast/f1/';
+const F1J={};
+function f1j(key,fn){return F1J[key]||(F1J[key]=fn().catch(x=>{delete F1J[key];throw x}))}
+const norm=x=>String(x||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z ]/g,'').trim();
+function f1season(y){return f1j('res'+y,async()=>{
+  const [r,q]=await Promise.all([jget(`${JOLPI}${y}/results.json?limit=1000`),jget(`${JOLPI}${y}/qualifying.json?limit=1000`)]);
+  const races=(r.MRData.RaceTable.Races||[]).map(x=>({round:+x.round,name:x.raceName.replace(/ Grand Prix$/,' GP'),res:x.Results||[]}));
+  const quals={};(q.MRData.RaceTable.Races||[]).forEach(x=>{quals[x.round]=x.QualifyingResults||[]});
+  return {races,quals};
+})}
+function f1pits(y,rounds){return f1j('pit'+y+':'+rounds.length,async()=>{
+  const out={};let i=0;
+  await Promise.all(Array.from({length:3},async()=>{while(i<rounds.length){const rd=rounds[i++];try{const j=await jget(`${JOLPI}${y}/${rd}/pitstops.json?limit=100`);out[rd]=((j.MRData.RaceTable.Races[0]||{}).PitStops)||[]}catch(e){out[rd]=null}}}));
+  return out;
+})}
+const dname=d=>norm(d.givenName+' '+d.familyName);
 function f1results(ov,name,season){
   const box=ov.querySelector('#f1res');if(!box)return;
-  f1season(season).then(evs=>{
-    const rows=evs.map(e=>{
-      const pick=ab=>{const c=e.competitions.find(c=>c.type&&c.type.abbreviation===ab);const x=c&&(c.competitors||[]).find(p=>p.athlete&&p.athlete.displayName===name);return x?x.order:null};
-      return {gp:(e.shortName||e.name).replace(/ GP$/,''),grid:pick('Qual'),fin:pick('Race'),spr:pick('SR')};
-    }).filter(r=>r.fin!=null);
+  const me=norm(name),last=me.split(' ').pop();
+  f1season(season).then(({races,quals})=>{
+    const rows=[];
+    races.forEach(r=>{
+      const x=r.res.find(z=>dname(z.Driver)===me)||r.res.find(z=>norm(z.Driver.familyName)===last&&norm(z.Driver.givenName)[0]===me[0]);
+      if(!x)return;
+      const qd=(quals[r.round]||[]).find(z=>z.Driver.driverId===x.Driver.driverId);
+      const fl=x.FastestLap;
+      rows.push({round:r.round,gp:r.name,grid:+x.grid||0,qual:qd?+qd.position:null,fin:+x.position,txt:x.positionText,status:x.status,laps:+x.laps,pts:+x.points,flr:fl?+fl.rank:null,flt:fl&&fl.Time&&fl.Time.time,did:x.Driver.driverId});
+    });
     if(!rows.length){box.innerHTML='<div class="pd-card"><div class="pd-msg">No race results found for this driver.</div></div>';return}
-    const fin=rows.map(r=>r.fin),wins=fin.filter(v=>v===1).length,pod=fin.filter(v=>v<=3).length,poles=rows.filter(r=>r.grid===1).length;
-    const both=rows.filter(r=>r.grid!=null),gain=both.reduce((a,r)=>a+(r.grid-r.fin),0);
-    const tiles=tile('Wins',wins)+tile('Podiums',pod)+tile('Poles',poles)+tile('Avg finish',fmtN(fin.reduce((a,b)=>a+b,0)/fin.length,1))+tile('Avg grid',both.length?fmtN(both.reduce((a,r)=>a+r.grid,0)/both.length,1):'–')+tile('Places gained',both.length?(gain>0?'+':'')+gain:'–');
-    const body=rows.slice().reverse().map(r=>{const d=r.grid!=null?r.grid-r.fin:null;return `<tr><td>${esc(r.gp)}</td><td class="r num">${r.grid??'–'}</td><td class="r num">${r.fin}</td><td class="r num ${d>0?'pd-up':d<0?'pd-dn':''}">${d==null?'':d>0?'+'+d:d}</td><td class="r num dim">${r.spr??''}</td></tr>`}).join('');
-    box.innerHTML=`<div class="eyebrow" style="margin-bottom:8px">Qualifying vs race</div><div class="pd-tiles">${tiles}</div><div class="pd-card"><table class="pd-tbl"><tr><th>Grand Prix</th><th class="r">Grid</th><th class="r">Finish</th><th class="r">+/-</th><th class="r">Sprint</th></tr>${body}</table></div><p class="pd-foot" style="margin:0">Grid is the qualifying order and finish is the classified race order. ESPN does not publish lap times, fastest laps or pit stops.</p>`;
+    const fin=rows.filter(r=>/^\d+$/.test(r.txt)),wins=rows.filter(r=>r.fin===1).length,pod=rows.filter(r=>r.fin<=3).length;
+    const poles=rows.filter(r=>r.qual===1).length,fls=rows.filter(r=>r.flr===1).length,dnf=rows.filter(r=>!/^\d+$/.test(r.txt)||!/Finished|Lapped|^\+\d+ Lap/.test(r.status)).length;
+    const gr=rows.filter(r=>r.grid>0),gain=gr.reduce((a,r)=>a+(r.grid-r.fin),0);
+    const tiles=tile('Wins',wins)+tile('Podiums',pod)+tile('Poles',poles)+tile('Fastest laps',fls)+tile('Did not finish',dnf)+tile('Avg finish',fin.length?fmtN(fin.reduce((a,r)=>a+r.fin,0)/fin.length,1):'–')+tile('Avg grid',gr.length?fmtN(gr.reduce((a,r)=>a+r.grid,0)/gr.length,1):'–')+tile('Places gained',gr.length?(gain>0?'+':'')+gain:'–')+`<div class="pd-tile" id="f1pit"><div class="k">Avg pit stop</div><div class="v">…</div></div>`;
+    const draw=pits=>{
+      const body=rows.slice().reverse().map(r=>{const d=r.grid>0?r.grid-r.fin:null;const ps=pits&&pits[r.round]?pits[r.round].filter(p=>p.driverId===r.did):null;
+        const dur=ps&&ps.length?ps.map(p=>+p.duration).filter(v=>v>0&&v<60):[];
+        return `<tr><td>${esc(r.gp)}</td><td class="r num">${r.qual??'–'}</td><td class="r num">${r.grid===0?'PL':r.grid}</td><td class="r num">${esc(r.txt)}</td><td class="r num ${d>0?'pd-up':d<0?'pd-dn':''}">${d==null?'':d>0?'+'+d:d}</td><td class="r num">${r.flr===1?'<b>'+esc(r.flt)+'</b>':esc(r.flt||'–')}</td><td class="r num">${ps?ps.length:'…'}</td><td class="r num">${dur.length?fmtN(dur.reduce((a,b)=>a+b,0)/dur.length,1)+'s':'–'}</td><td class="dim">${/^Finished$|^\+\d+ Laps?$/.test(r.status)?'':esc(r.status)}</td></tr>`}).join('');
+      const tb=box.querySelector('#f1tb');if(tb)tb.innerHTML=body;
+      if(pits){const all=rows.flatMap(r=>(pits[r.round]||[]).filter(p=>p.driverId===r.did).map(p=>+p.duration)).filter(v=>v>0&&v<60);const t=box.querySelector('#f1pit .v');if(t)t.textContent=all.length?fmtN(all.reduce((a,b)=>a+b,0)/all.length,1)+'s':'–'}
+    };
+    box.innerHTML=`<div class="eyebrow" style="margin-bottom:8px">Race by race</div><div class="pd-tiles">${tiles}</div><div class="pd-card"><div class="pd-scroll"><table class="pd-tbl"><tr><th>Grand Prix</th><th class="r" title="Qualifying position">Qual</th><th class="r" title="Starting slot; PL = pit lane">Grid</th><th class="r">Finish</th><th class="r">+/-</th><th class="r" title="Fastest lap of the race; bold = fastest overall">Best lap</th><th class="r">Stops</th><th class="r">Avg stop</th><th>Status</th></tr><tbody id="f1tb"></tbody></table></div></div><p class="pd-foot" style="margin:0">Results, qualifying, fastest laps and pit stops come from the Jolpica F1 API (the Ergast successor); pit-stop figures are the stationary-plus-lane time it reports and fill in after the other columns. The ESPN feed has none of these.</p>`;
+    draw(null);
+    f1pits(season,races.map(r=>r.round)).then(draw).catch(()=>{const t=box.querySelector('#f1pit .v');if(t)t.textContent='–'});
   }).catch(e=>{box.innerHTML=`<div class="pd-card"><div class="pd-msg">Race results could not be loaded (${esc(e.message)}).</div></div>`});
 }
 function closeCard(){document.getElementById('ov')?.remove()}
