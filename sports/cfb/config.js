@@ -53,7 +53,7 @@ const CFB_RECIPES = {
 Object.assign(SPORT, {
   id: 'cfb', name: 'Saturday Index', first: 'Saturday', word: 'INDEX', short: 'CFB', accent: '#e8b931',
   seasons: { first: 2004, current: cfbCurrentSeason(), label: s => `${s}` },
-  nav: [['stats', 'Stats'], ['lab', 'Lab'], ['compare', 'Compare'], ['games', 'Games'], ['today', 'Today'], ['watch', 'Watchlist'], ['teams', 'Teams']],
+  nav: [['stats', 'Stats'], ['lab', 'Lab'], ['compare', 'Compare'], ['games', 'Games'], ['today', 'Today'], ['odds', 'Odds'], ['watch', 'Watchlist'], ['teams', 'Teams']],
   unit: 'GAME',
   credit: 'Data: ESPN',
   footer: 'Not affiliated with or endorsed by the NCAA or any school or conference. Statistics and play-by-play come from ESPN’s public feeds.<br>Team logos are loaded from ESPN’s image host.',

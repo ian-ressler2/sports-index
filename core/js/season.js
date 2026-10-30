@@ -64,7 +64,7 @@ async function seasonSimulate(D, S, data, N, seed, prog, alive) {
   /* postseason games already played, grouped by pair (data.post, oldest first) */
   const postOf = new Map(); for (const g of data.post || []) { const k = g.h < g.a ? g.h + '|' + g.a : g.a + '|' + g.h; if (!postOf.has(k)) postOf.set(k, []); postOf.get(k).push(g); }
   const X = {
-    lgs, key: i => key[ix.get(i)],
+    lgs, key: i => key[ix.get(i)], team: i => team[ix.get(i)],
     all: () => ids.slice().sort((a, b) => key[ix.get(b)] - key[ix.get(a)]),
     sortLg: lg => ids.filter(i => D.teams.get(i).lg === lg).sort((a, b) => key[ix.get(b)] - key[ix.get(a)]),
     sortDiv: dv => ids.filter(i => D.teams.get(i).div === dv).sort((a, b) => key[ix.get(b)] - key[ix.get(a)]),
