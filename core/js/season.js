@@ -28,12 +28,14 @@ async function seasonSimulate(D, S, data, N, seed, prog, alive) {
   const team = ids.map(i => D.teams.get(i));
   const rng = rngFrom('season:' + seed), W = new Float64Array(M), T = new Float64Array(M), P = new Float64Array(M), rr = new Float64Array(M), key = new Float64Array(M);
   const tally = ids.map(() => ({ made: 0, div: 0, top: 0, conf: 0, champ: 0, sum: 0, hist: new Int32Array(200) }));
-  const jit = .001; /* last-resort coin flip; the real tiebreakers below decide almost everything */
+  const jit = 1e-6; /* last-resort coin flip; the real tiebreakers below decide almost everything */
   /* tiebreaker state: head-to-head wins between every pair, conference and division records, regulation wins (NHL) */
   const HH0 = new Int16Array(M * M), CW0 = new Int16Array(M), CG0 = new Int16Array(M), VW0 = new Int16Array(M), VG0 = new Int16Array(M);
   const lgOf = team.map(t => t.lg), dvOf = team.map(t => t.div), pts = S.metric === 'pts';
   const tally1 = (HH, CW, CG, VW, VG, w, l) => { HH[w * M + l]++; if (lgOf[w] === lgOf[l]) { CW[w]++; CG[w]++; CG[l]++; if (dvOf[w] === dvOf[l]) { VW[w]++; VG[w]++; VG[l]++; } } };
   for (const g of games) if (g.w === 1 && g.hs !== g.as) { const h = ix.get(g.h), a = ix.get(g.a); if (g.hs > g.as) tally1(HH0, CW0, CG0, VW0, VG0, h, a); else tally1(HH0, CW0, CG0, VW0, VG0, a, h); }
+  const PD0 = new Float64Array(M), PD = new Float64Array(M), G0 = new Int16Array(M), GP = new Int16Array(M), WP = new Float64Array(M);
+  for (const g of games) if (g.w === 1) { const h = ix.get(g.h), a = ix.get(g.a); PD0[h] += g.hs - g.as; PD0[a] += g.as - g.hs; G0[h]++; G0[a]++; }
   const HH = new Int16Array(M * M), CW = new Int16Array(M), CG = new Int16Array(M), VW = new Int16Array(M), VG = new Int16Array(M), RW = new Int16Array(M), ord = new Int32Array(M);
   const tieKeys = b => {
     /* order by the main metric, then settle each tied group: (NHL) regulation wins, head-to-head among the tied teams, conference record, division record */
@@ -47,8 +49,10 @@ async function seasonSimulate(D, S, data, N, seed, prog, alive) {
         if (pts) for (const k of grp) { rmin = Math.min(rmin, RW[k]); rmax = Math.max(rmax, RW[k]); }
         for (const k of grp) {
           let hw = 0, hg = 0; for (const j of grp) if (j !== k) { hw += HH[k * M + j]; hg += HH[k * M + j] + HH[j * M + k]; }
+          let sv = 0, sw = 0, ss = 0, sg = 0; for (let j = 0; j < M; j++) { const w = HH[k * M + j], gm = w + HH[j * M + k]; sv += w * WP[j]; sw += w; ss += gm * WP[j]; sg += gm; }
+          const sov = sw ? sv / sw : .5, sos = sg ? ss / sg : .5, x = PD[k] / Math.max(1, GP[k] * S.sigma), pdn = 1 / (1 + Math.exp(-3 * x));
           const s1 = hg ? hw / hg : .5, s2 = CG[k] ? CW[k] / CG[k] : .5, s3 = VG[k] ? VW[k] / VG[k] : .5, s0r = pts && rmax > rmin ? (RW[k] - rmin) / (rmax - rmin) : 0;
-          key[k] = b[k] + (pts ? .3 * s0r + .12 * s1 + .03 * s2 + .006 * s3 : .3 * s1 + .06 * s2 + .012 * s3) + rng() * jit;
+          key[k] = b[k] + (pts ? .3 * s0r + .12 * s1 + .03 * s2 + .006 * s3 + .0012 * pdn : .3 * s1 + .06 * s2 + .012 * s3 + .0024 * sov + .0005 * sos + .0001 * pdn) + rng() * jit;
         }
       }
       s0 = e;
@@ -75,13 +79,14 @@ async function seasonSimulate(D, S, data, N, seed, prog, alive) {
   };
   const step = Math.max(20, Math.round(N / 40));
   for (let sim = 0; sim < N; sim++) {
-    for (let k = 0; k < M; k++) { rr[k] = R[k] + rng.norm() * SD[k]; W[k] = base[k].w; T[k] = base[k].t; P[k] = base[k].pts; RW[k] = base[k].rw; CW[k] = CW0[k]; CG[k] = CG0[k]; VW[k] = VW0[k]; VG[k] = VG0[k]; }
+    for (let k = 0; k < M; k++) { rr[k] = R[k] + rng.norm() * SD[k]; W[k] = base[k].w; T[k] = base[k].t; P[k] = base[k].pts; PD[k] = PD0[k]; GP[k] = G0[k]; RW[k] = base[k].rw; CW[k] = CW0[k]; CG[k] = CG0[k]; VW[k] = VW0[k]; VG[k] = VG0[k]; }
     HH.set(HH0);
     for (let g = 0; g < RH.length; g++) {
-      const h = RH[g], a = RA[g], hw = rng() < normCdf((rr[h] - rr[a] + S.hfa) / S.sigma), wn = hw ? h : a, ls = hw ? a : h;
+      const h = RH[g], a = RA[g], mg = rr[h] - rr[a] + S.hfa + S.sigma * rng.norm(), hw = mg > 0, wn = hw ? h : a, ls = hw ? a : h; PD[h] += mg; PD[a] -= mg; GP[h]++; GP[a]++;
       W[wn]++; P[wn] += 2; const ot = S.otl && rng() < S.otl; if (ot) P[ls]++; if (pts && !ot) RW[wn]++; tally1(HH, CW, CG, VW, VG, wn, ls);
     }
     for (let k = 0; k < M; k++) bv[k] = S.metric === 'pts' ? P[k] : W[k] + T[k] / 2;
+    for (let k = 0; k < M; k++) WP[k] = bv[k] / Math.max(1, GP[k] * (pts ? 2 : 1));
     tieKeys(bv);
     const out = S.bracket(X);
     for (const i of out.made) tally[ix.get(i)].made++;

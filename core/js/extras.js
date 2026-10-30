@@ -128,6 +128,18 @@ const fmtClip = d => {
   const m = String(d).match(/^(\d+):(\d+):(\d+)$/); if (!m) return String(d);
   return +m[1] ? `${+m[1]}:${m[2]}:${m[3]}` : `${+m[2]}:${m[3]}`;
 };
+/* a ▶ button in a log row opens that game's highlight reel in a row beneath it. loader(gameId, leagueSlug) resolves to a clip list */
+function clipBtn(id, lg) { return `<button class="btn sm" type="button" data-gid="${esc(String(id))}" data-lg="${esc(lg || '')}" title="Game highlights" aria-label="Game highlights">▶</button>`; }
+function wireGameClips(root, loader) {
+  root.addEventListener('click', ev => {
+    const b = ev.target.closest('button[data-gid]'); if (!b || !root.contains(b)) return;
+    const tr = b.closest('tr'), nx = tr.nextElementSibling;
+    if (nx && nx.classList.contains('hlrow')) { nx.remove(); b.classList.remove('on'); return; }
+    const row = document.createElement('tr'), td = document.createElement('td'); row.className = 'hlrow'; td.colSpan = tr.children.length; td.style.cssText = 'text-align:left;padding:10px 6px;white-space:normal'; row.appendChild(td); tr.after(row); b.classList.add('on');
+    mount(td, loadingEl('Loading highlights'));
+    loader(b.dataset.gid, b.dataset.lg).then(clips => mount(td, highlightsPanel(clips, 'Game highlights') || h('div', { class: 'cap' }, 'No highlight clips are published for this game.'))).catch(() => mount(td, h('div', { class: 'cap' }, 'Highlights could not be loaded.')));
+  });
+}
 function highlightsPanel(clips, title = 'Highlights') {
   clips = (clips || []).filter(c => c && /^https:/.test(c.src || '')); if (!clips.length) return null;
   const stage = h('div', { class: 'hlstage' }), items = [];

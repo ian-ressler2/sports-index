@@ -186,7 +186,7 @@ function golfSeason(box,year){
     draw();
   }).catch(e=>{box.innerHTML=`<div class="pd-msg">Season statistics could not be loaded (${esc(e.message)}).</div>`});
 }
-const TS={};
+const TS={},TIDS={};
 function tennisSeason(t,year){
   return seasonFeed('tn'+t+year,`https://site.api.espn.com/apis/site/v2/sports/tennis/${t}/scoreboard?dates=${year}0101-${year}1231`).then(j=>{
     const key=t+year;if(TS[key])return TS[key];const M=[];
@@ -218,7 +218,32 @@ function parseH2H(text,a,b){
     rows.push({date:`${d8.slice(0,4)}-${d8.slice(4,6)}-${d8.slice(6,8)}`,ev:f[I('tourney_name')],surface:f[I('surface')]||'',level:f[I('tourney_level')],rnd:f[I('round')],sc:f[I('score')],min:f[I('minutes')],aWon:aw});}
   return {rows,max};
 }
-function tennisH2H(box,t,year,a,b,since,withEspn){
+
+/* matches since the archive ends: ESPN's per-player event log lists this season's matches; open each (small) and keep the ones against the other player */
+async function tennisRecent(idA,a,b,maxIso){
+  const https=u=>String(u).replace('http://','https://'),base=`https://sports.core.api.espn.com/v2/sports/tennis/athletes/${idA}/eventlog`;
+  const first=await jget(base),pages=(first.events&&first.events.pageCount)||1,items=[...(first.events.items||[])];
+  const more=await Promise.all(Array.from({length:Math.max(0,pages-1)},(_,k)=>jget(base+'?page='+(k+2)).catch(()=>({events:{items:[]}}))));
+  more.forEach(m=>items.push(...((m.events&&m.events.items)||[])));
+  const hits=[];let i=0;const todo=items.filter(x=>x.played&&x.competition);
+  await Promise.all(Array.from({length:8},async()=>{while(i<todo.length){const it=todo[i++];try{
+    const c=await jget(https(it.competition.$ref));
+    const d=String(c.date||'').slice(0,10);if(maxIso&&d<=maxIso)continue;
+    const cp=c.competitors||[];if(cp.length!==2||!cp.some(x=>x.winner))continue;
+    const me=cp.find(x=>sameP(x.name,a)),op=cp.find(x=>x!==me);if(!me||!op||!sameP(op.name,b))continue;
+    hits.push({c,me,op,d,evRef:it.event&&it.event.$ref});
+  }catch(e){}}}));
+  const rows=[];
+  for(const h of hits){
+    let ev='',sc='';
+    try{ev=(await jget(https(h.evRef))).name||''}catch(e){}
+    try{const w=h.me.winner?h.me:h.op,l=h.me.winner?h.op:h.me;const [ws,ls]=await Promise.all([jget(https(w.linescores.$ref)),jget(https(l.linescores.$ref))]);
+      sc=(ws.items||[]).map((x,k)=>`${x.value}${(ls.items||[])[k]?'-'+ls.items[k].value:''}`).join(' ')}catch(e){}
+    rows.push({date:h.d,ev,surface:'',level:'',rnd:(h.c.round&&(h.c.round.displayName||h.c.round.id))||'',sc,min:'',aWon:!!h.me.winner});
+  }
+  return rows;
+}
+function tennisH2H(box,t,year,a,b,since,idA){
   if(!a||!b||a===b){box.innerHTML='<div class="pd-msg">Pick two different players.</div>';return}
   const ys=[];for(let y=year;y>=since;y--)ys.push(y);
   let done=0;box.innerHTML=`<div class="pd-msg" id="h2prog">Loading match files… 0 of ${ys.length}</div>`;
@@ -228,9 +253,9 @@ function tennisH2H(box,t,year,a,b,since,withEspn){
     let rows=parts.flatMap(p=>p.rows),max=parts.reduce((m,p)=>p.max>m?p.max:m,'');
     const maxIso=max?`${max.slice(0,4)}-${max.slice(4,6)}-${max.slice(6,8)}`:'';
     let extra=0;
-    if(withEspn){try{const {M}=await tennisSeason(t,year);M.forEach(x=>{if(maxIso&&x.date<=maxIso)return;const aw=x.w===a&&x.l===b,bw=x.w===b&&x.l===a;if(aw||bw){rows.push({date:x.date,ev:x.ev,surface:'',level:'',rnd:x.rnd,sc:x.sc,min:'',aWon:aw});extra++}})}catch(e){}}
+    if(idA){try{const rec=await tennisRecent(idA,a,b,maxIso);rec.forEach(r=>{if(!rows.some(x=>x.aWon===r.aWon&&Math.abs(new Date(x.date)-new Date(r.date))<14*864e5))rows.push(r)});extra=rec.length}catch(e){}}
     rows.sort((x,y)=>y.date.localeCompare(x.date));
-    const note=`Match files from ${since} to ${year}${maxIso?`; the archive's latest tournament starts ${maxIso}`:''}${withEspn?`, plus ${extra} newer match${extra===1?'':'es'} from ESPN's current-season feed`:''}.`;
+    const note=`Match files from ${since} to ${year}${maxIso?`; the archive's latest tournament starts ${maxIso}`:''}${idA?`, plus ${extra} newer match${extra===1?'':'es'} from ESPN's player event log`:''}.`;
     if(!rows.length){box.innerHTML=`<div class="pd-card"><div class="pd-msg">${esc(a)} and ${esc(b)} have no recorded singles meetings in that window. ${esc(note)}</div></div>`;return}
     const aw=rows.filter(r=>r.aWon).length,bw=rows.length-aw;
     const surf={};rows.forEach(r=>{const k=r.surface||'Other';(surf[k]=surf[k]||[0,0])[r.aWon?0:1]++});
@@ -245,7 +270,7 @@ async function tennis(){
   let rk,sb;
   try{[rk,sb]=await Promise.all([jget(`https://site.api.espn.com/apis/site/v2/sports/tennis/${t}/rankings`),jget(`https://site.api.espn.com/apis/site/v2/sports/tennis/${t}/scoreboard?dates=${ymd(d)}`)])}catch(e){return err(e)}
   const ranks=((rk.rankings||[])[0]||{}).ranks||[];
-  ranks.slice(0,100).forEach((r,i)=>CARDS['t'+i]=()=>tenniscard(r,t,sb));
+  ranks.slice(0,100).forEach((r,i)=>{CARDS['t'+i]=()=>tenniscard(r,t,sb);if(r.athlete&&r.athlete.id)TIDS[r.athlete.displayName]=r.athlete.id});
   const rows=ranks.slice(0,100).map((r,i)=>{const a=r.athlete||{};const mv=(r.previous||r.current)-r.current;return `<tr class="pd-click" tabindex="0" data-c="t${i}"><td class="rk num">${r.current}</td><td><span class="nm">${flag(a)}${esc(a.displayName)}</span></td><td class="r num pt">${(r.points||0).toLocaleString()}</td><td class="r num ${mv>0?'pd-up':mv<0?'pd-dn':'dim'}">${mv>0?'▲'+mv:mv<0?'▼'+(-mv):'–'}</td></tr>`}).join('');
   const ms=[];
   (sb.events||[]).forEach(ev=>(ev.groupings||[]).forEach(g=>(g.competitions||[]).forEach(c=>{
@@ -261,12 +286,12 @@ async function tennis(){
   return `<div class="pd-bar">${seg([['atp','ATP (men)'],['wta','WTA (women)']],t)}<span class="sp"></span></div>
   <div class="eyebrow">${t.toUpperCase()} singles rankings · top ${Math.min(100,ranks.length)}${(rk.rankings&&rk.rankings[0]&&rk.rankings[0].update)?'':''}</div>
   <div class="pd-card pd-sec"><div class="pd-scroll" style="max-height:520px"><table class="pd-tbl"><tr><th class="rk">#</th><th>Player</th><th class="r">Points</th><th class="r">Move</th></tr>${rows}</table></div></div>
-  <div class="pd-sec"><h2>Head to head</h2><div class="pd-bar"><select id="h1" class="btn sm" aria-label="First player">${ranks.slice(0,100).map((r,i)=>`<option ${i===0?'selected':''}>${esc((r.athlete||{}).displayName)}</option>`).join('')}</select><span class="dim">vs</span><select id="h2" class="btn sm" aria-label="Second player">${ranks.slice(0,100).map((r,i)=>`<option ${i===1?'selected':''}>${esc((r.athlete||{}).displayName)}</option>`).join('')}</select><select id="h2since" class="btn sm" aria-label="History"><option value="2015">Since 2015</option><option value="2005" selected>Since 2005</option><option value="1990">Since 1990</option><option value="1968">Whole career</option></select><label class="dim" style="font-size:12.5px"><input type="checkbox" id="h2es"> add ESPN's ${d.getUTCFullYear()} matches (about 20 MB)</label><button class="btn sm" id="h2go" data-y="${d.getUTCFullYear()}" data-t="${t}">Compare</button></div><div id="h2out"></div></div>
+  <div class="pd-sec"><h2>Head to head</h2><div class="pd-bar"><select id="h1" class="btn sm" aria-label="First player">${ranks.slice(0,100).map((r,i)=>`<option ${i===0?'selected':''}>${esc((r.athlete||{}).displayName)}</option>`).join('')}</select><span class="dim">vs</span><select id="h2" class="btn sm" aria-label="Second player">${ranks.slice(0,100).map((r,i)=>`<option ${i===1?'selected':''}>${esc((r.athlete||{}).displayName)}</option>`).join('')}</select><select id="h2since" class="btn sm" aria-label="History"><option value="2015">Since 2015</option><option value="2005" selected>Since 2005</option><option value="1990">Since 1990</option><option value="1968">Whole career</option></select><button class="btn sm" id="h2go" data-y="${d.getUTCFullYear()}" data-t="${t}">Compare</button></div><div id="h2out"></div></div>
   <div class="pd-sec"><h2>Singles results</h2><div class="pd-bar"><button class="btn sm" data-o="-1">‹ Previous day</button><span class="mono" style="font-size:12.5px">${day}</span><button class="btn sm" data-o="1">Next day ›</button><button class="btn sm" data-o="0">Today</button></div>
   ${cards?`<div class="pd-res">${cards}</div>`:`<div class="pd-card"><div class="pd-msg">No completed ${t.toUpperCase()} singles matches on ${day}.</div></div>`}</div>
   <p class="pd-foot">Rankings are ESPN's published ${t.toUpperCase()} list. Set scores are shown next to each player, the winner in bold. ESPN carries no serve or return stats in this feed. Click any ranked player for their card and tournament matches.</p>`;
 }
-function tennisbind(){const hg=document.getElementById('h2go');if(hg)hg.onclick=()=>tennisH2H(document.getElementById('h2out'),hg.dataset.t,+hg.dataset.y,document.getElementById('h1').value,document.getElementById('h2').value,+document.getElementById('h2since').value,document.getElementById('h2es').checked);
+function tennisbind(){const hg=document.getElementById('h2go');if(hg)hg.onclick=()=>tennisH2H(document.getElementById('h2out'),hg.dataset.t,+hg.dataset.y,document.getElementById('h1').value,document.getElementById('h2').value,+document.getElementById('h2since').value,TIDS[document.getElementById('h1').value]);
   document.querySelectorAll('.pd-bar > .seg')[0]?.querySelectorAll('button').forEach(b=>b.onclick=()=>{S.tennis.tour=b.dataset.k;S.tennis.off=0;render()});
   document.querySelectorAll('.pd-sec [data-o]').forEach(b=>b.onclick=()=>{const o=+b.dataset.o;S.tennis.off=o===0?0:S.tennis.off+o;render()});
 }

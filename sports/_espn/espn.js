@@ -95,15 +95,24 @@ async function espnStandings(season) {
 const SOC_GL = ['minutes', 'starts', 'totalGoals', 'goalAssists', 'totalShots', 'shotsOnTarget', 'saves', 'goalsConceded', 'cleanSheet', 'foulsCommitted', 'foulsSuffered', 'offsides', 'yellowCards', 'redCards'];
 const SOC_GL_LABEL = { minutes: 'MIN', starts: 'GS', totalGoals: 'G', goalAssists: 'A', totalShots: 'SH', shotsOnTarget: 'ST', saves: 'SV', goalsConceded: 'GC', cleanSheet: 'CS', foulsCommitted: 'FC', foulsSuffered: 'FA', offsides: 'OF', yellowCards: 'YC', redCards: 'RC' };
 function socStatMap(j) { const m = {}; for (const c of j?.splits?.categories || []) for (const s of c.stats || []) if (!(s.name in m)) m[s.name] = s.displayValue ?? String(s.value); return m; }
-const ESPN_SOCGL = (id, season, tid) => cached(`sgl:${tid}:${id}:${season}`, 3600e3, async () => {
-  const sched = (await ESPN_SCHED(tid, season)).filter(g => g.final).sort((a, b) => (a.t || '').localeCompare(b.t || ''));
-  const base = `https://sports.core.api.espn.com/v2/sports/soccer/leagues/${ESPN.lg}`;
-  const rows = await pool(sched, 6, async g => { try { return socStatMap(await getJSON(`${base}/events/${g.id}/competitions/${g.id}/competitors/${tid}/roster/${id}/statistics/0`)); } catch (e) { return null; } });
+/* every competition the club played this season (league, cups, European games), each with its league slug */
+const ESPN_SOCSCHED = (tid, season) => cached(`ssch:${tid}:${season}`, 3600e3, async () => {
+  const j = await getJSON(`https://site.api.espn.com/apis/site/v2/sports/soccer/all/teams/${tid}/schedule?season=${season}`);
+  return (j.events || []).map(e => {
+    const c = e.competitions?.[0]; if (!c) return null;
+    const me = c.competitors.find(k => String(k.team.id) === String(tid)), op = c.competitors.find(k => k !== me);
+    const lg = e.league?.slug || ESPN.lg; if (/friendl|charity/i.test(lg)) return null;
+    return { id: e.id, lg, comp: e.league?.abbreviation || e.league?.shortName || '', date: (e.date || '').slice(0, 10), t: e.date, final: !!c.status?.type?.completed, home: me?.homeAway === 'home', me: +(me?.score?.value ?? me?.score), op: +(op?.score?.value ?? op?.score), oppId: op?.team?.id, opp: op?.team?.abbreviation, oppName: op?.team?.displayName };
+  }).filter(Boolean);
+});
+const ESPN_SOCGL = (id, season, tid) => cached(`sgl2:${tid}:${id}:${season}`, 3600e3, async () => {
+  const sched = (await ESPN_SOCSCHED(tid, season)).filter(g => g.final).sort((a, b) => (a.t || '').localeCompare(b.t || ''));
+  const rows = await pool(sched, 6, async g => { try { return socStatMap(await getJSON(`https://sports.core.api.espn.com/v2/sports/soccer/leagues/${g.lg}/events/${g.id}/competitions/${g.id}/competitors/${tid}/roster/${id}/statistics/0`)); } catch (e) { return null; } });
   const games = [];
   sched.forEach((g, i) => {
     const m = rows[i]; if (!m || !Object.keys(m).length) return; /* not in the squad that day */
     const played = +m.appearances > 0 || +m.minutes > 0;
-    games.push({ id: g.id, date: g.date, t: g.t, atVs: g.home ? 'vs' : '@', score: `${g.me}-${g.op}`, res: g.me > g.op ? 'W' : g.me < g.op ? 'L' : 'D', opp: g.opp, oppId: g.oppId, oppName: g.oppName, hs: g.home ? g.me : g.op, as: g.home ? g.op : g.me, home: g.home, post: false, month: new Date(g.t || g.date).toLocaleString('en', { month: 'long', timeZone: 'UTC' }), stats: SOC_GL.map(n => played ? (m[n] ?? '0') : '–'), played });
+    games.push({ id: g.id, date: g.date, t: g.t, atVs: g.home ? 'vs' : '@', score: `${g.me}-${g.op}`, res: g.me > g.op ? 'W' : g.me < g.op ? 'L' : 'D', opp: g.opp, oppId: g.oppId, oppName: g.oppName, comp: g.lg === ESPN.lg ? '' : g.comp, lg: g.lg, hs: g.home ? g.me : g.op, as: g.home ? g.op : g.me, home: g.home, post: false, month: new Date(g.t || g.date).toLocaleString('en', { month: 'long', timeZone: 'UTC' }), stats: SOC_GL.map(n => played ? (m[n] ?? '0') : '–'), played });
   });
   return { names: SOC_GL.slice(), labels: SOC_GL.map(n => SOC_GL_LABEL[n]), games };
 });
@@ -120,6 +129,11 @@ const ESPN_GL = (id, season, tid) => ESPN.sp === 'soccer' && tid ? ESPN_SOCGL(id
 const ESPN_SPLITS = (id, season) => cached(`spl:${id}:${season}`, 3600e3, async () => {
   const j = await getJSON(`${espnWeb()}/athletes/${id}/splits?${ESPN_Q}&season=${season}`);
   return { labels: j.labels || [], names: j.names || [], cats: (j.splitCategories || []).map(c => ({ name: c.displayName, splits: (c.splits || []).map(s => ({ name: s.displayName, stats: s.stats })) })) };
+});
+/* a finished game's highlight reel (any league slug, so soccer cup games work too) */
+const ESPN_CLIPS = (id, lg) => cached(`clips:${lg || ESPN.lg}:${id}`, 12 * 3600e3, async () => {
+  const base = lg ? `https://site.web.api.espn.com/apis/site/v2/sports/${ESPN.sp}/${lg}` : espnSite();
+  const j = await getJSON(`${base}/summary?event=${id}`); return espnClips(j.videos);
 });
 const ESPN_BIO = id => cached(`bio:${id}`, 7 * 86400e3, async () => {
   const j = await getJSON(`${espnWeb()}/athletes/${id}?${ESPN_Q}`); const a = j.athlete || {};

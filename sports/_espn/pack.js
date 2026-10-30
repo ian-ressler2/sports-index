@@ -21,6 +21,7 @@ function mkCareer(pick) {
 }
 
 /* ---- game log tab. cfg: { cols:{role:[stat names]}, form:{role:{name,label,mode,win}}, res(g) } ---- */
+const clipBox = props => { const el = h('div', props); wireGameClips(el, (id, lg) => ESPN_CLIPS(id, lg)); return el; };
 function mkGameLog(cfg) {
   return async ({ D, id, role }) => {
     const gl = await ESPN_GL(id, D.season, D.players?.get(+id)?.tid);
@@ -44,8 +45,8 @@ function mkGameLog(cfg) {
       out.push(box);
     }
     const trs = games.slice().reverse().map(g => { const opp = D.teams.get(+g.oppId); const res = g.res === 'W' ? '<b style="color:#2fa36b">W</b>' : g.res === 'L' ? '<b style="color:#d6455d">L</b>' : esc(g.res || '');
-      return `<tr><td>${g.date}</td><td style="text-align:left">${g.home ? 'vs' : '@'} ${esc(opp?.abbr || g.opp || '')}</td><td>${res} ${esc(g.score || '')}</td>${xt ? xt.cols.map((c, k) => `<td>${esc(xv.get(g.id)?.[k] ?? '–')}</td>`).join('') : ''}${cols.map(([n]) => `<td>${esc(g.stats[idx(n)] ?? '–')}</td>`).join('')}</tr>`; }).join('');
-    out.push(h('div', { class: 'panel', style: { marginTop: '14px' } }, h('div', { class: 'hd' }, h('h2', {}, 'Game log'), h('small', {}, games.length + ' games')), h('div', { class: 'sc', style: { padding: '8px 4px 4px', maxHeight: '60vh' }, html: `<table class="dt"><thead><tr><th>Date</th><th style="text-align:left">Opp</th><th>Result</th>${xt ? xt.cols.map(c => `<th title="${esc(xt.note || '')}">${esc(c)}</th>`).join('') : ''}${cols.map(c => `<th>${esc(c[1])}</th>`).join('')}</tr></thead><tbody>${trs}</tbody></table>` })));
+      return `<tr><td>${g.date}</td><td style="text-align:left">${g.home ? 'vs' : '@'} ${esc(opp?.abbr || g.opp || '')}${g.comp ? ` <small class="dim">${esc(g.comp)}</small>` : ''}</td><td>${res} ${esc(g.score || '')}</td><td>${clipBtn(g.id, g.lg)}</td>${xt ? xt.cols.map((c, k) => `<td>${esc(xv.get(g.id)?.[k] ?? '–')}</td>`).join('') : ''}${cols.map(([n]) => `<td>${esc(g.stats[idx(n)] ?? '–')}</td>`).join('')}</tr>`; }).join('');
+    out.push(h('div', { class: 'panel', style: { marginTop: '14px' } }, h('div', { class: 'hd' }, h('h2', {}, 'Game log'), h('small', {}, games.length + ' games')), clipBox({ class: 'sc', style: { padding: '8px 4px 4px', maxHeight: '60vh' }, html: `<table class="dt"><thead><tr><th>Date</th><th style="text-align:left">Opp</th><th>Result</th><th></th>${xt ? xt.cols.map(c => `<th title="${esc(xt.note || '')}">${esc(c)}</th>`).join('') : ''}${cols.map(c => `<th>${esc(c[1])}</th>`).join('')}</tr></thead><tbody>${trs}</tbody></table>` })));
     return h('div', {}, out);
   };
 }

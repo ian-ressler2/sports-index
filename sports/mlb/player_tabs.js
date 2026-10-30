@@ -108,6 +108,7 @@ async function tabSplits({ D, id, role, r }) {
 }
 
 /* ---- Game log ---- */
+const mlbClipBox = props => { const el = h('div', props); wireGameClips(el, id => cached(`clips:${id}`, 12 * 3600e3, () => getJSON(`${API}/game/${id}/content`).then(c => mlbClips(c?.highlights?.highlights?.items)))); return el; };
 async function tabLog({ D, id, role, r }) {
   const grp = grpOf(role);
   const sp = (await GLOG(id, grp, D.season)).filter(s => s.stat).sort((a, b) => a.date.localeCompare(b.date));
@@ -128,8 +129,8 @@ async function tabLog({ D, id, role, r }) {
   const cbox = h('div', { class: 'panel pad' }, h('div', { class: 'row sb' }, h('h2', {}, bat ? 'Form' : 'Form'), h('div', { class: 'legend', style: { margin: 0 }, html: chart.series.map(s => `<span><i style="background:${s.color}"></i>${s.name}</span>`).join('') })), h('div', { html: lineSVG({ series: chart.series, xticks: ticks, yfmt: chart.fmt, H: 270 }) }));
   tipBind(cbox, i => { const si = Math.floor(i / 10000), k = i % 10000, se = chart.series[si], p = se?.pts[k]; if (!p) return ''; const g = sp[p[0]]; return `<b>${esc(se.name)}</b>${tr('Through', g.date)}${tr('Value', chart.fmt(p[1]))}`; });
   const cols = bat ? [['atBats', 'AB'], ['runs', 'R'], ['hits', 'H'], ['doubles', '2B'], ['homeRuns', 'HR'], ['rbi', 'RBI'], ['baseOnBalls', 'BB'], ['strikeOuts', 'SO'], ['stolenBases', 'SB']] : [['inningsPitched', 'IP'], ['hits', 'H'], ['runs', 'R'], ['earnedRuns', 'ER'], ['homeRuns', 'HR'], ['baseOnBalls', 'BB'], ['strikeOuts', 'SO'], ['numberOfPitches', 'Pitches']];
-  const trs = sp.slice().reverse().map(s => { const opp = D.teams.get(s.opponent?.id); const res = s.isWin === true ? '<b style="color:#2fa36b">W</b>' : s.isWin === false ? '<b style="color:#d6455d">L</b>' : ''; return `<tr><td>${s.date}</td><td>${s.isHome ? 'vs' : '@'} ${esc(opp?.abbr || s.opponent?.name || '')}</td><td>${res}</td>${cols.map(([k]) => `<td>${esc(s.stat[k] ?? 0)}</td>`).join('')}</tr>`; }).join('');
-  const tbl = h('div', { class: 'panel', style: { marginTop: '14px' } }, h('div', { class: 'hd' }, h('h2', {}, 'Game log'), h('small', {}, sp.length + ' games')), h('div', { class: 'sc', style: { padding: '8px 4px 4px', maxHeight: '60vh' }, html: `<table class="dt"><thead><tr><th>Date</th><th style="text-align:left">Opp</th><th>Team</th>${cols.map(c => `<th>${c[1]}</th>`).join('')}</tr></thead><tbody>${trs}</tbody></table>` }));
+  const trs = sp.slice().reverse().map(s => { const opp = D.teams.get(s.opponent?.id); const res = s.isWin === true ? '<b style="color:#2fa36b">W</b>' : s.isWin === false ? '<b style="color:#d6455d">L</b>' : ''; return `<tr><td>${s.date}</td><td>${s.isHome ? 'vs' : '@'} ${esc(opp?.abbr || s.opponent?.name || '')}</td><td>${res}</td><td>${s.game?.gamePk ? clipBtn(s.game.gamePk) : ''}</td>${cols.map(([k]) => `<td>${esc(s.stat[k] ?? 0)}</td>`).join('')}</tr>`; }).join('');
+  const tbl = h('div', { class: 'panel', style: { marginTop: '14px' } }, h('div', { class: 'hd' }, h('h2', {}, 'Game log'), h('small', {}, sp.length + ' games')), mlbClipBox({ class: 'sc', style: { padding: '8px 4px 4px', maxHeight: '60vh' }, html: `<table class="dt"><thead><tr><th>Date</th><th style="text-align:left">Opp</th><th>Team</th><th></th>${cols.map(c => `<th>${c[1]}</th>`).join('')}</tr></thead><tbody>${trs}</tbody></table>` }));
   return h('div', {}, cbox, tbl);
 }
 
