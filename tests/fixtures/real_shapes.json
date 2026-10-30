@@ -131,5 +131,40 @@
    ]
   }
  },
- "archive_csv": "tourney_id,tourney_name,surface,draw_size,tourney_level,tourney_date,match_num,winner_id,winner_seed,winner_entry,winner_name,winner_hand,winner_ht,winner_ioc,winner_age,loser_id,loser_seed,loser_entry,loser_name,loser_hand,loser_ht,loser_ioc,loser_age,score,best_of,round,minutes,w_ace,w_df,w_svpt,w_1stIn,w_1stWon,w_2ndWon,w_SvGms,w_bpSaved,w_bpFaced,l_ace,l_df,l_svpt,l_1stIn,l_1stWon,l_2ndWon,l_SvGms,l_bpSaved,l_bpFaced,winner_rank,winner_rank_points,loser_rank,loser_rank_points\n2025-808,Riyadh Finals,Hard,8,F,20251101,295,202468,5,,Jessica Pegula,R,170,USA,31.6,211148,8,,Jasmine Paolini,R,160,ITA,29.8,6-2 6-3,3,RR,63,2,1,41,29,24,9,8,1,1,0,4,65,45,25,9,9,5,9,5,5183,8,4325\n2025-W-FC-2025-FLS,BJK Cup Finals,Hard,12,D,20250919,114,211148,,,Jasmine Paolini,R,160,ITA,29.7,202468,,,Jessica Pegula,R,170,USA,31.5,6-4 6-2,3,RR,,,,,,,,,,,,,,,,,,,,8,4006,7,4383\n"
+ "archive_csv": "tourney_id,tourney_name,surface,draw_size,tourney_level,tourney_date,match_num,winner_id,winner_seed,winner_entry,winner_name,winner_hand,winner_ht,winner_ioc,winner_age,loser_id,loser_seed,loser_entry,loser_name,loser_hand,loser_ht,loser_ioc,loser_age,score,best_of,round,minutes,w_ace,w_df,w_svpt,w_1stIn,w_1stWon,w_2ndWon,w_SvGms,w_bpSaved,w_bpFaced,l_ace,l_df,l_svpt,l_1stIn,l_1stWon,l_2ndWon,l_SvGms,l_bpSaved,l_bpFaced,winner_rank,winner_rank_points,loser_rank,loser_rank_points\n2025-808,Riyadh Finals,Hard,8,F,20251101,295,202468,5,,Jessica Pegula,R,170,USA,31.6,211148,8,,Jasmine Paolini,R,160,ITA,29.8,6-2 6-3,3,RR,63,2,1,41,29,24,9,8,1,1,0,4,65,45,25,9,9,5,9,5,5183,8,4325\n2025-W-FC-2025-FLS,BJK Cup Finals,Hard,12,D,20250919,114,211148,,,Jasmine Paolini,R,160,ITA,29.7,202468,,,Jessica Pegula,R,170,USA,31.5,6-4 6-2,3,RR,,,,,,,,,,,,,,,,,,,,8,4006,7,4383\n",
+ "cfb_summary": {
+  "drives": {
+   "previous": [
+    {
+     "plays": [
+      {
+       "type": {
+        "text": "Pass Incompletion"
+       },
+       "text": "(13:39) Shotgun #15 H.Geriner pass incomplete short left to #7 M.Knight thrown to PIT13 broken up by #8 M.Lightfoot"
+      },
+      {
+       "type": {
+        "text": "Pass Reception"
+       },
+       "text": "(12:10) #15 H.Geriner pass complete short middle to #7 M.Knight for 12 yds to the PIT25"
+      },
+      {
+       "type": {
+        "text": "Pass Reception"
+       },
+       "text": "(11:00) #15 H.Geriner pass complete short middle to #9 B.Other for 8 yds"
+      },
+      {
+       "type": {
+        "text": "Rush"
+       },
+       "text": "(10:00) #7 M.Knight rush up the middle for 3 yds"
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "_note2": "cfb_summary: first play is verbatim from a live ESPN CFB summary; the other plays follow ESPN's phrasing."
 }

@@ -118,6 +118,22 @@ SPORT.team = {
   ],
   arc: mkTeamArc('point'),
 };
+/* ESPN's CFB stats carry no targets, but the play-by-play text names the intended receiver ("pass incomplete short left to #7 M.Knight"), so count them per game */
+const CFB_TGT = cached => (g, D, id) => cached(`tgt:${g.id}:${id}`, 30 * 86400e3, async () => {
+  const name = (D.players?.get(+id)?.name || '').replace(/\b(Jr|Sr|II|III|IV|V)\.?$/i, '').trim().split(/\s+/);
+  if (name.length < 2) return null;
+  const ini = name[0][0], last = name.slice(1).join(' ').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(`\\bto (?:#\\d+ )?${ini}\\.\\s?${last}\\b`, 'i');
+  const j = await getJSON(`${espnSite()}/summary?event=${g.id}`);
+  const plays = (j.drives?.previous || []).flatMap(d => d.plays || []);
+  let t = 0, c = 0;
+  for (const p of plays) {
+    const ty = p.type?.text || '', tx = p.text || '';
+    if (!/pass/i.test(ty) || /sack/i.test(ty) || !re.test(tx)) continue;
+    t++; if (/reception|touchdown/i.test(ty) && !/incomplete|intercept/i.test(ty + ' ' + tx)) c++;
+  }
+  return [t, t ? Math.round(c / t * 100) + '%' : '–'];
+});
 SPORT.player = {
   roles: (D, id) => ['qb', 'rb', 'wr', 'df', 'k', 'p', 'kr'].filter(g => D.maps[g]?.has(id)),
   roleName: { qb: 'QUARTERBACK', rb: 'RUSHER', wr: 'RECEIVER', df: 'DEFENDER', k: 'KICKER', p: 'PUNTER', kr: 'RETURNER' },
@@ -128,7 +144,7 @@ SPORT.player = {
   radar: { qb: CFB_RADAR.qb, rb: CFB_RADAR.rb, wr: CFB_RADAR.wr, df: CFB_RADAR.df, k: CFB_RADAR.k, p: CFB_RADAR.p, kr: CFB_RADAR.kr },
   tabs: [['overview', 'Overview'], ['stats', 'Stats'], ['log', 'Game log']],
   build: {
-    log: mkGameLog({ form: {
+    log: mkGameLog({ extra: { wr: { cols: ['TGT', 'CATCH%'], note: 'Targets counted from the intended receiver named in the play-by-play text', fn: CFB_TGT(cached) }, rb: { cols: ['TGT', 'CATCH%'], note: 'Targets counted from the intended receiver named in the play-by-play text', fn: CFB_TGT(cached) } }, form: {
       qb: { name: 'passingYards', label: 'passing yards', mode: 'mean', win: 3, fmt: 'f1' }, rb: { name: 'rushingYards', label: 'rushing yards', mode: 'mean', win: 3, fmt: 'f1' },
       wr: { name: 'receivingYards', label: 'receiving yards', mode: 'mean', win: 3, fmt: 'f1' }, df: { name: 'totalTackles', label: 'tackles', mode: 'mean', win: 3, fmt: 'f1' },
       k: { name: 'totalKickingPoints', label: 'kicking points', mode: 'mean', win: 3, fmt: 'f1' }, p: { name: 'grossAvgPuntYards', label: 'punt average', mode: 'mean', win: 3, fmt: 'f1' },
