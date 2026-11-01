@@ -30,6 +30,20 @@ jobs:
         run: |
           mkdir -p .cache dist/cfb
           python3 tools/build_cfb_targets.py .cache/cfb_targets.json dist/cfb/targets.json 1200
+      - name: Restore saved odds history
+        uses: actions/cache@v4
+        with:
+          path: .cache/odds_history
+          key: odds-history-${{ github.run_id }}
+          restore-keys: odds-history-
+      - name: Save today's season-simulator odds (daily run only)
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        continue-on-error: true
+        timeout-minutes: 30
+        run: python3 tools/odds_snapshot.py dist .cache/odds_history
+      - name: Publish odds history beside each site
+        run: |
+          for f in .cache/odds_history/*.json; do [ -e "$f" ] || continue; s=$(basename "$f" .json); [ -d "dist/$s" ] && cp "$f" "dist/$s/odds_history.json"; done; true
       - name: Lint for undefined identifiers
         run: |
           for s in mlb nhl nba nfl; do node --expose-internals tools/lint_globals.js dist/assets/core.js dist/$s/sport.js; done
@@ -43,6 +57,8 @@ jobs:
           node tests/test_real_shapes.js
           python3 tests/test_targets.py
           python3 tests/test_podium_real.py
+          python3 tests/test_odds_history.py
+          python3 tests/test_image.py
       - uses: actions/upload-pages-artifact@v3
         if: github.ref == 'refs/heads/main'
         with: { path: dist }
