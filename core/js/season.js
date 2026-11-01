@@ -138,6 +138,15 @@ App.pages.odds = async function ({ q, D, el }) {
   const gk = t => S.groupBy ? S.groupBy(t) : t.lg, lgs = [...new Set([...D.teams.values()].filter(t => res.rows.has(t.id)).map(gk))].sort();
   const cols = [['made', 'Playoffs', 'Chance to make the playoffs' + (S.madeNote || '')], ['div', 'Division', 'Chance to finish first in the division'], ['top', S.topLabel, S.topDesc], ['conf', S.finalLabel, 'Chance to reach the championship round'], ['champ', 'Title', 'Chance to win the championship']].filter(c => !(S.noDiv && c[0] === 'div'));
   if (S.cols) { cols.length = 0; cols.push(...S.cols); }
+  /* sports the daily job could not save: this browser keeps its own day-by-day copy and draws the trend from it */
+  if (App.season === SPORT.seasons.current && !hist) { try {
+    const key = `oddsHist:${SPORT.id || location.pathname}:${App.season}`, d0 = new Date(), day = `${d0.getFullYear()}-${String(d0.getMonth() + 1).padStart(2, '0')}-${String(d0.getDate()).padStart(2, '0')}`;
+    let days = []; try { const j = JSON.parse(localStorage.getItem(key) || '{}'); if (Array.isArray(j.days)) days = j.days; } catch (e) {}
+    const t = {}; res.rows.forEach((r, id) => { t[id] = cols.map(c => Math.round((r[c[0]] || 0) * 1000)); });
+    days = days.filter(d => d.d !== day); days.push({ d: day, s: App.season, t }); days = days.slice(-120);
+    try { localStorage.setItem(key, JSON.stringify({ days })); } catch (e) {}
+    if (days.length >= 2) hist = { days: days.slice(-60), col: Math.max(0, cols.findIndex(c => /^(Playoffs?|NCAA|Playoff)$/i.test(c[1]))) };
+  } catch (e) {} }
   const cell = (p, k) => `<td${k === 'div' || k === 'top' ? ' class="opt"' : ''}><span class="odd${k === 'champ' ? ' ch' : ''}"><i style="width:${(p * 100).toFixed(1)}%"></i><b>${oddsPct(p)}</b></span></td>`;
   const table = lg => {
     const rows = [...res.rows.values()].filter(r => gk(D.teams.get(r.id)) === lg).sort((a, b) => S.sortBy ? S.sortBy(b) - S.sortBy(a) : b.made - a.made || b.champ - a.champ || b.exp - a.exp);
