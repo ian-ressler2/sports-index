@@ -50,6 +50,8 @@ function mlbBox(j, G) {
       { label: 'Batting', first: 'Hitter', cols: ['AB', 'R', 'H', 'RBI', 'BB', 'SO', 'HR', 'AVG'], rows: bat, tot: [tb.atBats, tb.runs, tb.hits, tb.rbi, tb.baseOnBalls, tb.strikeOuts, tb.homeRuns, tb.avg].map(x => N(x)) },
       { label: 'Pitching', first: 'Pitcher', cols: ['IP', 'H', 'R', 'ER', 'BB', 'SO', 'HR', 'P', 'ERA'], rows: pit, tot: [tp.inningsPitched, tp.hits, tp.runs, tp.earnedRuns, tp.baseOnBalls, tp.strikeOuts, tp.homeRuns, tp.numberOfPitches, ''].map(x => N(x)) }] });
   }
+  /* line score by inning with runs, hits and errors */
+  const ln = j.liveData?.linescore; if (ln?.innings?.length) { const n = Math.max(9, ln.innings.length); out.line = { cols: [...Array.from({ length: n }, (_, k) => String(k + 1)), 'R', 'H', 'E'], tail: 3, rows: [['away', G.away], ['home', G.home]].map(([w, tm]) => ({ abbr: tm.abbr, v: [...Array.from({ length: n }, (_, k) => ln.innings[k]?.[w]?.runs ?? (k < ln.innings.length ? '' : '')), ln.teams?.[w]?.runs ?? '', ln.teams?.[w]?.hits ?? '', ln.teams?.[w]?.errors ?? ''] })) }; }
   /* the scorer's notes: extra-base hits, steals and errors by team, then the few game-level lines worth keeping */
   for (const [w, tm] of [['away', G.away], ['home', G.home]]) for (const sec of bx.teams?.[w]?.info || []) for (const f of sec.fieldList || []) if (f.label && f.value && /^(2B|3B|HR|RBI|SB|CS|E|DP|SF|SH|GIDP|TB|LOB|Team LOB|Team RISP)/i.test(f.label)) out.notes.push({ label: `${tm.abbr} ${f.label}`, value: String(f.value).replace(/\.$/, '') });
   for (const i of bx.info || []) if (i.label && i.value && /^(HBP|WP|PB|Balk|Ejection|Umpires|Weather|Wind)/i.test(i.label)) out.notes.push({ label: i.label, value: String(i.value).replace(/\.$/, '') });

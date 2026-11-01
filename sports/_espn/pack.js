@@ -182,7 +182,7 @@ function espnBox(j, G) {
     const k = teams.findIndex(t => String(t.id) === String(p.team?.id)); if (k < 0) continue;
     for (const g of p.statistics || []) {
       if (!g.labels?.length) continue;
-      const rows = (g.athletes || []).filter(a => a.stats?.length && !a.didNotPlay).map(a => ({ id: a.athlete?.id, name: a.athlete?.shortName || a.athlete?.displayName || '', pos: a.athlete?.position?.abbreviation || '', v: a.stats }));
+      const rows = (g.athletes || []).filter(a => a.stats?.length && !a.didNotPlay).map(a => ({ id: a.athlete?.id, name: a.athlete?.shortName || a.athlete?.displayName || '', pos: a.athlete?.position?.abbreviation || '', st: typeof a.starter === 'boolean' ? a.starter : undefined, v: a.stats }));
       if (rows.length) out.teams[k].groups.push({ label: BOX_LABEL[g.name] || (p.statistics.length > 1 ? g.text || g.name : ''), cols: g.labels, rows, tot: g.totals?.some(x => x) ? g.totals : null });
     }
   }
@@ -191,10 +191,13 @@ function espnBox(j, G) {
     const COLS = ['G', 'A', 'SHOT', 'SOG', 'SV', 'FC', 'FA', 'YC', 'RC'];
     for (const r of j.rosters) {
       const k = teams.findIndex(t => String(t.id) === String(r.team?.id)); if (k < 0) continue;
-      const rows = (r.roster || []).filter(x => x.starter || x.subbedIn).map(x => { const s = Object.fromEntries((x.stats || []).map(z => [z.abbreviation, z.displayValue])); return { id: x.athlete?.id, name: x.athlete?.shortName || x.athlete?.displayName || '', pos: x.position?.abbreviation || '', sub: !x.starter, v: COLS.map(c => s[c] ?? '0'), st: !!x.starter }; }).sort((a, b) => b.st - a.st);
+      const rows = (r.roster || []).filter(x => x.starter || x.subbedIn).map(x => { const s = Object.fromEntries((x.stats || []).map(z => [z.abbreviation, z.displayValue])); return { id: x.athlete?.id, name: x.athlete?.shortName || x.athlete?.displayName || '', pos: x.position?.abbreviation || '', sub: false, v: COLS.map(c => s[c] ?? '0'), st: !!x.starter }; }).sort((a, b) => b.st - a.st);
       if (rows.length) out.teams[k].groups.push({ label: r.formation ? `Formation ${r.formation}` : 'Lineup', cols: COLS.map(c => ({ SHOT: 'SH', SOG: 'SOT' }[c] || c)), rows });
     }
   }
+  /* line score by period, from the header competitors */
+  const cs = j.header?.competitions?.[0]?.competitors || [], ls = teams.map(t => cs.find(c => String(c.team?.id) === String(t.id))?.linescores || []);
+  if (ls.every(a => a.length)) { const n = Math.max(...ls.map(a => a.length)); out.line = { cols: [...Array.from({ length: n }, (_, k) => SPORT.perName(k + 1, true)), 'T'], tail: 1, rows: teams.map((t, k) => ({ abbr: t.abbr, v: [...Array.from({ length: n }, (_, m) => ls[k][m]?.displayValue ?? ''), t.score]})) }; }
   const tm = bs.teams || [], find = t => tm.find(x => String(x.team?.id) === String(t.id));
   const A = find(G.away), Hm = find(G.home);
   if (A && Hm) for (const s of A.statistics || []) { const o = (Hm.statistics || []).find(x => x.name === s.name); if (o && s.label && s.displayValue != null) { const pc = v => /%/.test(s.label) && isFinite(+v) && +v <= 1 ? Math.round(v * 100) + '%' : v; out.compare.push({ label: s.label, a: pc(s.displayValue), h: pc(o.displayValue) }); } }

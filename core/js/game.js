@@ -139,18 +139,39 @@ function boxScorePanel(G, D) {
   const B = G.box; if (!B || !B.teams?.some(t => t.groups?.some(g => g.rows?.length))) return null;
   let cur = 0; const body = h('div', {});
   const link = r => r.id != null && D?.players?.has(+r.id) ? `<a href="${href('/player/' + r.id)}">${esc(r.name)}</a>` : esc(r.name);
+  /* a cell's sort value: "5-8" sorts by the 5, "31:12" by minutes, ".288" as a number */
+  const num = x => { const s = String(x ?? '').trim(); const m = /^[+-]?\d*\.?\d+/.exec(s.replace(/^(\d+):(\d+)$/, (_, a, b) => +a + b / 60)); return m ? parseFloat(m[0]) : NaN; };
+  const HIGH = new Set(['PTS', 'REB', 'AST', 'STL', 'BLK', 'OREB', 'DREB', '+/-', 'YDS', 'TD', 'REC', 'TOT', 'SOLO', 'SACKS', 'TFL', 'G', 'A', 'S', 'SOG', 'SOT', 'SH', 'HT', 'TK', 'BS', 'H', 'R', 'RBI', 'HR', 'SV', 'CAR', 'PD', 'LONG']); /* columns where the biggest number is the best */
+  const sortState = new Map(); /* group object -> [column, direction] */
+  const table = g => {
+    const st = sortState.get(g); let rows = g.rows;
+    if (st) rows = rows.slice().sort((a, b) => { const x = num(a.v[st[0]]), y = num(b.v[st[0]]); return (isFinite(y) - isFinite(x)) || (st[1] * (y - x)) || 0; });
+    /* the leader in each column where more is better */
+    const lead = g.cols.map((c, k) => { if (g.label === 'Pitching' ? c !== 'SO' : !HIGH.has(c)) return NaN; const vs = g.rows.map(r => num(r.v[k])).filter(isFinite); const m = Math.max(...vs); return vs.length < 2 || m <= 0 || new Set(vs).size < 2 ? NaN : m; });
+    const split = rows.some(r => r.st != null) && !st;
+    let prev = null;
+    const trs = rows.map(r => {
+      let head = ''; if (split && r.st !== prev) { head = `<tr><td colspan="${g.cols.length + 1}" class="cap" style="text-align:left;padding:6px 10px;background:var(--bg3);font-weight:600">${r.st ? 'Starters' : 'Bench'}</td></tr>`; prev = r.st; }
+      return `${head}<tr><td${r.sub ? ' style="padding-left:22px"' : ''}>${link(r)}${r.pos ? ` <small class="dim">${esc(r.pos)}</small>` : ''}</td>${r.v.map((x, k) => `<td${isFinite(lead[k]) && num(x) === lead[k] ? ' style="font-weight:800;color:var(--acc)"' : ''}>${esc(x ?? '')}</td>`).join('')}</tr>`;
+    }).join('');
+    const ths = g.cols.map((c, k) => `<th data-k="${k}" style="cursor:pointer" title="Sort by ${esc(c)}">${esc(c)}${st && st[0] === k ? (st[1] > 0 ? ' ▼' : ' ▲') : ''}</th>`).join('');
+    return `<table class="dt"><thead><tr><th>${esc(g.first || 'Player')}</th>${ths}</tr></thead><tbody>${trs}${g.tot ? `<tr style="font-weight:700"><td>Total</td>${g.tot.map(x => `<td>${esc(x ?? '')}</td>`).join('')}</tr>` : ''}</tbody></table>`;
+  };
   const draw = () => {
     const t = B.teams[cur];
-    body.replaceChildren(...t.groups.filter(g => g.rows?.length).map(g => h('div', { style: { marginTop: '12px' } },
-      g.label ? h('div', { class: 'cap', style: { fontWeight: 600, padding: '0 4px 4px' } }, g.label) : null,
-      h('div', { class: 'sc', html: `<table class="dt"><thead><tr><th>${esc(g.first || 'Player')}</th>${g.cols.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${g.rows.map(r => `<tr><td${r.sub ? ' style="padding-left:22px"' : ''}>${link(r)}${r.pos ? ` <small class="dim">${esc(r.pos)}</small>` : ''}</td>${r.v.map(x => `<td>${esc(x ?? '')}</td>`).join('')}</tr>`).join('')}${g.tot ? `<tr style="font-weight:700"><td>Total</td>${g.tot.map(x => `<td>${esc(x ?? '')}</td>`).join('')}</tr>` : ''}</tbody></table>` }))));
+    body.replaceChildren(...t.groups.filter(g => g.rows?.length).map(g => {
+      const box = h('div', { class: 'sc', html: table(g) });
+      box.addEventListener('click', e => { const th = e.target.closest('th[data-k]'); if (!th) return; const k = +th.dataset.k, s = sortState.get(g); sortState.set(g, s && s[0] === k ? (s[1] > 0 ? [k, -1] : null) : [k, 1]); if (!sortState.get(g)) sortState.delete(g); box.innerHTML = table(g); });
+      return h('div', { style: { marginTop: '12px' } }, g.label ? h('div', { class: 'cap', style: { fontWeight: 600, padding: '0 4px 4px' } }, g.label) : null, box);
+    }));
   };
   const seg = segControl(B.teams.map((t, k) => [k, t.abbr || t.name]), cur, v => { cur = +v; draw(); }, 'sm');
   draw();
+  const ln = B.line?.rows?.length ? h('div', { class: 'panel pad' }, h('div', { class: 'sc', html: `<table class="dt"><thead><tr><th>Line score</th>${B.line.cols.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${B.line.rows.map(r => `<tr><td><b>${esc(r.abbr)}</b></td>${r.v.map((x, k) => `<td${k >= r.v.length - (B.line.tail || 1) ? ' style="font-weight:700"' : ''}>${esc(x ?? '')}</td>`).join('')}</tr>`).join('')}</tbody></table>` })) : null;
   const cmp = B.compare?.length ? h('div', { class: 'panel pad' }, h('div', { class: 'row sb', style: { marginBottom: '8px' } }, h('h2', {}, 'Team stats'), h('div', { class: 'cap' }, `${B.teams[0].abbr} · ${B.teams[1].abbr}`)),
     h('div', { html: `<table class="dt"><tbody>${B.compare.map(c => `<tr><td style="text-align:right;width:30%">${esc(c.a)}</td><td style="text-align:center;font-family:var(--f-sans);color:var(--fg3)">${esc(c.label)}</td><td style="text-align:left;width:30%">${esc(c.h)}</td></tr>`).join('')}</tbody></table>` })) : null;
   const notes = B.notes?.length ? h('div', { class: 'panel pad cap', style: { lineHeight: 1.6 } }, B.notes.map(n => h('div', {}, h('b', {}, n.label + ': '), n.value))) : null;
-  return h('div', { class: 'stack', style: { marginTop: '16px' } }, h('div', { class: 'panel pad' }, h('div', { class: 'row sb' }, h('h2', {}, 'Box score'), seg), body), cmp, notes);
+  return h('div', { class: 'stack', style: { marginTop: '16px' } }, ln, h('div', { class: 'panel pad' }, h('div', { class: 'row sb' }, h('h2', {}, 'Box score'), seg), body), cmp, notes);
 }
 
 /* ---------- simulator ---------- */
