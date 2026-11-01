@@ -25,10 +25,20 @@ READ = """() => {
   return { cols, teams, season: String(App.season), done: /season is complete|season is over|regular season is over|from the final|real seeds/i.test(document.body.innerText) };
 }"""
 
+def fetch_with_cors(route):
+    """The site is opened from disk, so the browser would block ESPN's answers for lack of a matching origin: fetch from Python's side and hand the page the answer with open CORS."""
+    u = route.request.url
+    if u.startswith(('file:', 'data:', 'blob:')): return route.continue_()
+    try:
+        r = route.fetch(timeout=40000); h = dict(r.headers); h['access-control-allow-origin'] = '*'
+        route.fulfill(response=r, headers=h)
+    except Exception: route.abort()
+
 def snapshot(sport, dist, page_setup=None, wait_s=150):
     with sync_playwright() as p:
         b = p.chromium.launch(); pg = b.new_page(viewport={'width': 1300, 'height': 900})
         if page_setup: page_setup(pg)
+        else: pg.route('**/*', fetch_with_cors)
         pg.goto('file://' + os.path.abspath(f'{dist}/{sport}/index.html')); pg.wait_for_timeout(1500)
         pg.evaluate("location.hash='#/odds?n=5000'")
         try: pg.wait_for_selector('table.odds tbody tr', timeout=wait_s * 1000)
