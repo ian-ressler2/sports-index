@@ -39,10 +39,17 @@ def snapshot(sport, dist, page_setup=None, wait_s=150):
         b = p.chromium.launch(); pg = b.new_page(viewport={'width': 1300, 'height': 900})
         if page_setup: page_setup(pg)
         else: pg.route('**/*', fetch_with_cors)
+        msgs, bad = [], []
+        pg.on('console', lambda m: msgs.append(m.text[:140]) if m.type == 'error' else None)
+        pg.on('pageerror', lambda e: msgs.append('PAGEERR ' + str(e)[:140]))
+        pg.on('requestfailed', lambda r: bad.append(r.url[:110]))
         pg.goto('file://' + os.path.abspath(f'{dist}/{sport}/index.html')); pg.wait_for_timeout(1500)
         pg.evaluate("location.hash='#/odds?n=5000'")
         try: pg.wait_for_selector('table.odds tbody tr', timeout=wait_s * 1000)
-        except Exception: b.close(); return None
+        except Exception:
+            try: print(f'--- {sport}: no table; page says:', pg.evaluate("document.querySelector('#view')?.innerText.slice(0, 400).replace(/\\n/g, ' | ')"), '| console:', msgs[:6], '| failed requests:', bad[:6], flush=True)
+            except Exception: pass
+            b.close(); return None
         pg.wait_for_timeout(500); out = pg.evaluate(READ); b.close(); return out
 
 def merge(path, snap, day):
