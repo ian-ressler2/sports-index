@@ -64,7 +64,7 @@ def merge(path, snap, day):
     json.dump({'cols': snap['cols'], 'days': hist}, open(path, 'w'), separators=(',', ':'))
 
 def main():
-    dist, hist_dir = sys.argv[1], sys.argv[2]; sports = sys.argv[3:] or SPORTS
+    dist, hist_dir = sys.argv[1], sys.argv[2]; sports = [s for a in sys.argv[3:] for s in a.replace(',', ' ').split()] or SPORTS
     os.makedirs(hist_dir, exist_ok=True); day = datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d')
     def one(s):
         try:
