@@ -4,7 +4,7 @@ SPORT.season = {
   blurb: 'Plays out the rest of the NBA schedule thousands of times, including the play-in and every playoff round.',
   topLabel: 'Top seed', topDesc: 'Chance to finish with the best record in the conference', finalLabel: 'Finals', madeNote: ' (including the play-in)',
   rec: s => `${s.w}-${s.l}`,
-  games: (D, prog) => espnSeasonData(D, prog),
+  games: (D, prog) => espnSeasonData(D, prog, 3),
   bracket(X) {
     const o = { made: [], top: [], conf: [], champ: null }, BO7 = 'HHAAHAH', fin = [];
     const ser = (a, b) => { const [x, y] = X.hl(a, b); return X.series(x, y, BO7); };
@@ -19,5 +19,5 @@ SPORT.season = {
   },
   note: `<p><b>Strength.</b> Each team’s rating is its average scoring margin, adjusted for the opponents it faced and for home court, then pulled toward average (the fewer games played, the harder the pull). Last season counts for about a third as much as this one, since rosters change. Ratings are uncertain too, so every simulated season draws each team’s true strength from a range, which keeps early-season odds honest.</p>
   <p><b>Games.</b> Win chance comes from the rating gap plus a home-court edge of about 2.4 points, against a typical game spread of 12.5 points. The play-in (7 vs 8, 9 vs 10, then the loser of 7 vs 8 against the winner of 9 vs 10) is played as written. Playoff series are best of seven with 2-2-1-1-1 home court for the better record.</p>
-  <p><b>Limits.</b> Ties are broken by head-to-head record among the tied teams, then conference and division record, then a coin flip; the later official steps (such as point differential) are not modeled. Injuries, trades and rest days are not modeled, and no team gets a playoff boost. Treat the numbers as a fair estimate, not a prediction.</p>`,
+  <p><b>Limits.</b> Playoff games already played count as played, so a series or round in progress starts from its real result. Ties are broken by head-to-head record among the tied teams, then conference and division record, then a coin flip; the later official steps (such as point differential) are not modeled. Injuries, trades and rest days are not modeled, and no team gets a playoff boost. Treat the numbers as a fair estimate, not a prediction.</p>`,
 };

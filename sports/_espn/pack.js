@@ -260,19 +260,21 @@ function teamChips(D, tids, apply) {
 }
 
 /* ---- every team's schedule for a season, merged into one game list for the season simulator ---- */
-async function espnSeasonGames(D, season, prog) {
+async function espnSeasonGames(D, season, prog, st) {
   const ids = [...D.teams.keys()], seen = new Map(); let n = 0;
-  const all = await pool(ids, 6, async id => { const r = await ESPN_SCHED(id, season); prog && prog(++n / ids.length); return r; });
+  const all = await pool(ids, 6, async id => { const r = await ESPN_SCHED(id, season, st); prog && prog(++n / ids.length); return r; });
   ids.forEach((id, k) => { for (const g of all[k] || []) {
     if (seen.has(g.id) || !D.teams.has(+g.oppId)) continue;
-    seen.set(g.id, g.home ? { id: g.id, h: id, a: +g.oppId, hs: g.me, as: g.op, final: g.final } : { id: g.id, h: +g.oppId, a: id, hs: g.op, as: g.me, final: g.final });
+    seen.set(g.id, g.home ? { id: g.id, t: g.t, h: id, a: +g.oppId, hs: g.me, as: g.op, final: g.final } : { id: g.id, t: g.t, h: +g.oppId, a: id, hs: g.op, as: g.me, final: g.final });
   } });
   return [...seen.values()];
 }
 /* current season (finished + remaining) and last season (finished), for SPORT.season.games */
-async function espnSeasonData(D, prog) {
+async function espnSeasonData(D, prog, postSt) {
   const cur = await espnSeasonGames(D, D.season, f => prog && prog(f * .5));
   let prev = []; try { prev = (await espnSeasonGames(D, D.season - 1, f => prog && prog(.5 + f * .5))).filter(g => g.final); } catch (e) { /* last season is only a prior */ }
   const fin = g => g.final && isFinite(g.hs) && isFinite(g.as);
-  return { cur: cur.filter(fin), rem: cur.filter(g => !g.final), prev };
+  /* playoff games already played (postSt = the feed's postseason type), oldest first, so a series or round in progress starts from its real result */
+  let post = []; if (postSt) { try { post = (await espnSeasonGames(D, D.season, null, postSt)).filter(fin).sort((a, b) => (a.t || '') < (b.t || '') ? -1 : 1); } catch (e) { /* replay from the seeds */ } }
+  return { cur: cur.filter(fin), rem: cur.filter(g => !g.final), prev, post };
 }

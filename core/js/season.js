@@ -70,7 +70,7 @@ async function seasonSimulate(D, S, data, N, seed, prog, alive) {
     sortDiv: dv => ids.filter(i => D.teams.get(i).div === dv).sort((a, b) => key[ix.get(b)] - key[ix.get(a)]),
     divs: lg => divsOf.get(lg).map(dv => X.sortDiv(dv)).sort((a, b) => key[ix.get(b[0])] - key[ix.get(a[0])]),
     /* the better record (the first argument is the home team) wins one game; neutral drops the home edge */
-    game: (a, b, neutral) => rng() < normCdf((rr[ix.get(a)] - rr[ix.get(b)] + (neutral ? 0 : S.hfa)) / S.sigma) ? a : b,
+    game: (a, b, neutral) => S.postGames && postOf.has(a < b ? a + '|' + b : b + '|' + a) ? (g => (g.hs > g.as ? g.h : g.a))(postOf.get(a < b ? a + '|' + b : b + '|' + a)[0]) : rng() < normCdf((rr[ix.get(a)] - rr[ix.get(b)] + (neutral ? 0 : S.hfa)) / S.sigma) ? a : b,
     /* a is the better seed. pat marks who hosts each game ('H' = a at home); first to ceil(len/2) wins */
     series: (a, b, pat) => {
       const d = rr[ix.get(a)] - rr[ix.get(b)], ph = normCdf((d + S.hfa) / S.sigma), pa = normCdf((d - S.hfa) / S.sigma), need = Math.ceil(pat.length / 2); let x = 0, y = 0, k0 = 0;
