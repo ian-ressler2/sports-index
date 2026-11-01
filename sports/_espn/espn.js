@@ -3,7 +3,7 @@
    Only the lean fields we use are kept, so cached copies stay small. */
 const ESPN = { sp: '', lg: '', sbq: '', st: 2 };  /* sbq: extra scoreboard parameters, such as the college divisions to include; st: season type for team schedules (soccer feeds have no type 2, so soccer sets it to 0 for none) */
 const espnWeb = () => `https://site.web.api.espn.com/apis/common/v3/sports/${ESPN.sp}/${ESPN.lg}`;
-const espnSite = () => `https://site.web.api.espn.com/apis/site/v2/sports/${ESPN.sp}/${ESPN.lg}`;
+const espnSite = (lg = ESPN.lg) => `https://site.web.api.espn.com/apis/site/v2/sports/${ESPN.sp}/${lg}`;
 const espnApi2 = () => `https://site.api.espn.com/apis/v2/sports/${ESPN.sp}/${ESPN.lg}`;
 const ESPN_Q = 'region=us&lang=en&contentorigin=espn';
 

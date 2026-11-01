@@ -124,9 +124,9 @@ App.pages.games = async function ({ q, D, el }) {
 };
 
 /* ---------- one real game ---------- */
-App.pages.game = async function ({ path, D, el }) {
+App.pages.game = async function ({ path, q, D, el }) {
   const id = path[1]; mount(el, loadingEl('Loading play by play'));
-  let G; try { G = await SPORT.loadGame(id, D); if (G.live && SPORT.loadGameFresh) G = await SPORT.loadGameFresh(id, D); } catch (e) { mount(el, errorEl(e, () => render(true))); return; }
+  let G; try { G = await SPORT.loadGame(id, D, q?.lg); if (G.live && SPORT.loadGameFresh) G = await SPORT.loadGameFresh(id, D, q?.lg); } catch (e) { mount(el, errorEl(e, () => render(true))); return; }
   const head = pageHead(`${G.date || ''} · ${G.live ? 'LIVE' : 'REPLAY'}`, `${G.away.name} at ${G.home.name}`, G.sub || '', SPORT.sim ? h('a', { class: 'btn sm', href: href('/sim', { h: G.home.id, a: G.away.id }) }, 'Simulate this matchup') : null);
   const host = h('div', { class: 'stack' }); mount(el, h('div', { style: { marginBottom: '6px' } }, h('a', { class: 'cap', href: href('/games') }, '‹ All games')), head, highlightsPanel(G.videos) ? h('div', { style: { margin: '14px 0' } }, highlightsPanel(G.videos, 'Game highlights')) : null, host);
   let view = gameViewer(host, G, D), bx = boxScorePanel(G, D); if (bx) el.append(bx);
@@ -137,7 +137,7 @@ App.pages.game = async function ({ path, D, el }) {
     const tick = async () => {
       if (!host.isConnected || !G.live) return;
       try {
-        const G2 = await SPORT.loadGameFresh(id, D), key = g => `${g.ev.length}|${g.home.score}|${g.away.score}|${g.live}|${g.sub}`;
+        const G2 = await SPORT.loadGameFresh(id, D, q?.lg), key = g => `${g.ev.length}|${g.home.score}|${g.away.score}|${g.live}|${g.sub}`;
         if (key(G2) !== key(G)) {
           const atEnd = view?.last?.(), pos = view?.at?.() ?? 0; view?.stop?.(); G = G2;
           view = gameViewer(host, G, D, atEnd ? Infinity : pos);
