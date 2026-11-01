@@ -152,3 +152,36 @@ function highlightsPanel(clips, title = 'Highlights') {
   show(0, false);
   return h('div', { class: 'panel pad hlpanel' }, h('div', { class: 'row sb' }, h('h2', {}, title), h('span', { class: 'cap' }, clips.length + (clips.length === 1 ? ' clip' : ' clips'))), h('div', { class: 'hlgrid', style: { marginTop: '10px' } }, stage, list));
 }
+
+/* ---------- share as a picture ----------
+   Draws a panel into a PNG without any library: the panel is cloned with its computed styles baked in, wrapped in an SVG foreignObject,
+   and painted onto a canvas. Logos and other pictures are dropped (they would taint the canvas). */
+async function panelImage(node, caption) {
+  const w = Math.ceil(node.getBoundingClientRect().width), clone = node.cloneNode(true), src = [node, ...node.querySelectorAll('*')], dst = [clone, ...clone.querySelectorAll('*')];
+  dst.forEach((el, k) => { const s = src[k]; if (!s) return; if (el.tagName === 'IMG' || el.tagName === 'VIDEO' || el.tagName === 'IFRAME') { el.remove(); return; } if (el.hasAttribute?.('data-noimg')) { el.remove(); return; }
+    const cs = getComputedStyle(s); let css = ''; for (const p of cs) css += `${p}:${cs.getPropertyValue(p)};`; el.setAttribute('style', css); });
+  clone.querySelectorAll('[data-noimg]').forEach(e => e.remove());
+  const bg = getComputedStyle(document.body).backgroundColor, fg = getComputedStyle(document.body).color;
+  const foot = document.createElement('div'); foot.setAttribute('style', `padding:8px 12px;font:12px sans-serif;color:${fg};opacity:.7`); foot.textContent = caption || `${SPORT.name || ''} · ${location.href.split('#')[0]}`;
+  const wrap = document.createElement('div'); wrap.setAttribute('style', `background:${bg};padding:12px;width:${w}px;box-sizing:content-box`); wrap.append(clone, foot);
+  document.body.append(wrap); const h2 = Math.ceil(wrap.getBoundingClientRect().height), w2 = Math.ceil(wrap.getBoundingClientRect().width); wrap.remove();
+  const xml = new XMLSerializer().serializeToString(wrap);
+  const svgText = `<svg xmlns="http://www.w3.org/2000/svg" width="${w2}" height="${h2}"><foreignObject width="100%" height="100%">${xml}</foreignObject></svg>`;
+  const img = new Image(); await new Promise((ok, no) => { img.onload = ok; img.onerror = () => no(new Error('Could not draw the picture')); img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgText); });
+  const sc = Math.min(2, 4000 / Math.max(w2, h2)), cv = document.createElement('canvas'); cv.width = Math.round(w2 * sc); cv.height = Math.round(h2 * sc);
+  const cx = cv.getContext('2d'); cx.fillStyle = bg; cx.fillRect(0, 0, cv.width, cv.height); cx.scale(sc, sc); cx.drawImage(img, 0, 0);
+  return new Promise((ok, no) => cv.toBlob(b => b ? ok(b) : no(new Error('Could not make the picture')), 'image/png'));
+}
+/* a small "Image" button: copies the picture to the clipboard, or saves it when the browser will not allow that */
+function imageBtn(getNode, name = 'card') {
+  const b = h('button', { class: 'btn sm', type: 'button', title: 'Copy this as a picture to share', 'data-noimg': '1', onclick: async () => {
+    const was = b.textContent; b.textContent = 'Drawing…';
+    try {
+      const blob = await panelImage(getNode());
+      try { await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]); toast('Picture copied'); }
+      catch (e) { const a = h('a', { href: URL.createObjectURL(blob), download: `${name}.png` }); document.body.append(a); a.click(); a.remove(); toast('Picture saved'); }
+    } catch (e) { toast(e.message || 'Could not make the picture'); }
+    b.textContent = was;
+  } }, 'Image');
+  return b;
+}

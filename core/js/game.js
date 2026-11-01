@@ -190,7 +190,8 @@ function boxScorePanel(G, D) {
   const cmp = B.compare?.length ? h('div', { class: 'panel pad' }, h('div', { class: 'row sb', style: { marginBottom: '8px' } }, h('h2', {}, 'Team stats'), h('div', { class: 'cap' }, `${B.teams[0].abbr} · ${B.teams[1].abbr}`)),
     h('div', { html: `<table class="dt"><tbody>${B.compare.map(c => `<tr><td style="text-align:right;width:30%">${esc(c.a)}</td><td style="text-align:center;font-family:var(--f-sans);color:var(--fg3)">${esc(c.label)}</td><td style="text-align:left;width:30%">${esc(c.h)}</td></tr>`).join('')}</tbody></table>` })) : null;
   const notes = B.notes?.length ? h('div', { class: 'panel pad cap', style: { lineHeight: 1.6 } }, B.notes.map(n => h('div', {}, h('b', {}, n.label + ': '), n.value))) : null;
-  return h('div', { class: 'stack', style: { marginTop: '16px' } }, ln, h('div', { class: 'panel pad' }, h('div', { class: 'row sb' }, h('h2', {}, 'Box score'), seg), body), cmp, notes);
+  const card = h('div', { class: 'stack' }, ln, h('div', { class: 'panel pad' }, h('div', { class: 'row sb' }, h('h2', {}, `${B.teams[0].abbr} at ${B.teams[1].abbr} · Box score`), h('div', { class: 'row', style: { gap: '8px' } }, seg, imageBtn(() => card, `${B.teams[0].abbr}-at-${B.teams[1].abbr}-box-score`))), body), cmp, notes);
+  card.style.marginTop = '16px'; return card;
 }
 
 /* ---------- simulator ---------- */
