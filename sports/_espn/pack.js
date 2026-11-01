@@ -169,9 +169,24 @@ SPORT.today = day => cached(`today:${day}`, 60e3, async () => {
     };
     const home = tm('home'), away = tm('away'); if (!home || !away) return null;
     const hd = c.headlines?.[0];
-    return { id: e.id, t: e.date, state: st.state, final: !!st.completed, status: st.shortDetail || st.description || '', home, away, headline: hd?.shortLinkText || hd?.description || '', note: c.notes?.[0]?.headline || '', videos: espnClips(c.highlights).slice(0, 1), extra: [] };
+    return { id: e.id, t: e.date, state: st.state, final: !!st.completed, status: st.shortDetail || st.description || '', home, away, headline: hd?.shortLinkText || hd?.description || '', note: c.notes?.[0]?.headline || '', videos: espnClips(c.highlights).slice(0, 1), extra: [], line: espnLine(c.odds?.[0]) };
   }).filter(Boolean);
 });
+/* the betting line ESPN carries on the scoreboard: the spread text, the total and, where there is a moneyline, the home win chance with the bookmaker's cut taken out */
+const mlProb = s => { const m = /^([+-]?\d+)$/.exec(String(s ?? '').replace(/^EVEN$/i, '+100').trim()); if (!m) return NaN; const v = +m[1]; return v < 0 ? -v / (-v + 100) : 100 / (v + 100); };
+function espnLine(o) {
+  if (!o || (!o.details && o.overUnder == null)) return null;
+  const h = mlProb(o.moneyline?.home?.close?.odds ?? o.moneyline?.home?.open?.odds), a = mlProb(o.moneyline?.away?.close?.odds ?? o.moneyline?.away?.open?.odds);
+  return { txt: o.details || '', ou: o.overUnder ?? null, hp: ESPN.sp !== 'soccer' && isFinite(h) && isFinite(a) ? h / (h + a) : null, prov: o.provider?.displayName || '' };
+}
+/* the line for a coming meeting of two teams: look through the next ten days of scoreboards */
+SPORT.marketFor = async (hid, aid) => {
+  const d0 = new Date(), days = Array.from({ length: 10 }, (_, k) => { const d = new Date(d0); d.setDate(d.getDate() + k); return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); });
+  const lists = await Promise.all(days.map(d => SPORT.today(String(d)).catch(() => [])));
+  for (const l of lists) for (const g of l) if (g.state === 'pre' && g.line && g.home.id === hid && g.away.id === aid) return { ...g.line, t: g.t };
+  return null;
+};
+
 /* box score from the summary feed: the players' lines by group, then both teams' totals side by side */
 const BOX_LABEL = { passing: 'Passing', rushing: 'Rushing', receiving: 'Receiving', fumbles: 'Fumbles', defensive: 'Defense', interceptions: 'Interceptions', kickReturns: 'Kick returns', puntReturns: 'Punt returns', kicking: 'Kicking', punting: 'Punting', forwards: 'Forwards', defenses: 'Defensemen', goalies: 'Goalies' };
 function espnBox(j, G) {

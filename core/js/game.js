@@ -244,6 +244,11 @@ App.pages.sim = async function ({ q, D, el }) {
     mount(stats, h('div', { class: 'panel pad' }, h('div', { class: 'row sb', style: { flexWrap: 'wrap', gap: '8px' } }, h('h2', {}, `${N.toLocaleString()} simulated games${alt ? ' · what if' : ''}`), h('span', { class: 'cap' }, `${(r.ot / N * 100).toFixed(0)}% went to overtime`)),
       h('div', { class: 'tiles', style: { gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', margin: '10px 0' }, html: tiles.map(([k, v]) => `<div class="tile"><div class="k">${esc(k)}</div><div class="v">${v}</div><div class="p">&nbsp;</div></div>`).join('') }), cmp,
       h('div', { html: `<svg viewBox="0 0 604 120" style="width:100%;max-width:640px"><line x1="302" x2="302" y1="0" y2="100" stroke="var(--line2)"/>${bars.join('')}<text x="4" y="116" font-size="10" fill="var(--fg3)">${esc(T(aid).abbr)} wins by more</text><text x="600" y="116" font-size="10" text-anchor="end" fill="var(--fg3)">${esc(T(hid).abbr)} wins by more</text></svg>` })));
+    /* how the betting market sees the same game, when ESPN carries a line for a coming meeting */
+    if (SPORT.marketFor) SPORT.marketFor(hid, aid).then(m => {
+      if (!m || !stats.isConnected) return; const mod = r.hw / N, when = new Date(m.t).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+      stats.append(h('div', { class: 'panel pad', style: { marginTop: '10px' } }, h('h2', {}, 'The betting line'), h('div', { class: 'cap', style: { marginTop: '6px', lineHeight: 1.7 }, html: `${esc(T(aid).abbr)} at ${esc(T(hid).abbr)}, ${esc(when)}: <b>${esc(m.txt)}</b>${m.ou != null ? ` · total <b>${m.ou}</b>` : ''}${m.prov ? ` (${esc(m.prov)})` : ''}.${m.hp != null ? ` The market puts ${esc(T(hid).abbr)} at <b>${Math.round(m.hp * 100)}%</b> to win; this model says <b>${Math.round(mod * 100)}%</b>${Math.abs(mod - m.hp) >= .08 ? ', a real gap worth a closer look at the lineups and the what-if changes' : ', close to the market'}.` : ''}` })));
+    }).catch(() => { });
   }
   drawWhat();
   if (q.x || (q.s && isNaN(+q.s))) run();
