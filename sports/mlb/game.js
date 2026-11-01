@@ -57,15 +57,17 @@ function mlbBox(j, G) {
   for (const i of bx.info || []) if (i.label && i.value && /^(HBP|WP|PB|Balk|Ejection|Umpires|Weather|Wind)/i.test(i.label)) out.notes.push({ label: i.label, value: String(i.value).replace(/\.$/, '') });
   out.notes = out.notes.slice(0, 16); return out.teams.length === 2 ? out : null;
 }
-SPORT.loadGame = (id, D) => cached(`game:${id}:1:b1`, 600e3, async () => {
+SPORT.loadGameFresh = async (id, D) => {
   const [j, content] = await Promise.all([getJSON(`https://statsapi.mlb.com/api/v1.1/game/${id}/feed/live`), getJSON(`${API}/game/${id}/content`).catch(() => null)]);
   const gd = j.gameData || {}, ls = j.liveData?.linescore || {};
   const tm = w => { const t = gd.teams[w]; return { id: t.id, abbr: t.abbreviation, name: t.name, logo: mlbLogo(t.id), color: tcol(t.id), score: ls.teams?.[w]?.runs ?? 0 }; };
   const G = { id, sim: false, date: gd.datetime?.officialDate || '', sub: gd.status?.detailedState || '', home: tm('home'), away: tm('away'), ev: [], tot: 0 };
   G.videos = mlbClips(content?.highlights?.highlights?.items);
+  G.live = gd.status?.abstractGameState === 'Live';
   try { G.box = mlbBox(j, G); } catch (e) { /* the replay works without a box score */ }
   SPORT.gameEvents(j, G); return G;
-});
+};
+SPORT.loadGame = (id, D) => cached(`game:${id}:1:b1`, 600e3, () => SPORT.loadGameFresh(id, D));
 const mlbShort = n => { const p = String(n || '').trim().split(/\s+/); return p.length > 1 ? `${p[0][0]}. ${p.slice(1).join(' ')}` : p[0] || ''; };
 const MLB_BIG = /^(Triple|Home Run|Grounded Into DP|Double Play|Triple Play|Field Error|Fielders Choice|Stolen Base|Caught Stealing|Pickoff)/i;
 SPORT.gameEvents = (j, G) => {

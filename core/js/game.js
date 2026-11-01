@@ -36,9 +36,9 @@ function winProbSeries(G) {
   return { pre, p };
 }
 
-function gameViewer(host, G, D) {
+function gameViewer(host, G, D, at = 0) {
   const ev = G.ev; if (!ev.length) { mount(host, h('div', { class: 'panel empty' }, 'No play-by-play is available for this game.')); return; }
-  let i = 0, playing = false, speed = 2, timer = 0, only = '';
+  let i = clamp(at, 0, ev.length - 1), playing = false, speed = 2, timer = 0, only = '';
   const stage = SPORT.stage ? SPORT.stage.make(G, D) : null;
   const cb = cbOn(), ch = cb ? '#0072b2' : gTeamColor(D, G.home.id), ca = cb ? '#e69f00' : gTeamColor(D, G.away.id);
   /* scoreboard */
@@ -98,6 +98,7 @@ function gameViewer(host, G, D) {
   mount(host, sb, h('div', { class: 'ggrid' }, h('div', { class: 'stack' }, h('div', { class: 'panel gst' }, stage ? stage.el : null, cap, ctrl, h('div', { class: 'cap', style: { padding: '0 14px 10px' } }, 'Keyboard: ← → step through plays · space plays or pauses · Home and End jump to the start and end')), h('div', { class: 'panel pad' }, h('div', { class: 'row sb', style: { marginBottom: '6px' } }, h('h2', {}, G.sim ? 'Score margin in this simulation' : 'Score margin'), h('span', { class: 'cap' }, `${esc(G.home.abbr)} ahead above the line · click to jump`)), tl), wpPanel),
     h('div', { class: 'panel gpl' }, h('div', { class: 'hd' }, h('h2', {}, 'Play by play'), filt), list)));
   update();
+  return { at: () => i, last: () => i >= ev.length - 1, stop: () => { playing = false; clearTimeout(timer); } };
 }
 
 /* ---------- list of recent real games ---------- */
@@ -125,11 +126,29 @@ App.pages.games = async function ({ q, D, el }) {
 /* ---------- one real game ---------- */
 App.pages.game = async function ({ path, D, el }) {
   const id = path[1]; mount(el, loadingEl('Loading play by play'));
-  let G; try { G = await SPORT.loadGame(id, D); } catch (e) { mount(el, errorEl(e, () => render(true))); return; }
-  const head = pageHead(`${G.date || ''} · REPLAY`, `${G.away.name} at ${G.home.name}`, G.sub || '', SPORT.sim ? h('a', { class: 'btn sm', href: href('/sim', { h: G.home.id, a: G.away.id }) }, 'Simulate this matchup') : null);
+  let G; try { G = await SPORT.loadGame(id, D); if (G.live && SPORT.loadGameFresh) G = await SPORT.loadGameFresh(id, D); } catch (e) { mount(el, errorEl(e, () => render(true))); return; }
+  const head = pageHead(`${G.date || ''} · ${G.live ? 'LIVE' : 'REPLAY'}`, `${G.away.name} at ${G.home.name}`, G.sub || '', SPORT.sim ? h('a', { class: 'btn sm', href: href('/sim', { h: G.home.id, a: G.away.id }) }, 'Simulate this matchup') : null);
   const host = h('div', { class: 'stack' }); mount(el, h('div', { style: { marginBottom: '6px' } }, h('a', { class: 'cap', href: href('/games') }, '‹ All games')), head, highlightsPanel(G.videos) ? h('div', { style: { margin: '14px 0' } }, highlightsPanel(G.videos, 'Game highlights')) : null, host);
-  gameViewer(host, G, D);
-  const bx = boxScorePanel(G, D); if (bx) el.append(bx);
+  let view = gameViewer(host, G, D), bx = boxScorePanel(G, D); if (bx) el.append(bx);
+  /* a game in progress: ask again every 20 seconds and, when something happened, rebuild the replay (staying on the latest play if that is where the viewer was) and the box score */
+  if (G.live && SPORT.loadGameFresh) {
+    const note = h('div', { class: 'cap', style: { margin: '10px 0', fontWeight: 600, color: 'var(--acc)' } }); el.insertBefore(note, host);
+    const stamp = () => { note.textContent = G.live ? `LIVE · ${G.sub || ''} · updated ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })}` : `Final · ${G.sub || ''}`; }; stamp();
+    const tick = async () => {
+      if (!host.isConnected || !G.live) return;
+      try {
+        const G2 = await SPORT.loadGameFresh(id, D), key = g => `${g.ev.length}|${g.home.score}|${g.away.score}|${g.live}|${g.sub}`;
+        if (key(G2) !== key(G)) {
+          const atEnd = view?.last?.(), pos = view?.at?.() ?? 0; view?.stop?.(); G = G2;
+          view = gameViewer(host, G, D, atEnd ? Infinity : pos);
+          const nb = boxScorePanel(G, D); if (bx && nb) bx.replaceWith(nb); else if (nb) el.append(nb); bx = nb || bx;
+        }
+        G.live = G2.live; G.sub = G2.sub; stamp();
+      } catch (e) { /* try again next time */ }
+      setTimeout(tick, 20000);
+    };
+    setTimeout(tick, 20000);
+  }
 };
 
 /* ---------- box score ----------

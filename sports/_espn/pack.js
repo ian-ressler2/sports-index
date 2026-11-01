@@ -203,15 +203,17 @@ function espnBox(j, G) {
   if (A && Hm) for (const s of A.statistics || []) { const o = (Hm.statistics || []).find(x => x.name === s.name); if (o && s.label && s.displayValue != null) { const pc = v => /%/.test(s.label) && isFinite(+v) && +v <= 1 ? Math.round(v * 100) + '%' : v; out.compare.push({ label: s.label, a: pc(s.displayValue), h: pc(o.displayValue) }); } }
   return out;
 }
-SPORT.loadGame = id => cached(`game:${id}:${SPORT.evVer || 1}:b1`, 600e3, async () => {
+SPORT.loadGameFresh = async id => {
   const j = await getJSON(`${espnSite()}/summary?event=${id}`);
   const comp = j.header?.competitions?.[0]; if (!comp) throw new Error('Game not found');
   const tm = w => { const c = comp.competitors.find(k => k.homeAway === w); return { id: +c.team.id, abbr: c.team.abbreviation, name: c.team.displayName, logo: espnLogo(c.team), color: c.team.color ? '#' + c.team.color : '', score: +c.score }; };
   const G = { id, sim: false, date: (comp.date || '').slice(0, 10), sub: comp.status?.type?.detail || '', home: tm('home'), away: tm('away'), ev: [], tot: 0 };
   G.videos = espnClips(j.videos);
+  G.live = comp.status?.type?.state === 'in';
   try { G.box = espnBox(j, G); } catch (e) { /* the replay works without a box score */ }
   SPORT.gameEvents(j, G); return G;
-});
+};
+SPORT.loadGame = id => cached(`game:${id}:${SPORT.evVer || 1}:b1`, 600e3, () => SPORT.loadGameFresh(id));
 
 const GAMES_OPTS = [[5, 'Last 5 games'], [10, 'Last 10 games'], [20, 'Last 20 games'], [40, 'Last 40 games'], [0, 'Whole season']];
 
