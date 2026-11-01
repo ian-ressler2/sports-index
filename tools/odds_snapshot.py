@@ -8,6 +8,7 @@ import datetime, json, os, re, sys, concurrent.futures as cf
 from playwright.sync_api import sync_playwright
 
 SPORTS = ['nba', 'nhl', 'nfl', 'mlb', 'wnba', 'cfb', 'cbb', 'epl', 'mls', 'ucl']
+UA = 'sports-index-odds/1.0 (+https://github.com/ian-ressler2/sports-index)'  # identify ourselves plainly
 KEEP = 400  # most daily records kept per sport
 
 READ = """() => {
@@ -30,7 +31,8 @@ def fetch_with_cors(route):
     u = route.request.url
     if u.startswith(('file:', 'data:', 'blob:')): return route.continue_()
     try:
-        r = route.fetch(timeout=40000); h = dict(r.headers); h['access-control-allow-origin'] = '*'
+        hd = {k: v for k, v in route.request.headers.items() if k.lower() != 'user-agent'}; hd['user-agent'] = UA
+        r = route.fetch(headers=hd, timeout=40000); h = dict(r.headers); h['access-control-allow-origin'] = '*'
         route.fulfill(response=r, headers=h)
     except Exception: route.abort()
 
