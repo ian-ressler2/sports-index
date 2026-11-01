@@ -50,8 +50,10 @@ function mlbBox(j, G) {
       { label: 'Batting', first: 'Hitter', cols: ['AB', 'R', 'H', 'RBI', 'BB', 'SO', 'HR', 'AVG'], rows: bat, tot: [tb.atBats, tb.runs, tb.hits, tb.rbi, tb.baseOnBalls, tb.strikeOuts, tb.homeRuns, tb.avg].map(x => N(x)) },
       { label: 'Pitching', first: 'Pitcher', cols: ['IP', 'H', 'R', 'ER', 'BB', 'SO', 'HR', 'P', 'ERA'], rows: pit, tot: [tp.inningsPitched, tp.hits, tp.runs, tp.earnedRuns, tp.baseOnBalls, tp.strikeOuts, tp.homeRuns, tp.numberOfPitches, ''].map(x => N(x)) }] });
   }
-  for (const i of bx.info || []) if (i.label && i.value && !/^(Pitches-strikes|Weather|Wind|First pitch|T|Att|Venue|ABS)/i.test(i.label)) out.notes.push({ label: i.label, value: i.value });
-  out.notes = out.notes.slice(0, 12); return out.teams.length === 2 ? out : null;
+  /* the scorer's notes: extra-base hits, steals and errors by team, then the few game-level lines worth keeping */
+  for (const [w, tm] of [['away', G.away], ['home', G.home]]) for (const sec of bx.teams?.[w]?.info || []) for (const f of sec.fieldList || []) if (f.label && f.value && /^(2B|3B|HR|RBI|SB|CS|E|DP|SF|SH|GIDP|TB|LOB|Team LOB|Team RISP)/i.test(f.label)) out.notes.push({ label: `${tm.abbr} ${f.label}`, value: String(f.value).replace(/\.$/, '') });
+  for (const i of bx.info || []) if (i.label && i.value && /^(HBP|WP|PB|Balk|Ejection|Umpires|Weather|Wind)/i.test(i.label)) out.notes.push({ label: i.label, value: String(i.value).replace(/\.$/, '') });
+  out.notes = out.notes.slice(0, 16); return out.teams.length === 2 ? out : null;
 }
 SPORT.loadGame = (id, D) => cached(`game:${id}:1:b1`, 600e3, async () => {
   const [j, content] = await Promise.all([getJSON(`https://statsapi.mlb.com/api/v1.1/game/${id}/feed/live`), getJSON(`${API}/game/${id}/content`).catch(() => null)]);

@@ -197,7 +197,7 @@ function espnBox(j, G) {
   }
   const tm = bs.teams || [], find = t => tm.find(x => String(x.team?.id) === String(t.id));
   const A = find(G.away), Hm = find(G.home);
-  if (A && Hm) for (const s of A.statistics || []) { const o = (Hm.statistics || []).find(x => x.name === s.name); if (o && s.label && s.displayValue != null) out.compare.push({ label: s.label, a: s.displayValue, h: o.displayValue }); }
+  if (A && Hm) for (const s of A.statistics || []) { const o = (Hm.statistics || []).find(x => x.name === s.name); if (o && s.label && s.displayValue != null) { const pc = v => /%/.test(s.label) && isFinite(+v) && +v <= 1 ? Math.round(v * 100) + '%' : v; out.compare.push({ label: s.label, a: pc(s.displayValue), h: pc(o.displayValue) }); } }
   return out;
 }
 SPORT.loadGame = id => cached(`game:${id}:${SPORT.evVer || 1}:b1`, 600e3, async () => {
