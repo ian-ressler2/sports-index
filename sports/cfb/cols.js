@@ -38,7 +38,7 @@ Object.assign(COLS, {
   rb: [
     C('gp', 'GP', 'vol', 0, 'int', 'ESPN'),
     C('ratt', 'ATT', 'rush', 0, 'int', 'ESPN', 'Carries'), C('ryds', 'RUSH YDS', 'rush', 1, 'int', 'ESPN'), C('rypg', 'YDS/G', 'rush', 1, 'f1', 'ESPN', 'Rushing yards per game'), C('ypc', 'Y/C', 'rush', 1, 'f2', 'ESPN', 'Yards per carry'), C('rtd', 'RUSH TD', 'rush', 1, 'int', 'ESPN'), C('rlng', 'LNG', 'rush', 1, 'int', 'ESPN', 'Longest run'), C('r1d', '1D', 'rush', 1, 'int', 'ESPN', 'Rushing first downs'), C('rbig', '20+', 'rush', 1, 'int', 'ESPN', 'Rushes of 20 yards or more'), C('rfum', 'FUM', 'rush', -1, 'int', 'ESPN', 'Fumbles'),
-    C('rec', 'REC', 'rec', 1, 'int', 'ESPN'), C('recyds', 'REC YDS', 'rec', 1, 'int', 'ESPN'), C('rctd', 'REC TD', 'rec', 1, 'int', 'ESPN'),
+    C('rec', 'REC', 'rec', 1, 'int', 'ESPN'), C('recyds', 'REC YDS', 'rec', 1, 'int', 'ESPN'), C('rctd', 'REC TD', 'rec', 1, 'int', 'ESPN'), C('tgt', 'TGT', 'rec', 1, 'int', 'DER', 'Passes thrown his way, counted from the play-by-play text'), C('catchp', 'CATCH%', 'rec', 1, 'f1', 'DER', 'Catches per target'), C('ypt', 'Y/TGT', 'rec', 1, 'f1', 'DER', 'Receiving yards per target'),
     C('scrim', 'SCRIM YDS', 'tot', 1, 'int', 'ESPN', 'Yards from scrimmage'), C('scrimpg', 'SCRIM/G', 'tot', 1, 'f1', 'ESPN', 'Yards from scrimmage per game'), C('tdt', 'TOTAL TD', 'tot', 1, 'int', 'DER', 'Rushing plus receiving touchdowns'),
   ],
   wr: [
