@@ -172,12 +172,41 @@ SPORT.today = day => cached(`today:${day}`, 60e3, async () => {
     return { id: e.id, t: e.date, state: st.state, final: !!st.completed, status: st.shortDetail || st.description || '', home, away, headline: hd?.shortLinkText || hd?.description || '', note: c.notes?.[0]?.headline || '', videos: espnClips(c.highlights).slice(0, 1), extra: [] };
   }).filter(Boolean);
 });
-SPORT.loadGame = id => cached(`game:${id}:${SPORT.evVer || 1}`, 600e3, async () => {
+/* box score from the summary feed: the players' lines by group, then both teams' totals side by side */
+const BOX_LABEL = { passing: 'Passing', rushing: 'Rushing', receiving: 'Receiving', fumbles: 'Fumbles', defensive: 'Defense', interceptions: 'Interceptions', kickReturns: 'Kick returns', puntReturns: 'Punt returns', kicking: 'Kicking', punting: 'Punting', forwards: 'Forwards', defenses: 'Defensemen', goalies: 'Goalies' };
+function espnBox(j, G) {
+  const bs = j.boxscore || {}, teams = [G.away, G.home];
+  const mk = t => ({ id: t.id, abbr: t.abbr, name: t.name, groups: [] });
+  const out = { teams: teams.map(mk), compare: [], notes: [] };
+  for (const p of bs.players || []) {
+    const k = teams.findIndex(t => String(t.id) === String(p.team?.id)); if (k < 0) continue;
+    for (const g of p.statistics || []) {
+      if (!g.labels?.length) continue;
+      const rows = (g.athletes || []).filter(a => a.stats?.length && !a.didNotPlay).map(a => ({ id: a.athlete?.id, name: a.athlete?.shortName || a.athlete?.displayName || '', pos: a.athlete?.position?.abbreviation || '', v: a.stats }));
+      if (rows.length) out.teams[k].groups.push({ label: BOX_LABEL[g.name] || (p.statistics.length > 1 ? g.text || g.name : ''), cols: g.labels, rows, tot: g.totals?.some(x => x) ? g.totals : null });
+    }
+  }
+  /* soccer lists each side's squad with season-style counters for this match instead of box groups */
+  if (!out.teams.some(t => t.groups.length) && j.rosters?.length) {
+    const COLS = ['G', 'A', 'SHOT', 'SOG', 'SV', 'FC', 'FA', 'YC', 'RC'];
+    for (const r of j.rosters) {
+      const k = teams.findIndex(t => String(t.id) === String(r.team?.id)); if (k < 0) continue;
+      const rows = (r.roster || []).filter(x => x.starter || x.subbedIn).map(x => { const s = Object.fromEntries((x.stats || []).map(z => [z.abbreviation, z.displayValue])); return { id: x.athlete?.id, name: x.athlete?.shortName || x.athlete?.displayName || '', pos: x.position?.abbreviation || '', sub: !x.starter, v: COLS.map(c => s[c] ?? '0'), st: !!x.starter }; }).sort((a, b) => b.st - a.st);
+      if (rows.length) out.teams[k].groups.push({ label: r.formation ? `Formation ${r.formation}` : 'Lineup', cols: COLS.map(c => ({ SHOT: 'SH', SOG: 'SOT' }[c] || c)), rows });
+    }
+  }
+  const tm = bs.teams || [], find = t => tm.find(x => String(x.team?.id) === String(t.id));
+  const A = find(G.away), Hm = find(G.home);
+  if (A && Hm) for (const s of A.statistics || []) { const o = (Hm.statistics || []).find(x => x.name === s.name); if (o && s.label && s.displayValue != null) out.compare.push({ label: s.label, a: s.displayValue, h: o.displayValue }); }
+  return out;
+}
+SPORT.loadGame = id => cached(`game:${id}:${SPORT.evVer || 1}:b1`, 600e3, async () => {
   const j = await getJSON(`${espnSite()}/summary?event=${id}`);
   const comp = j.header?.competitions?.[0]; if (!comp) throw new Error('Game not found');
   const tm = w => { const c = comp.competitors.find(k => k.homeAway === w); return { id: +c.team.id, abbr: c.team.abbreviation, name: c.team.displayName, logo: espnLogo(c.team), color: c.team.color ? '#' + c.team.color : '', score: +c.score }; };
   const G = { id, sim: false, date: (comp.date || '').slice(0, 10), sub: comp.status?.type?.detail || '', home: tm('home'), away: tm('away'), ev: [], tot: 0 };
   G.videos = espnClips(j.videos);
+  try { G.box = espnBox(j, G); } catch (e) { /* the replay works without a box score */ }
   SPORT.gameEvents(j, G); return G;
 });
 

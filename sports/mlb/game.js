@@ -36,12 +36,30 @@ SPORT.today = day => cached(`today:${day}`, 60e3, async () => {
     return { id: String(g.gamePk), t: g.gameDate, state, final: state === 'post', status: st.detailedState || '', home, away, headline: ex?.headline || '', note: g.seriesDescription && /World|League|Division|Wild/i.test(g.seriesDescription) ? `${g.seriesDescription}${g.seriesGameNumber ? ', Game ' + g.seriesGameNumber : ''}` : '', videos: mlbClips(g.content?.highlights?.highlights?.items).slice(0, 1), extra: extra.filter(Boolean) };
   }).filter(Boolean));
 });
-SPORT.loadGame = (id, D) => cached(`game:${id}:1`, 600e3, async () => {
+/* box score from the live feed: batting order with each hitter's line, then the pitchers, with the scorer's notes underneath */
+function mlbBox(j, G) {
+  const bx = j.liveData?.boxscore; if (!bx) return null;
+  const N = (x, d = 0) => x == null || x === '' ? '' : x, out = { teams: [], compare: [], notes: [] };
+  for (const [w, tm] of [['away', G.away], ['home', G.home]]) {
+    const s = bx.teams?.[w]; if (!s) continue; const pl = id => s.players?.['ID' + id];
+    const bat = (s.batters || []).map(pl).filter(p => p && p.battingOrder && p.stats?.batting && Object.keys(p.stats.batting).length > 1).sort((a, b) => +a.battingOrder - +b.battingOrder)
+      .map(p => { const b = p.stats.batting; return { id: p.person.id, name: mlbShort(p.person.fullName), pos: p.position?.abbreviation || '', sub: +p.battingOrder % 100 > 0, v: [b.atBats, b.runs, b.hits, b.rbi, b.baseOnBalls, b.strikeOuts, b.homeRuns, p.seasonStats?.batting?.avg || ''] }; });
+    const tb = s.teamStats?.batting || {}, tp = s.teamStats?.pitching || {};
+    const pit = (s.pitchers || []).map(pl).filter(p => p && p.stats?.pitching).map(p => { const q = p.stats.pitching; return { id: p.person.id, name: mlbShort(p.person.fullName) + (q.note ? ' ' + q.note : ''), v: [q.inningsPitched, q.hits, q.runs, q.earnedRuns, q.baseOnBalls, q.strikeOuts, q.homeRuns, q.numberOfPitches, p.seasonStats?.pitching?.era || ''] }; });
+    out.teams.push({ id: tm.id, abbr: tm.abbr, name: tm.name, groups: [
+      { label: 'Batting', first: 'Hitter', cols: ['AB', 'R', 'H', 'RBI', 'BB', 'SO', 'HR', 'AVG'], rows: bat, tot: [tb.atBats, tb.runs, tb.hits, tb.rbi, tb.baseOnBalls, tb.strikeOuts, tb.homeRuns, tb.avg].map(x => N(x)) },
+      { label: 'Pitching', first: 'Pitcher', cols: ['IP', 'H', 'R', 'ER', 'BB', 'SO', 'HR', 'P', 'ERA'], rows: pit, tot: [tp.inningsPitched, tp.hits, tp.runs, tp.earnedRuns, tp.baseOnBalls, tp.strikeOuts, tp.homeRuns, tp.numberOfPitches, ''].map(x => N(x)) }] });
+  }
+  for (const i of bx.info || []) if (i.label && i.value && !/^(Pitches-strikes|Weather|Wind|First pitch|T|Att|Venue|ABS)/i.test(i.label)) out.notes.push({ label: i.label, value: i.value });
+  out.notes = out.notes.slice(0, 12); return out.teams.length === 2 ? out : null;
+}
+SPORT.loadGame = (id, D) => cached(`game:${id}:1:b1`, 600e3, async () => {
   const [j, content] = await Promise.all([getJSON(`https://statsapi.mlb.com/api/v1.1/game/${id}/feed/live`), getJSON(`${API}/game/${id}/content`).catch(() => null)]);
   const gd = j.gameData || {}, ls = j.liveData?.linescore || {};
   const tm = w => { const t = gd.teams[w]; return { id: t.id, abbr: t.abbreviation, name: t.name, logo: mlbLogo(t.id), color: tcol(t.id), score: ls.teams?.[w]?.runs ?? 0 }; };
   const G = { id, sim: false, date: gd.datetime?.officialDate || '', sub: gd.status?.detailedState || '', home: tm('home'), away: tm('away'), ev: [], tot: 0 };
   G.videos = mlbClips(content?.highlights?.highlights?.items);
+  try { G.box = mlbBox(j, G); } catch (e) { /* the replay works without a box score */ }
   SPORT.gameEvents(j, G); return G;
 });
 const mlbShort = n => { const p = String(n || '').trim().split(/\s+/); return p.length > 1 ? `${p[0][0]}. ${p.slice(1).join(' ')}` : p[0] || ''; };

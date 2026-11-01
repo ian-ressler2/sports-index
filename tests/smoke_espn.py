@@ -31,6 +31,7 @@ with sync_playwright() as p:
         txt = pg.evaluate("document.querySelector('#view').innerText.slice(0,150).replace(/\\n/g,' | ')")
         ov = pg.evaluate('document.documentElement.scrollWidth-innerWidth')
         if '/game' in rt: print('  win-prob chart:', pg.evaluate("document.querySelectorAll('.gwp').length"), 'swings:', pg.evaluate("document.querySelectorAll('.gswb').length"), flush=True)
+        if '/game' in rt: print('  box score tables:', pg.evaluate("document.querySelectorAll('#view .dt').length"), 'text:', pg.evaluate("(document.querySelector('#view').innerText.match(/Box score[\\s\\S]{0,120}/)||[''])[0].replace(/\\n/g,' | ')"), flush=True)
         pg.screenshot(path=f'tests/shots/{sport}_{i:02d}_{re.sub(chr(92)+"W+", "_", rt)[:30]}.png')
         flag = '' if (ov <= 0 and not errs and 'went wrong' not in txt.lower()) else '  <-- CHECK'
         if flag: bad += 1

@@ -129,7 +129,29 @@ App.pages.game = async function ({ path, D, el }) {
   const head = pageHead(`${G.date || ''} · REPLAY`, `${G.away.name} at ${G.home.name}`, G.sub || '', SPORT.sim ? h('a', { class: 'btn sm', href: href('/sim', { h: G.home.id, a: G.away.id }) }, 'Simulate this matchup') : null);
   const host = h('div', { class: 'stack' }); mount(el, h('div', { style: { marginBottom: '6px' } }, h('a', { class: 'cap', href: href('/games') }, '‹ All games')), head, highlightsPanel(G.videos) ? h('div', { style: { margin: '14px 0' } }, highlightsPanel(G.videos, 'Game highlights')) : null, host);
   gameViewer(host, G, D);
+  const bx = boxScorePanel(G, D); if (bx) el.append(bx);
 };
+
+/* ---------- box score ----------
+   G.box = { teams: [{ id, abbr, name, groups: [{ label, cols: [..], rows: [{ id, name, pos, sub, v: [..] }], tot: [..] }] }], compare: [{ label, a, h }], notes: [{ label, value }] }
+   teams are listed away first. The sport's loadGame fills it from the same feed it already reads. */
+function boxScorePanel(G, D) {
+  const B = G.box; if (!B || !B.teams?.some(t => t.groups?.some(g => g.rows?.length))) return null;
+  let cur = 0; const body = h('div', {});
+  const link = r => r.id != null && D?.players?.has(+r.id) ? `<a href="${href('/player/' + r.id)}">${esc(r.name)}</a>` : esc(r.name);
+  const draw = () => {
+    const t = B.teams[cur];
+    body.replaceChildren(...t.groups.filter(g => g.rows?.length).map(g => h('div', { style: { marginTop: '12px' } },
+      g.label ? h('div', { class: 'cap', style: { fontWeight: 600, padding: '0 4px 4px' } }, g.label) : null,
+      h('div', { class: 'sc', html: `<table class="dt"><thead><tr><th>${esc(g.first || 'Player')}</th>${g.cols.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${g.rows.map(r => `<tr><td${r.sub ? ' style="padding-left:22px"' : ''}>${link(r)}${r.pos ? ` <small class="dim">${esc(r.pos)}</small>` : ''}</td>${r.v.map(x => `<td>${esc(x ?? '')}</td>`).join('')}</tr>`).join('')}${g.tot ? `<tr style="font-weight:700"><td>Total</td>${g.tot.map(x => `<td>${esc(x ?? '')}</td>`).join('')}</tr>` : ''}</tbody></table>` }))));
+  };
+  const seg = segControl(B.teams.map((t, k) => [k, t.abbr || t.name]), cur, v => { cur = +v; draw(); }, 'sm');
+  draw();
+  const cmp = B.compare?.length ? h('div', { class: 'panel pad' }, h('div', { class: 'row sb', style: { marginBottom: '8px' } }, h('h2', {}, 'Team stats'), h('div', { class: 'cap' }, `${B.teams[0].abbr} · ${B.teams[1].abbr}`)),
+    h('div', { html: `<table class="dt"><tbody>${B.compare.map(c => `<tr><td style="text-align:right;width:30%">${esc(c.a)}</td><td style="text-align:center;font-family:var(--f-sans);color:var(--fg3)">${esc(c.label)}</td><td style="text-align:left;width:30%">${esc(c.h)}</td></tr>`).join('')}</tbody></table>` })) : null;
+  const notes = B.notes?.length ? h('div', { class: 'panel pad cap', style: { lineHeight: 1.6 } }, B.notes.map(n => h('div', {}, h('b', {}, n.label + ': '), n.value))) : null;
+  return h('div', { class: 'stack', style: { marginTop: '16px' } }, h('div', { class: 'panel pad' }, h('div', { class: 'row sb' }, h('h2', {}, 'Box score'), seg), body), cmp, notes);
+}
 
 /* ---------- simulator ---------- */
 App.pages.sim = async function ({ q, D, el }) {
