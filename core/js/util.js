@@ -154,17 +154,37 @@ async function cached(key, ttl, loader) {
 }
 
 /* fetch */
+/* feed health: when a data source stops answering, a banner says so (and goes away on its own when it answers again). A 404 is just "no such page", not an outage. */
+const FEED = {
+  down: new Map(),
+  name(url) { try { const h = new URL(url).hostname; return /espn\./.test(h) ? 'ESPN' : /mlb\.com$/.test(h) ? 'MLB Stats' : /ergast|jolpi|f1/.test(h) ? 'the F1 data feed' : h.replace(/^www\./, ''); } catch (e) { return 'the data feed'; } },
+  fail(url, why) { const n = FEED.name(url); if (!FEED.down.has(n)) { FEED.down.set(n, { why, t: Date.now() }); FEED.draw(); } },
+  ok(url) { const n = FEED.name(url); if (FEED.down.delete(n)) FEED.draw(); },
+  draw() {
+    let b = document.getElementById('feedbanner'); const names = [...FEED.down.keys()];
+    if (!names.length) { b?.remove(); return; }
+    const hd = document.querySelector('header.top'); if (!hd) return;
+    if (!b) { b = document.createElement('div'); b.id = 'feedbanner'; b.className = 'feedbanner'; b.setAttribute('role', 'status'); hd.insertAdjacentElement('afterend', b); }
+    const list = names.length > 1 ? names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1] : names[0];
+    b.innerHTML = '';
+    const msg = document.createElement('span'); msg.textContent = `${list} ${names.length > 1 ? "aren't" : "isn't"} responding right now, so some numbers may be out of date or missing. This clears itself when the feed comes back.`;
+    const retry = document.createElement('button'); retry.type = 'button'; retry.className = 'btn sm'; retry.textContent = 'Try again'; retry.onclick = () => location.reload();
+    const x = document.createElement('button'); x.type = 'button'; x.className = 'ibtn'; x.setAttribute('aria-label', 'Dismiss'); x.textContent = '×'; x.onclick = () => b.remove();
+    b.append(msg, retry, x);
+  },
+};
 async function getText(url, { retries = 2, timeout = 70000 } = {}) {
-  let last;
+  let last, outage = true;
   for (let i = 0; i <= retries; i++) {
     const ac = new AbortController(); const to = setTimeout(() => ac.abort(), timeout);
     try {
       const r = await fetch(url, { signal: ac.signal });
       clearTimeout(to);
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return await r.text();
-    } catch (e) { clearTimeout(to); last = e; await sleep(400 * (i + 1)); }
+      if (!r.ok) { outage = r.status >= 500 || r.status === 403 || r.status === 429 || r.status === 408; throw new Error('HTTP ' + r.status); }
+      const txt = await r.text(); FEED.ok(url); return txt;
+    } catch (e) { clearTimeout(to); last = e; if (!/^HTTP /.test(e.message)) outage = true; await sleep(400 * (i + 1)); }
   }
+  if (outage) FEED.fail(url, String(last && last.message || last)); else FEED.ok(url);
   throw last;
 }
 async function getJSON(url) { return JSON.parse(await getText(url)); }

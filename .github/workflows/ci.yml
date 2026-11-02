@@ -61,6 +61,7 @@ jobs:
           python3 tests/test_podium_real.py
           python3 tests/test_odds_history.py
           python3 tests/test_local_history.py
+          python3 tests/test_feed_banner.py
           python3 tests/test_image.py
       - uses: actions/upload-pages-artifact@v3
         if: github.ref == 'refs/heads/main'
